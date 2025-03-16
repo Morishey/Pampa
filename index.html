@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pampa</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
 </head>
 
 <body>
@@ -26,7 +27,7 @@
 
         <div class="logo">
             <div class="logoImg">
-                <img id="" src="./img/beauty.png" alt="logo">
+                <img id="faceOfPampa" src="./img/beauty.png" alt="logo">
             </div>
             <div class="logoText">Pampa</div>
         </div>
@@ -72,14 +73,14 @@
 
 
 
-    <script src="app.js">
-        // function showPage(pageId) {
-        //     if (pageId === "number") {
-        //         document.body.style.backgroundColor = "#fffafa";
-        //     } else {
-        //         document.body.style.backgroundColor = "#93d4ff"
-        //     }
-        // }
+    <script src="script.js">
+        function showPage(pageId) {
+            if (pageId === "number") {
+                document.body.style.backgroundColor = "#fffafa";
+            } else {
+                document.body.style.backgroundColor = "#93d4ff"
+            }
+        }
     </script>
 </body>
 

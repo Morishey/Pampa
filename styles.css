@@ -48,8 +48,8 @@ body {
 .logo {
   display: flex;
   justify-content: center;
+  text-align: center;
   flex-direction: column;
-  border: 1px solid white;
   align-items: center;
 }
 
@@ -103,7 +103,6 @@ body {
 
 .logoImg {
   display: flex;
-  /* border: 1px solid white; */
   background-color: #fffafa46;
   justify-content: center;
   align-items: center;
@@ -111,7 +110,6 @@ body {
   height: 90px;
   width: 90px;
   border-radius: 180px;
-  margin-left: 25px;
 }
 
 .troubleLogin {
@@ -183,8 +181,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    vertical-align: middle;
-  }
+    }
 
   body.login.active  {
     background-color: #fffafa !important;
