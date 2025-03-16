@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pampa</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav style="display: none;">
+        nav Home bookings profile
+    </nav>
+    <!-- INTRO PAGE FOR MOBILE FIRST TIME -->
+    <div class="intro">
+        <div class="logo">
+            <div class="logoImg">
+                <img id="" src="./img/beauty.png" alt="logo">
+            </div>
+            <div class="logoText">Pampa</div>
+        </div>
+    </div>
+    <!-- lOGIN PAGE -->
+    <div class="loginPage" style="display: none;">
+
+        <div class="logo">
+            <div class="logoImg">
+                <img id="" src="./img/beauty.png" alt="logo">
+            </div>
+            <div class="logoText">Pampa</div>
+        </div>
+
+        <div class="bttnCage">
+            <button class="signIn">Sign in</button>
+            <button class="createAccount">Create account</button>
+
+        </div>
+
+        <p class="troubleLogin">Trouble sigining in ?</p>
+    </div>
+    <!-- NUMBER -->
+    <div id="number" style="display: none;">
+        <div class="goBack">
+            <img id="back" src="./img/back.png" alt="back">
+        </div>
+
+        <div id="topText">
+            <p class="t1">Can we get <br>your number ?</p>
+            <div class="grp1">
+                <input id="dailCode" type="text" class="num1" placeholder="NG +234">
+                <img id="dropDownList" src="./img/down.png" alt="down" style="width: 30px; height: 30px;">
+                <input id="telephone" type="tel" class="num2">
+            </div>
+            <p class="chargesApply">We’ll text you a code to verify you’re really you.
+                <br> Messages and data rates may
+                apply.<span class="blue"> Resend code</span><span id="counter"></span>
+            </p>
+        </div>
+
+        <button class="nextbtn">Next</button>
+
+
+    </div>
+
+
+
+
+
+
+
+
+
+
+    <script src="app.js">
+        // function showPage(pageId) {
+        //     if (pageId === "number") {
+        //         document.body.style.backgroundColor = "#fffafa";
+        //     } else {
+        //         document.body.style.backgroundColor = "#93d4ff"
+        //     }
+        // }
+    </script>
+</body>
+
+</html>
