@@ -12,6 +12,13 @@ npx serve .
 # or: python3 -m http.server
 ```
 
+**Live:** **[getpampa.vercel.app](https://getpampa.vercel.app)** — the Vercel
+project `pampa` builds the repo root as a static site, and the GitHub repo is
+connected to it, so **a push to `master` deploys to production on its own**.
+`tools/` and `.freebuff/` are kept out of the upload by `.vercelignore`. There
+is no server behind the site: escrow, the directory and every account live in
+the browser's own storage, as the sections below describe.
+
 ## What works
 
 - **Splash + two doors, and they no longer share a corridor** — **Sign in**
