@@ -311,7 +311,7 @@ function nearChipHtml(p, first) {
      the screen reader get the reason in full. */
   const why = busy ? "busy" : "paused";
   const full = busy ? "with a client right now" : "books paused";
-  const noted = open ? nearText(km) : why;
+  const noted = open ? nearText(km, p) : why;
   return '<button class="nearChip' + (first ? " first" : "") + (open ? "" : " blocked") +
     '" data-goto-pro="' + esc(p.id) +
     '" aria-label="' + esc(p.name + ", " + p.skill + ", " + (open ? noted : nearText(km) + ", " + full + " — cannot take a booking right now")) +
@@ -449,7 +449,7 @@ function renderStylists() {
       "</div>" +
       '<div class="dist">' +
         (hasLocation()
-          ? '<span class="distKm">' + icon("pin") + awayText(km) + "</span>" +
+          ? '<span class="distKm">' + icon("pin") + awayText(km, s) + "</span>" +
             '<span class="distMode' + (covers ? " on" : "") + '">' + (covers ? "Visits you" : "Studio only") + "</span>"
           : '<span class="distKm">' + icon("pin") + "Set location</span>") +
       (range && head

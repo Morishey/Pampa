@@ -664,6 +664,13 @@ function wire() {
       renderSheet();
       return;
     }
+    /* "Use my location for the exact fee", on the fee box itself: the client's
+       own tap, so the only one allowed to speak about it. The fresh fix
+       re-prices the sheet when it lands. */
+    if (t.closest("[data-freshen-gps]")) {
+      freshenClientFix({ announce: true });
+      return;
+    }
   });
 
   $$(".signIn").forEach(function (btn) {

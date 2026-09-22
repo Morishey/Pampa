@@ -106,7 +106,7 @@ function renderProviderProfile() {
     '<div class="provChips">' +
       '<span class="provChip ' + (open ? "on" : withClient ? "busy" : "off") + '">' + icon(open ? "check" : "clock") +
         (open ? "Taking bookings" : withClient ? "In session" : "Books paused") + "</span>" +
-      '<span class="provChip">' + icon("pin") + esc(awayText(km)) + "</span>" +
+      '<span class="provChip">' + icon("pin") + esc(awayText(km, p)) + "</span>" +
       '<span class="provChip' + (covers ? " on" : "") + '">' + icon(covers ? "house" : "store") +
         (covers ? "Visits you" : "Studio only") + "</span>" +
       (p.jobs ? '<span class="provChip">' + icon("wrench") + p.jobs + " jobs</span>" : "") +

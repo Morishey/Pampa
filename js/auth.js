@@ -523,6 +523,7 @@ function signInReturning(acc) {
     trade: acc.trade || null,
     area: acc.area || null,
     coords: acc.coords || null,
+    coordsAccuracy: acc.coordsAccuracy || null,
     address: acc.address || "",
     dp: acc.dp || "",
     remember: true

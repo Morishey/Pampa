@@ -574,7 +574,13 @@ function renderWork() {
       return '<button class="card workCard" data-bookcard="' + esc(b.id) + '">' +
         '<span class="rowInfo"><b>' + esc(sv.name || "Booking") + " · " + esc(b.clientName || "Client") + "</b>" +
         "<small>" + esc(b.date) + " · " + esc(b.time) + " · " +
-          (b.loc === "home" ? "Home visit" : "Walk-in at your studio") + " · you keep " + naira(net || 0) + "</small></span>" +
+          (b.loc === "home"
+            ? "Home visit" + (b.km != null
+              ? " · " + (b.kmPrecise === false ? "~" : "") + fmtKm(b.km) +
+                (b.km >= PRECISE_EPS ? " · ~" + driveMins(b.km) + " min" : "") +
+                (b.travelFee ? " · " + naira(b.travelFee) + " travel" : "")
+              : "")
+            : "Walk-in at your studio") + " · you keep " + naira(net || 0) + "</small></span>" +
         '<span class="money">' + naira(b.total || b.price || 0) + "</span></button>";
     }).join("");
   }

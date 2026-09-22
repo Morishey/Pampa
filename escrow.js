@@ -1167,17 +1167,50 @@ function renderPro() {
   $("#proBody").innerHTML = head + body;
 }
 
-function whereTextFor(b) {
-  if (b.loc === "studio") return icon("store") + " Client comes to your studio" + (b.areaName ? " · " + esc(b.areaName) : "");
+/* The trip, from the professional's side of it: where they are going, how far
+   it is, and what the client is paying for the journey. A home visit is a
+   promise of travel, so the travel belongs on the card as its own fact — not
+   folded into a price line where it reads like a surcharge the client chose.
+
+   The distance is marked the way every distance in the app is: plain when the
+   booking was priced fix-to-fix, tilde when it was measured to the centre of
+   the client's area because no device fix existed. The booking carries which
+   one it was (kmPrecise, a snapshot from the sheet), so a card the professional
+   reads three days later says what it knew at pricing time — not what the
+   client's device happens to say now. */
+function tripTextFor(b) {
+  if (b.loc === "studio") {
+    return icon("store") + " Client comes to your studio" + (b.areaName ? " · " + esc(b.areaName) : "") +
+      " · no travel fee";
+  }
+  const approx = b.kmPrecise === false;
+  const km = b.km;
+  /* Kilometres are geography; minutes are the decision. A pro weighing a job
+     thinks "can I be there for 10:30?", and the app already has the answer's
+     arithmetic — driveMins is the same estimate the walk-in line uses. The
+     tilde rides along: an approximate distance can only produce an
+     approximate time. */
+  const dist = km == null ? "distance unknown"
+    : km < PRECISE_EPS ? "in your area"
+      : (approx ? "~" : "") + fmtKm(km) + " from your studio";
+  const mins = km == null || km < PRECISE_EPS ? "" : " · ~" + driveMins(km) + " min drive" + (approx ? "" : "");
+  const fee = b.travelFee ? naira(b.travelFee) : "no travel fee";
   return icon("house") + " " + esc(placeLine(b.address, b.areaName || "client address")) +
-    (b.km != null ? " · " + fmtKm(b.km) + " from your studio" : "");
+    (km != null ? " · " + dist + mins : "") +
+    " · travel " + fee +
+    (approx && km != null && km >= PRECISE_EPS
+      ? " · measured to the centre of " + esc(b.areaName || "their area")
+      : "");
 }
 
 /* The same line from the mediator's point of view, where "your studio" means nothing. */
 function whereTextNeutral(b) {
   if (b.loc === "studio") return icon("store") + " Studio visit" + (b.areaName ? " · " + esc(b.areaName) : "");
+  const approx = b.kmPrecise === false;
+  const mins = b.km == null || b.km < PRECISE_EPS ? "" : " · ~" + driveMins(b.km) + " min drive";
   return icon("house") + " " + esc(placeLine(b.address, b.areaName || "client address")) +
-    (b.km != null ? " · " + fmtKm(b.km) + " from the stylist's studio" : "");
+    (b.km != null ? " · " + (approx ? "~" : "") + fmtKm(b.km) + " from the stylist's studio" + mins : "") +
+    (b.travelFee ? " · travel " + naira(b.travelFee) : "");
 }
 
 function proRequestsHtml(list) {
@@ -1199,7 +1232,6 @@ function proRequestsHtml(list) {
       ? '<p class="proOffer countered">' + icon("coin") + " You countered <b>" + naira(counter) +
         "</b> · waiting on the client's answer</p>"
       : '<p class="proOffer' + (inRange ? "" : " low") + '">' + icon("coin") + " Client offers <b>" + naira(offer) + "</b>" +
-        (b.travelFee ? " + " + naira(b.travelFee) + " travel" : "") +
         " · your range " + esc(rangeText(range)) + "</p>";
     /* With a counter outstanding there is nothing left to decide: the client
        holds the answer, and the only thing the pro can still do is walk away. */
@@ -1216,7 +1248,7 @@ function proRequestsHtml(list) {
       '<div class="proTop"><h4>' + esc(sv.name || "Service") + '</h4>' +
         '<span class="badge info">' + naira(paid) + " in escrow</span></div>" +
       '<p class="proMeta">' + esc(b.clientName || "Client") + " · " + esc(b.date) + " at " + esc(b.time) + "</p>" +
-      '<p class="proMeta">' + whereTextFor(b) + "</p>" +
+      '<p class="proMeta">' + tripTextFor(b) + "</p>" +
       priceLine +
       /* With a counter on the table these are the numbers the client would be
          accepting, not the ones in escrow \u2014 so the label says which. */
@@ -1238,7 +1270,7 @@ function proDisputesHtml(list) {
     const head = '<div class="proTop"><h4>' + esc(sv.name || "Service") + " · " + esc(statusLabelFor(b)) + "</h4>" +
       '<span class="badge bad">' + naira(frozen) + " frozen</span></div>" +
       '<p class="proMeta">' + esc(b.clientName || "Client") + " · " + esc(b.date) + " at " + esc(b.time) + "</p>" +
-      '<p class="proMeta">' + whereTextFor(b) + "</p>";
+      '<p class="proMeta">' + tripTextFor(b) + "</p>";
 
     if (resp) {
       return '<div class="card proCard" data-prodispute="' + b.id + '">' + head +
@@ -1285,7 +1317,7 @@ function proJobsHtml(list) {
       '<div class="proTop"><h4>' + esc(sv.name || "Service") + '</h4>' +
         '<span class="badge ok">' + naira(net) + " held</span></div>" +
       '<p class="proMeta">' + esc(b.clientName || "Client") + " · " + esc(b.date) + " at " + esc(b.time) + "</p>" +
-      '<p class="proMeta">' + whereTextFor(b) + "</p>" +
+      '<p class="proMeta">' + tripTextFor(b) + "</p>" +
       step +
       (b.proMarkedDone ? "" :
         '<div class="proActions"><button class="bookBtn wide" data-jobdone="' + b.id + '">Mark job done</button></div>') +

@@ -85,6 +85,10 @@ function rememberAccount() {
   acc.trade = u.trade || null;
   acc.area = u.area || null;
   acc.coords = u.coords || null;
+  /* Kept beside the fix: how well the device could see, so the precision
+     labels stay honest across sign-outs instead of degrading into "accurate"
+     on returning. */
+  acc.coordsAccuracy = u.coordsAccuracy || null;
   acc.address = u.address || "";
   /* Assigned, not conditionally set: a picture that was *removed* has to be
      able to reach the account book too. `if (u.dp)` left the old picture in
@@ -103,9 +107,9 @@ function rememberAccount() {
 /* Nkechi arrives paused on purpose: the switch that turns bookings off is only
    discoverable if the client side of it can be seen without a second account. */
 const PROVIDER_SEED = [
-  { id: "ade", name: "Ade", skill: "Barbing", cats: ["barb"], studio: "surulere", rating: 0, jobs: 0 },
-  { id: "ireti", name: "Ireti", skill: "Hair", cats: ["hair"], studio: "gbagada", rating: 4.6, jobs: 12 },
-  { id: "nkechi", name: "Nkechi", skill: "Nails", cats: ["nails"], studio: "ajah", rating: 0, jobs: 0, available: false },
+  { id: "ade", name: "Ade", skill: "Barbing", cats: ["barb"], studio: "surulere", rating: 0, jobs: 0, coords: { lat: 6.4838, lng: 3.3550 } },
+  { id: "ireti", name: "Ireti", skill: "Hair", cats: ["hair"], studio: "gbagada", rating: 4.6, jobs: 12, coords: { lat: 6.5568, lng: 3.3870 } },
+  { id: "nkechi", name: "Nkechi", skill: "Nails", cats: ["nails"], studio: "ajah", rating: 0, jobs: 0, available: false, coords: { lat: 6.4705, lng: 3.5620 } },
 ];
 
 function ensureProviderSeed() {
@@ -119,6 +123,16 @@ function ensureProviderSeed() {
          so a shipped change lands once and then stops being rewritten. */
       const rec = state.providers[at];
       const want = s.available !== false;
+      /* The same following-the-seed rule covers the point: a record written
+         before seeds carried coordinates is missing the one fact precise
+         distances are measured from, so it is backfilled once — and a real
+         registration that arrives later with its own fix shadows the seed
+         anyway, because local records outrank seeds by id. */
+      if (rec.seed && s.coords && !rec.coords) {
+        rec.coords = s.coords;
+        rec.coordsAccuracy = 30;
+        saveDirectory();
+      }
       if (rec.seed && (rec.seedDefault === undefined || rec.seedDefault !== want)) {
         rec.seedDefault = want;
         rec.available = want;
@@ -128,6 +142,10 @@ function ensureProviderSeed() {
     }
     state.providers.push({ id: s.id, name: s.name, skill: s.skill, cats: s.cats.slice(),
       studio: s.studio, rating: s.rating, jobs: s.jobs, covers: null, seed: true,
+      /* A seeded shop is a known place, not a district: it carries a point, so
+         distances to it read as door-to-door rather than as a tilde over an
+         area centre. */
+      coords: s.coords || null, coordsAccuracy: s.coords ? 30 : null,
       available: s.available !== false, seedDefault: s.available !== false });
   });
 }
@@ -306,6 +324,13 @@ function registerProviderSelf() {
     jobs: prev ? prev.jobs : 0,
     cats: [t.id],
     studio: u.area || null,
+    /* The device fix rides the public record: a client measuring "how near is
+       this barber" reads point-to-point when both sides gave a position, and
+       the accuracy travels with it so "~" marks every centre-measured number.
+       Deliberately not kept from prev — an answer given by address only must
+       not keep publishing a stale fix from an earlier save. */
+    coords: u.coords || null,
+    coordsAccuracy: u.coordsAccuracy || null,
     covers: null,
     /* the bio is part of the public record, not just the session */
     bio: u.bio !== undefined && u.bio !== null ? u.bio : (prev && prev.bio) || null,

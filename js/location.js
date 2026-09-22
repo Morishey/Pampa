@@ -128,8 +128,12 @@ function renderLocState() {
   const a = areaById(placed.areaId);
   const where = a.name + ", " + a.city;
   const outside = placed.source === "device" && placed.away > COVERAGE_KM;
-  const metres = locDraft.accuracy && locDraft.accuracy < 1000
-    ? " · accurate to " + Math.round(locDraft.accuracy) + " m"
+  /* Said at the precision the fix actually has: 20 m of GPS drift is a real
+     answer, 2 km of area-centre guessing is not, and the sentence says which
+     one it is so the reader is never promised precision that isn't there. */
+  const precise = locDraft.accuracy != null;
+  const metres = precise && locDraft.accuracy < 1000
+    ? " · accurate to about " + Math.round(locDraft.accuracy) + " m"
     : "";
   box.innerHTML = locRow(outside ? "warn" : "on", where,
     outside
@@ -171,9 +175,18 @@ function useGps() {
   }, function (err) {
     btn.disabled = false;
     btn.innerHTML = gpsBtnHtml();
+    /* The three failures deserve three messages, because they have three
+       different ways out: a denied prompt is the device's settings; an
+       unavailable fix is often a phone with Location services off; a timeout
+       indoors can pass by a window. Each says the honest reason and the way
+       around it — the address field is always the door that works. */
     toast(err && err.code === 1
-      ? "Location permission is off — type your address instead"
-      : "Couldn't read this device's location — type your address instead");
+      ? "Location permission is off for this app — allow it in your browser settings, or type your address"
+      : err && err.code === 2
+        ? "This device can't get a fix right now — is Location turned on? Or type your address"
+        : err && err.code === 3
+          ? "Couldn't get a fix in time — try again near a window, or type your address"
+          : "Couldn't read this device's location — type your address instead");
   }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
 }
 
@@ -196,8 +209,7 @@ function saveLocation() {
     return;
   }
   u.address = text;
-  u.area = placed.areaId;
-  /* A device fix is kept as the point distances are measured from — but only
+  u.area = placed.areaId;  /* A device fix is kept as the point distances are measured from — but only
      when it is inside the areas we cover. A fix 500 km away is not a distance
      to price travel off; the nearest area we do cover stands in for it, which
      is also what keeps signing up possible from anywhere. An address that named
@@ -205,6 +217,10 @@ function saveLocation() {
   const usable = placed.source === "device" && placed.point && placed.away <= COVERAGE_KM;
   if (usable) u.coords = placed.point;
   else delete u.coords;
+  /* How well the device could see the sky, kept with the fix: it is what the
+     app's precision labels are honest about, and what the directory publishes
+     beside the point itself. */
+  u.coordsAccuracy = usable ? (locDraft.accuracy || null) : null;
   /* your studio is your area, so a registration follows you when you move */
   registerProviderSelf();
   save();

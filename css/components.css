@@ -543,6 +543,37 @@
   background: var(--line);
 }
 
+/* Why the app asks for location — one quiet line under the address field, next
+   to the button that triggers the prompt, so the question and the reason share
+   a screen. */
+.locPrivacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 24px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.locPrivacy .locPrivacyIco {
+  display: inline-flex;
+  flex: none;
+  margin-top: 1px;
+  color: var(--gold-deep, var(--gold));
+}
+
+.locPrivacy .locPrivacyIco svg,
+.locPrivacy .locPrivacyIco span {
+  width: 14px;
+  height: 14px;
+}
+
+.locPrivacy b {
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .locOr span {
   font-size: 12px;
   letter-spacing: 0.08em;

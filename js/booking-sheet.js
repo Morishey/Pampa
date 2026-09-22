@@ -68,6 +68,10 @@ function openSheet(serviceId, presetStylistId) {
   // Force a reflow so the slide-up transition runs even when rAF is throttled.
   void sheet.offsetHeight;
   sheet.classList.add("show");
+  /* A home fee is only "exact" if it is priced off where the client is now,
+     not where they saved their address from. One silent read per open; the
+     result re-prices the sheet the moment it lands. */
+  freshenClientFix();
 }
 
 /* Why a slot cannot be taken: somebody already holds that exact time, or it
@@ -121,7 +125,9 @@ function offerFor(d, st, sv) {
 
 /* Distance, travel and the running total for whatever the sheet currently has
    selected. One function, so the slider, the where toggle and the foot can
-   never disagree about the same booking. */
+   never disagree about the same booking. The distance is the precise one —
+   fix-to-fix when both sides have a position — and sheetMoney is what makes a
+   fresh device fix re-price the sheet the moment it lands. */
 function sheetMoney(d, st) {
   const km = kmToStudio(st);
   const travel = d.loc === "home" ? travelFeeFor(km) : 0;
@@ -129,12 +135,76 @@ function sheetMoney(d, st) {
   return { km: km, travel: travel, total: total };
 }
 
+/* A reading of where the client is *right now*, taken when the booking sheet
+   opens and when the client asks for one on the fee itself. The saved fix can
+   be weeks old; a travel fee priced off where somebody stood in March is not
+   "exact", whatever the maths says. So the sheet quietly re-reads the device,
+   and a better fix updates the profile, the fee box and the whole sheet.
+
+   Rules that keep it honest: a fix outside the covered areas is ignored (the
+   same rule saveLocation applies); a reading less precise than three times the
+   saved fix's accuracy does not replace it (a 2 km wifi guess must not clobber
+   a 15 m GPS lock); and silent mode never toasts — only the client's own tap
+   on the fee speaks. */
+function freshenClientFix(opts) {
+  const o = opts || {};
+  if (!navigator.geolocation) {
+    if (o.announce) toast("This device can't read a location — priced from your saved one");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    const point = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    const acc = pos.coords.accuracy || null;
+    const near = nearestAreaTo(point);
+    if (near.km > COVERAGE_KM) {
+      if (o.announce) toast("You're " + fmtKm(near.km) + " from the areas we cover — priced from " + near.area.name);
+      return;
+    }
+    const u = state.user || (state.user = {});
+    const better = !u.coords || u.coordsAccuracy == null || acc == null || acc <= u.coordsAccuracy * 3;
+    if (!better) {
+      if (o.announce) toast("Kept your saved location — this reading was less precise");
+      return;
+    }
+    u.coords = point;
+    u.coordsAccuracy = acc;
+    save();
+    rememberAccount();
+    /* Rebuild, not just the fee box: the pick cards' distances, the where
+       line and the total all read the same point. Only while the sheet is
+       open — a fix that lands after it closed has nothing to repaint. */
+    if (document.querySelector("#bookingSheet.show")) renderSheet();
+    if (o.announce) toast("Priced from where you are now — " + fmtKm(near.km) + " from the centre of " + near.area.name);
+  }, function () {
+    if (o.announce) toast("Couldn't read your location — priced from your saved one");
+  }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
+}
+
 function sheetFeeRows(sv, d, m) {
-  const r = rangeFor(stylistById(d.stylistId), sv.id);
+  const st = stylistById(d.stylistId);
+  const r = rangeFor(st, sv.id);
+  /* The distance the fee is computed from, said at its true precision: a
+     fix-to-fix number reads plain, an area-centre one wears the tilde — the
+     same convention as every other distance in the app. */
+  const approx = kmPrecision(st) === "approx";
+  const dist = m.km == null ? "distance unknown"
+    : m.km < PRECISE_EPS ? "in your area"
+      : (approx ? "~" : "") + fmtKm(m.km) + " away";
+  /* The tariff on the row: a ₦1,000 charge for a 400 m walk is only
+     acceptable once the client can see it is a call-out base that covers the
+     first three kilometres, not a per-metre tax. */
+  const home = d.loc === "home";
   return '<p class="feeRow"><span>' + esc(sv.name) + " \u00b7 your price</span><b>" + naira(d.offer || 0) + "</b></p>" +
-    (m.travel ? '<p class="feeRow"><span>Travel \u00b7 ' + fmtKm(m.km) + "</span><b>" + naira(m.travel) + "</b></p>" : "") +
+    (m.travel ? '<p class="feeRow"><span>Travel to you \u00b7 ' + esc(dist) + "</span><b>" + naira(m.travel) + "</b></p>" : "") +
     '<p class="feeRow total"><span>Total into escrow</span><b>' + naira(m.total) + "</b></p>" +
-    '<p class="finePrint">Their range for ' + esc(sv.name) + " is " + esc(rangeText(r)) + ".</p>";
+    '<p class="finePrint">Their range for ' + esc(sv.name) + " is " + esc(rangeText(r)) + "." +
+      (home && m.travel
+        ? " Travel is " + naira(TRAVEL.base) + " for the first " + TRAVEL.freeKm + " km, then " + naira(TRAVEL.perKm) + " a km" +
+          (approx
+            ? ' — measured to the centre of your area. <button class="feeGps" data-freshen-gps="1">Use my location for the exact fee</button>'
+            : " — computed from where you are now.")
+        : "") +
+    "</p>";
 }
 
 /* Live, because a range is dragged rather than clicked: the number, the total
@@ -243,9 +313,19 @@ function renderSheet() {
   const studioAddr = studioAddressFor(st);
   /* The walk-in half says where to come to, how far it is and that nothing is
      charged for travel: a client choosing the studio is choosing a journey, so
-     the journey has to be on the card. */
+     the journey has to be on the card. The home half answers with the same
+     three facts in the other order — where they will come to, how far that
+     is, and what coming costs — so the where-toggle itself states the fee
+     before the foot does. */
+  const homeKm = kmToStudio(st);
+  const homeFee = money.travel;
+  const homeDist = homeKm == null ? ""
+    : homeKm < PRECISE_EPS ? "they're in your area"
+      : "they're " + (kmPrecision(st) === "approx" ? "~" : "") + fmtKm(homeKm) + " away";
   const locInfo = d.loc === "home"
-    ? icon("house") + " " + esc(placeLine(state.user.address, clientAreaName()))
+    ? icon("house") + " " + esc(placeLine(state.user.address, clientAreaName())) +
+      (homeKm == null ? "" : " · " + esc(homeDist) +
+        (homeFee ? " · travel " + naira(homeFee) : " · no travel fee"))
     : icon("store") + " " + (studioArea
         ? "Walk in to " + esc(studioAddr || studioArea.name) + " · " + fmtKm(studioKm) + " away · ~" +
           driveMins(studioKm) + " min drive · no travel fee"
@@ -371,6 +451,15 @@ function confirmBooking() {
      last time: the slider's limits can be out of date if this sheet has been
      open while the professional changed their rates. */
   const priced = offerFor(d, st, sv);
+  /* The last word on the fee belongs to the sheet itself: whatever is on the
+     card when the client taps confirm is the fee the booking carries, because
+     sheetMoney, the slider's paint and this line all read the same point. A
+     fee the client never saw quoted cannot exist here. */
+  const quoted = sheetMoney(d, st);
+  if (quoted.travel !== travelFee || quoted.total !== priced.offer + travelFee) {
+    renderSheet();
+    return;
+  }
   const now = new Date().toISOString();
   const booking = {
     id: "b" + Date.now(),
@@ -389,7 +478,12 @@ function confirmBooking() {
        client still has the door to knock on after the sheet is gone */
     studioAddress: d.loc === "studio" ? studioAddressFor(st) : "",
     studioAreaName: d.loc === "studio" ? (areaById(st.studio) || {}).name || "" : "",
-    km: km == null ? null : Math.round(km * 10) / 10,
+    km: km == null ? null : Math.round(km * 1000) / 1000,
+    /* Which kind of distance the fee was priced at, recorded on the booking:
+       the professional reading the request deserves to know whether 406 m is
+       door-to-door or a tilde over a district centre, and the snapshot is the
+       only place that answer still lives once the sheet is gone. */
+    kmPrecise: kmPrecision(st) === "fix",
     travelFee: travelFee,
     price: priced.offer,
     total: priced.offer + travelFee,

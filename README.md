@@ -475,6 +475,22 @@ each with its own icon and its own consequence.
 - **Home visit** — the professional travels and the client's address is the
   destination. The sheet states that address, and the travel fee is added to the
   total (`TRAVEL.base` plus per-kilometre beyond the free radius).
+
+  The fee is **shown before confirming, priced off the precise fix-to-fix
+  distance**, and it says what it is: the fee row reads *Travel to you · 406 m
+  away — ₦1,000*, the fine print states the tariff (₦1,000 for the first 3 km,
+  then ₦250 a km), and the where-toggle states the fee inline (*they're 406 m
+  away · travel ₦1,000*) before the foot is even reached. When one side has no
+  device fix the distance is area-centre measured and wears the tilde — and
+  because a fee priced off a district centre is only an estimate, the fee box
+  then offers *Use my location for the exact fee*, which re-reads the device
+  and re-prices the sheet in place. The sheet also quietly re-reads the device
+  once when it opens, so a fix saved weeks ago never prices today's visit; a
+  reading less precise than three times the saved fix's accuracy does not
+  replace it, and one outside the covered areas is ignored. Whatever fee is on
+  the card when the client taps confirm is the fee the booking carries —
+  confirm re-reads the same point and rebuilds the sheet if the two could
+  disagree.
 - **Studio walk-in** — the client travels. The sheet says *Walk in to* the
   professional's studio address, how far it is, how long the drive takes, and
   *no travel fee* in as many words. The total is the service price and nothing
@@ -653,7 +669,13 @@ unpaid ──pay──▶ escrowed ──stylist accepts──▶ confirmed ─�
 
 - **unpaid** — the booking holds the slot but a stylist cannot accept it yet
 - **escrowed** — the client's money is held. The stylist sees the request with
-  the payout they'll receive, and accepts or declines
+  the payout they'll receive, and accepts or declines — and with the **trip
+  stated as its own fact**: the client's address, how far it is from their
+  studio, what the travel pays, and which kind of distance it is (plain when
+  the booking was priced fix-to-fix, tilde with *measured to the centre of*
+  the area when no device fix existed). The booking snapshots `kmPrecise` at
+  pricing time, so the card says what the fee was computed from, not what a
+  device would guess now.
 - **confirmed** — the stylist accepted; the money is still held
 - **released** — the client confirms the job was done and satisfactory and the
   money moves to the stylist's withdrawable balance
@@ -740,13 +762,29 @@ Booking is built around where you are. Ten Lagos areas ship with approximate
 coordinates, and all distances are computed on-device with the haversine
 formula — no map service, no API key, no network needed.
 
+**Distances are measured fix-to-fix.** Both halves of every distance can now be
+real points: the client's device fix and the professional's, each captured with
+`enableHighAccuracy` and each carrying the accuracy the device reported. A
+distance is measured between those two points when both exist and falls back to
+the area centre only for whichever side never gave one — and which kind of
+number it is stays visible: a fix-to-fix distance reads plain (*406 m away*),
+an approximate one is marked with a tilde (*~1.2 km away*). Under 50 m two
+points are the same place, so the answer is "in your area" rather than a
+decimal that implies precision the GPS does not have. The professional's fix
+and its accuracy ride their public directory record, so the precision survives
+sign-out and other devices read the same door-to-door distance.
+
 - **Set where you are, from the device or from what you typed** — there is no
   list of areas to scroll. Tap *Use my current location* (a full-width gold
   pill that reads this device with `enableHighAccuracy`) or type your address;
   the field places it as you type, and the line under it says what the two
   inputs add up to before you continue:
   *Surulere, Lagos — from your address · home visits route here*, or
-  *Victoria Island, Lagos — from this device's location · accurate to 13 m*.
+  *Victoria Island, Lagos — from this device's location · accurate to about
+  13 m*. The three ways a fix can fail are named, not swallowed: a denied
+  prompt points at the browser's settings, no fix suggests checking that
+  Location is on, a timeout says try near a window — and the address field is
+  always the way that still works.
   An address is placed by what it names: the area inside it (*12 Bode Thomas,
   **Surulere***) or a street that belongs to one (Bode Thomas, Ozumba Mbadiwe,
   Admiralty Way, Allen Avenue…). The street is kept whole, because it is the
@@ -1439,6 +1477,38 @@ set again the moment a professional enters it. Verified by opening the desk, a
 provider's page and two sheets, logging out, and reading all of it back as
 `none` with `proId` null and no `.sheet.show` left anywhere.
 
+## The database
+
+Pampa runs on the device: accounts, the directory, bookings and the escrow
+ledger all live in localStorage, and that is why two people still cannot book
+*each other* — a professional registered on one phone is invisible to the client
+on another. Postgres is the fix, and `supabase/` is that backend, written and
+waiting for a project to be pointed at.
+
+Two migrations hold the whole thing: `accounts_and_directory` (the twelve
+reference areas, four trades and nine services the app already knows; accounts;
+sessions; provider profiles with rates as bands) and `bookings_and_escrow`
+(bookings, the append-only journal, payouts, and every transition — accept,
+counter, agree, mark done, release, cancel, dispute, reply, settle).
+
+The reason it is Postgres functions rather than table access is the escrow.
+`escrow.js` decides the state machine in whichever browser has the page open,
+which is fine for a demo and hopeless for money: a client can rewrite their own
+ledger. So the legal moves are a table of pairs (`pampa_transition_ok`), a trigger
+refuses everything not on it, the journal is append-only by trigger, and the
+arithmetic — travel fees, the 10% fee, the dispute split — happens server-side.
+`supabase/README.md` explains the shape, including why the anon key is public
+and harmless and why RLS is used the blunt way here (every table shut, the
+`security definer` functions the only way in) when there is no JWT to identify
+anyone with.
+
+`js/config.js` holds the Project URL and anon key and is empty today, on
+purpose: with nothing configured the app keeps running exactly as it does now,
+so the database can be built underneath a working site. `js/db.js` is its client
+half — one `fetch` to PostgREST and the named calls the app will make — and
+neither is in `index.html` yet, because nothing is wired to them until there is a
+database to wire to.
+
 ## Files
 
 - `index.html` — all screens (intro, welcome, number, OTP, name, role, trade,
@@ -1500,6 +1570,11 @@ and two rules are worth knowing before adding to it.
 - `location.js` — the area picker, the GPS fix, the home address
 - `booking-sheet.js` — service, slot and professional, nearest first
 - `wiring.js` — every listener, then boot. **Must stay last.**
+
+Two more modules are written and not yet loaded: `config.js` (which database,
+if any) and `db.js` (the PostgREST client and the calls into it). They are
+deliberately absent from the list above, because this list is the page's load
+order and they are not in the page.
 
 The rules that keep it working: `wiring.js` is the only file with statements at
 load time that touch the DOM (listeners and `boot`), so nothing in a module after

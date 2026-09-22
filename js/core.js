@@ -93,10 +93,10 @@ const TRAVEL = { base: 1000, freeKm: 3, perKm: 250 };
 const COVERAGE_KM = 25;
 
 const STYLISTS = [
-  { id: "amara", name: "Amara", skill: "Braids & weaves", rating: 4.9, jobs: 210, cats: ["hair"], studio: "lekki1", covers: ["lekki1", "vi", "ikoyi", "ajah"] },
-  { id: "tunde", name: "Tunde", skill: "Barbing", rating: 4.8, jobs: 164, cats: ["barb", "hair"], studio: "yaba", covers: ["yaba", "surulere", "gbagada", "oshodi", "maryland", "ikeja"] },
-  { id: "zainab", name: "Zainab", skill: "Nails", rating: 4.7, jobs: 98, cats: ["nails"], studio: "ikeja", covers: ["ikeja", "maryland", "oshodi", "gbagada"] },
-  { id: "sofia", name: "Sofia", skill: "Spa & facials", rating: 5.0, jobs: 77, cats: ["spa", "nails"], studio: "ikoyi", covers: ["ikoyi", "vi", "lekki1", "yaba"] },
+  { id: "amara", name: "Amara", skill: "Braids & weaves", rating: 4.9, jobs: 210, cats: ["hair"], studio: "lekki1", coords: { lat: 6.4385, lng: 3.4680 }, covers: ["lekki1", "vi", "ikoyi", "ajah"] },
+  { id: "tunde", name: "Tunde", skill: "Barbing", rating: 4.8, jobs: 164, cats: ["barb", "hair"], studio: "yaba", coords: { lat: 6.5122, lng: 3.3770 }, covers: ["yaba", "surulere", "gbagada", "oshodi", "maryland", "ikeja"] },
+  { id: "zainab", name: "Zainab", skill: "Nails", rating: 4.7, jobs: 98, cats: ["nails"], studio: "ikeja", coords: { lat: 6.5860, lng: 3.3550 }, covers: ["ikeja", "maryland", "oshodi", "gbagada"] },
+  { id: "sofia", name: "Sofia", skill: "Spa & facials", rating: 5.0, jobs: 77, cats: ["spa", "nails"], studio: "ikoyi", coords: { lat: 6.4548, lng: 3.4390 }, covers: ["ikoyi", "vi", "lekki1", "yaba"] },
 ];
 
 /* Seed portfolios: real photography from the same lightweight CDN the hero
@@ -350,8 +350,53 @@ function kmFromClient(areaId) {
   return haversineKm(p, a);
 }
 
+/* The studio distance, now at the precision both sides allow: this is what the
+   sixteen call sites (cards, chips, the booking sheet, clips, profiles) read,
+   and every one of them gets the fix-to-fix number when it exists. */
 function kmToStudio(st) {
-  return kmFromClient(st.studio);
+  return kmToProvider(st);
+}
+
+/* ---------- Precise distances ----------
+   The area centre was the only thing the app could measure from when nobody
+   had given it a fix, and it answered every distance with a small lie: two
+   barbers a street apart both read "your area", and "1.2 km" was impossible.
+   The device fix is the honest answer, so it is now the first thing measured
+   from — the client's own fix against the professional's, falling back to the
+   area centre only for whichever side never gave one.
+
+   Two rules keep it truthful. Below PRECISE_EPS two points are the same place
+   at this display resolution, so the answer is 0 rather than a decimal that
+   implies precision the GPS does not have. And every caller can ask
+   kmPrecision() which kind of number it is showing, so "~" can mark a distance
+   measured to a centre rather than to a door. */
+const PRECISE_EPS = 0.05;
+
+function providerPoint(st) {
+  const c = st && st.coords;
+  if (c && Number.isFinite(c.lat) && Number.isFinite(c.lng)) return { lat: c.lat, lng: c.lng };
+  const a = areaById(st && st.studio);
+  return a ? { lat: a.lat, lng: a.lng } : null;
+}
+
+/* How far a professional is from this client, as exactly as both sides allow:
+   fix-to-fix when both devices gave a position, otherwise to the best point
+   that exists — a centre, not a door. */
+function kmToProvider(st) {
+  const from = clientPoint();
+  const to = providerPoint(st);
+  if (!from || !to) return null;
+  const d = haversineKm(from, to);
+  return d < PRECISE_EPS ? 0 : d;
+}
+
+/* Which kind of distance a card is showing: "fix" means both devices gave a
+   position and the number is door-to-door; "approx" means one side is only
+   known to its area, and the UI marks it so the reader is never lied to by
+   the absence of a decimal. */
+function kmPrecision(st) {
+  const u = state.user || {};
+  return (u.coords && st && st.coords) ? "fix" : "approx";
 }
 
 function travelFeeFor(km) {
@@ -375,18 +420,24 @@ function fmtKm(km) {
    studio is the client's own area is not "0 m away": the app knows their area,
    not their doorstep, so it says the true thing, which is also the thing that
    makes two professionals a street apart distinguishable on a list sorted by
-   distance. */
-function nearText(km) {
+   distance.
+
+   Both take an optional `st`: with it, the distance is measured fix-to-fix
+   where both sides gave a position, and an approximate one — measured to an
+   area centre because one side never gave a fix — is marked with "~". A
+   tilde is the honest difference between 1.2 km to a door and 1.2 km to the
+   middle of a district. */
+function nearText(km, st) {
   if (km == null) return "\u2014";
-  if (km < 0.05) return "your area";
-  return fmtKm(km);
+  if (km < PRECISE_EPS) return "your area";
+  return (kmPrecision(st) === "approx" ? "~" : "") + fmtKm(km);
 }
 
 /* Reads as a sentence even when a provider has no studio area on file. */
-function awayText(km) {
+function awayText(km, st) {
   if (km == null) return "Distance unknown";
-  if (km < 0.05) return "In your area";
-  return fmtKm(km) + " away";
+  if (km < PRECISE_EPS) return "In your area";
+  return (kmPrecision(st) === "approx" ? "~" : "") + fmtKm(km) + " away";
 }
 
 /* A place, written once: an address that already names its area does not get

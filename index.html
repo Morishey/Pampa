@@ -25,7 +25,7 @@
     <!-- The push half of notifications: subscribes the account with the push
          server (tools/push-server.js) so news reaches the phone when Pampa is
          closed. Loaded before the app, which calls into it. -->
-    <script src="pampa-push.js?v=222"></script>
+    <script src="pampa-push.js?v=228"></script>
     <script>
         (function () {
             try {
@@ -40,45 +40,45 @@
          after them is written against those names, and interactions.css comes
          last because it is what a tap feels like. Splitting the sheet changed
          no rule and no order — a plain list of tags, no build step. -->
-    <link rel="stylesheet" href="css/tokens.css?v=222">
-    <link rel="stylesheet" href="css/onboarding.css?v=222">
-    <link rel="stylesheet" href="css/shell.css?v=222">
-    <link rel="stylesheet" href="css/booking.css?v=222">
-    <link rel="stylesheet" href="css/pro.css?v=222">
-    <link rel="stylesheet" href="css/disputes.css?v=222">
-    <link rel="stylesheet" href="css/system.css?v=222">
-    <link rel="stylesheet" href="css/directory.css?v=222">
-    <link rel="stylesheet" href="css/polish.css?v=222">
-    <link rel="stylesheet" href="css/components.css?v=222">
-    <link rel="stylesheet" href="css/interactions.css?v=222">
+    <link rel="stylesheet" href="css/tokens.css?v=228">
+    <link rel="stylesheet" href="css/onboarding.css?v=228">
+    <link rel="stylesheet" href="css/shell.css?v=228">
+    <link rel="stylesheet" href="css/booking.css?v=228">
+    <link rel="stylesheet" href="css/pro.css?v=228">
+    <link rel="stylesheet" href="css/disputes.css?v=228">
+    <link rel="stylesheet" href="css/system.css?v=228">
+    <link rel="stylesheet" href="css/directory.css?v=228">
+    <link rel="stylesheet" href="css/polish.css?v=228">
+    <link rel="stylesheet" href="css/components.css?v=228">
+    <link rel="stylesheet" href="css/interactions.css?v=228">
     <!-- pricing loads last: it re-dresses the discovery card into a row, and
          carries the price ranges, the picker and the negotiation surfaces -->
-    <link rel="stylesheet" href="css/pricing.css?v=222">
-    <link rel="stylesheet" href="css/stories.css?v=222">
+    <link rel="stylesheet" href="css/pricing.css?v=228">
+    <link rel="stylesheet" href="css/stories.css?v=228">
     <!-- The app itself, deferred and in order. Every file shares one global
          scope, exactly as the single script did, so a later module may call
          anything an earlier one declared. js/wiring.js must stay last: it
          installs the listeners and boots. -->
-    <script src="icons.js?v=222" defer></script>
-    <script src="escrow.js?v=222" defer></script>
-    <script src="js/core.js?v=222" defer></script>
-    <script src="js/directory.js?v=222" defer></script>
-    <script src="js/activity.js?v=222" defer></script>
-    <script src="js/pwa.js?v=222" defer></script>
-    <script src="js/ui.js?v=222" defer></script>
-    <script src="js/social.js?v=222" defer></script>
-    <script src="js/home.js?v=222" defer></script>
-    <script src="js/media.js?v=222" defer></script>
-    <script src="js/provider.js?v=222" defer></script>
-    <script src="js/sheets.js?v=222" defer></script>
-    <script src="js/status.js?v=222" defer></script>
-    <script src="js/clips.js?v=222" defer></script>
-    <script src="js/bookings.js?v=222" defer></script>
-    <script src="js/views.js?v=222" defer></script>
-    <script src="js/auth.js?v=222" defer></script>
-    <script src="js/location.js?v=222" defer></script>
-    <script src="js/booking-sheet.js?v=222" defer></script>
-    <script src="js/wiring.js?v=222" defer></script>
+    <script src="icons.js?v=228" defer></script>
+    <script src="escrow.js?v=228" defer></script>
+    <script src="js/core.js?v=228" defer></script>
+    <script src="js/directory.js?v=228" defer></script>
+    <script src="js/activity.js?v=228" defer></script>
+    <script src="js/pwa.js?v=228" defer></script>
+    <script src="js/ui.js?v=228" defer></script>
+    <script src="js/social.js?v=228" defer></script>
+    <script src="js/home.js?v=228" defer></script>
+    <script src="js/media.js?v=228" defer></script>
+    <script src="js/provider.js?v=228" defer></script>
+    <script src="js/sheets.js?v=228" defer></script>
+    <script src="js/status.js?v=228" defer></script>
+    <script src="js/clips.js?v=228" defer></script>
+    <script src="js/bookings.js?v=228" defer></script>
+    <script src="js/views.js?v=228" defer></script>
+    <script src="js/auth.js?v=228" defer></script>
+    <script src="js/location.js?v=228" defer></script>
+    <script src="js/booking-sheet.js?v=228" defer></script>
+    <script src="js/wiring.js?v=228" defer></script>
 </head>
 
 <body>
@@ -328,6 +328,14 @@
                 maxlength="80" autocomplete="street-address" enterkeyhint="done">
             <span class="addrIco" data-icon="pin"></span>
         </div>
+
+        <!-- Why the app asks: said once, next to the button that triggers it.
+             The distance is the product — a barber "near" is only near if the
+             distance is real — and this line owns the asking. -->
+        <p class="locPrivacy">
+            <span class="locPrivacyIco" data-icon="shield"></span>
+            <span>Your location is only ever used to show the professionals truly closest to you — it is never sold or shared, and your exact street address stays private until <b>you</b> book a home visit.</span>
+        </p>
 
         <!-- What the app made of those two: the area you were placed in and
              where that came from, or the reason the address could not be

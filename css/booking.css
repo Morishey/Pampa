@@ -689,3 +689,23 @@
   line-height: 1.5;
 }
 
+/* "Use my location for the exact fee" — a text button inside the fee box's
+   fine print: small, but a real control with a real press target. */
+.feeGps {
+  display: inline;
+  margin: 0;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  color: var(--gold-deep, var(--gold));
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.feeGps:active {
+  opacity: 0.7;
+}
+
