@@ -1,8 +1,9 @@
 # Freebuff's own project metadata (audit snapshots, project id) — local, not app
 .freebuff/
 
-# Vercel's local project link
+# Vercel's local link, and the token file `vercel link` writes beside it
 .vercel
+.env*
 
 # Python bytecode from the tools/ scripts
 __pycache__/
