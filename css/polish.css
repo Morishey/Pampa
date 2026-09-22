@@ -1,0 +1,1116 @@
+/* ===== Pampa polish: the editorial pass, glass and the slider =====
+   The monochrome editorial pass, the liquid-glass surface treatment, and the featured slider.
+   ===== */
+
+/* =========================================================
+   Editorial pass — monochrome, one accent
+   The tokens above are the sheet; this block is the
+   typesetting. Uppercase labels sit over hairline rules,
+   controls are squared off against rounded cards, and the
+   accent only ever points at something actionable. No
+   component is rebuilt here — the existing ones are
+   re-dressed.
+   ========================================================= */
+
+/* --- 1. Geometry: cards rounded, controls squared --- */
+.card,
+.serviceCard,
+.stylistCard,
+.tradeCard,
+.pickCard,
+.methodCard,
+.storyCard,
+.walletCard,
+.proCard,
+.deskCard,
+.provStat,
+.provCard,
+.provMap,
+.covMap {
+  border-radius: var(--r-card);
+}
+
+.sheet {
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+}
+
+input,
+textarea,
+select,
+.bookBtn,
+.nextbtn,
+.ghostBtn,
+.cancelBtn,
+.linkBtn,
+.exitBtn,
+.journalToggle,
+.bioInput,
+.slot,
+.chip,
+.badge,
+.nearBadge,
+.segmented,
+.proTabs,
+.proTab,
+.methodCard,
+.sheetChips .chip,
+.rateStar,
+.youTag {
+  border-radius: var(--r-ctrl);
+}
+
+/* the segmented control and its tabs are one unit, so they share a radius */
+.segmented .seg,
+.proTabs .proTab {
+  border-radius: calc(var(--r-ctrl) - 2px);
+}
+
+/* badges stay legible as small squares; counts keep a touch of round */
+.bellDot,
+.proTab .count {
+  border-radius: 4px;
+}
+
+/* the sheet grab handle becomes a short rule rather than a pill */
+.sheet::before {
+  width: 42px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+
+/* --- 2. Sections: uppercase label over a hairline --- */
+.sectionHead {
+  margin: 22px 0 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.sectionHead h2 {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* --- 3. Typesetting: display weight, tight tracking on names and money --- */
+.hi {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.sheetHead h3 {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.proCardHead h4,
+.provCardHead h4 {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.proTag,
+.psK,
+.nInfo .nWhen,
+.journalHead,
+.walletLabel {
+  letter-spacing: 0.2em;
+}
+
+/* figures are data: heavy, tabular, tight */
+.price,
+.bMoney,
+.walletBig,
+.rateBig,
+.psV,
+.svc-price,
+.svcPrice,
+.walletSplit span,
+.deskStat b {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- 4. The accent does one job: it points --- */
+.bookBtn,
+.nextbtn:not(.ghost):not(.danger),
+.confirmBtn {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.ghostBtn,
+.cancelBtn,
+.linkBtn {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* --- 5. Flatten what the gradient and glow used to do --- */
+.avatar,
+.pickAvatar,
+.provHero .avatar,
+.rateWho .avatar {
+  background-image: none;
+  background-color: var(--gold);
+}
+
+/* The app mark is light-stroked line art, so it sits on ink rather than on
+   the accent: a stamp, with the wordmark carrying the gold. */
+.logoImg {
+  border-radius: var(--r-ctrl);
+  background-color: var(--card-2);
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+}
+
+.logoImg img {
+  border-radius: calc(var(--r-ctrl) - 2px);
+}
+
+/* avatars are initial tiles on the sheet, not bubbles */
+.avatar,
+.pickAvatar {
+  border-radius: 10px;
+}
+
+.avatar.huge {
+  border-radius: 14px;
+}
+
+/* --- 6. Light theme: the flat sheet still needs its hairline --- */
+[data-theme="light"] .stylistCard,
+[data-theme="light"] .serviceCard,
+[data-theme="light"] .card,
+[data-theme="light"] .provStat,
+[data-theme="light"] .provCard {
+  border-color: rgba(20, 20, 18, 0.07);
+}
+
+/* --- 7. The last round controls: the bell, the pills, the closes --- */
+.bellBtn,
+.locPill,
+.sheet .close,
+.pvClose,
+.eviX,
+.backbtn,
+.badge.live {
+  border-radius: var(--r-ctrl);
+}
+
+/* --- 8. Avatars are ink tiles — the accent is reserved for actions and
+   data, so it is not spent on eight avatars down the home screen --- */
+.avatar,
+.pickAvatar,
+.stylistCard .avatar,
+.provHero .avatar,
+.rateWho .avatar,
+.avatar.big,
+.avatar.huge {
+  background-image: none;
+  background-color: var(--card-2);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+}
+
+.avatar.big,
+.avatar.huge {
+  border-radius: 14px;
+}
+
+/* the app mark keeps its ring, squared to match the sheet */
+.logoImg,
+.logoImg::after {
+  border-radius: var(--r-ctrl);
+}
+
+/* --- 9. The unread count is attention, not alarm. Red stays reserved for
+   disputes and refunds, so the bell wears ink instead — which also keeps the
+   only red on a page meaning "something is wrong with the money". --- */
+.bellBtn.hasUnread .bellDot {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--card);
+}
+
+/* =========================================================
+   Liquid glass — the modern iOS surface treatment
+   The layer above is ink and rules; this one is glass. No
+   component is rebuilt a second time: the surface tokens are
+   re-pointed to translucent panes, the radii are re-pointed
+   to continuous corners, and a wash is laid behind everything
+   so the panes have something to actually refract. Without
+   that wash, blurred panes read as flat paint.
+   ========================================================= */
+
+/* --- 1. Geometry: continuous corners, pills, circles. Nothing squared. --- */
+:root {
+  --radius: 22px;
+  --r-card: 22px;
+  --r-ctrl: 16px;
+  --r-sheet: 30px;
+  --r-pill: 999px;
+
+  /* panes. Dark panes are kept deep: a lighter glass lifts the background
+     under every caption, and faint ink then loses the contrast it needs. */
+  --pane: rgba(32, 33, 38, 0.62);
+  --pane-2: rgba(44, 45, 52, 0.5);
+  --pane-3: rgba(56, 57, 66, 0.44);
+  --pane-chrome: rgba(19, 20, 24, 0.62);
+  --pane-line: rgba(255, 255, 255, 0.13);
+  --pane-hi: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --pane-shadow: 0 20px 44px -26px rgba(0, 0, 0, 0.95), 0 2px 8px -6px rgba(0, 0, 0, 0.8);
+  --glass-blur: saturate(180%) blur(24px);
+
+  /* the wash, and the sheen a filled control gets when it is lit from above */
+  --glow-gold: rgba(239, 194, 88, 0.16);
+  --glow-blue: rgba(96, 128, 255, 0.2);
+  --glow-violet: rgba(186, 132, 255, 0.18);
+  --wash: #0a0a0b;
+  --grad-gold: linear-gradient(180deg, #f8d97f, var(--gold));
+
+  /* the flat surfaces become panes */
+  --bg-soft: var(--pane-2);
+  --card: var(--pane);
+  --card-2: var(--pane-2);
+  --card-3: var(--pane-3);
+  --chip: rgba(255, 255, 255, 0.08);
+  --nav-bg: var(--pane-chrome);
+  --shadow: var(--pane-shadow);
+  --shadow-soft: 0 12px 28px -20px rgba(0, 0, 0, 0.9);
+  --hero-bg: rgba(18, 19, 24, 0.66);
+  --toast-bg: rgba(29, 29, 31, 0.72);
+}
+
+[data-theme="light"] {
+  --pane: rgba(255, 255, 255, 0.68);
+  --pane-2: rgba(255, 255, 255, 0.54);
+  --pane-3: rgba(255, 255, 255, 0.46);
+  --pane-chrome: rgba(255, 255, 255, 0.62);
+  --pane-line: rgba(255, 255, 255, 0.85);
+  --pane-hi: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --pane-shadow: 0 1px 2px rgba(20, 20, 18, 0.05), 0 20px 40px -26px rgba(20, 20, 18, 0.42);
+  --shadow-soft: 0 1px 2px rgba(20, 20, 18, 0.04), 0 12px 26px -20px rgba(20, 20, 18, 0.3);
+
+  --glow-gold: rgba(214, 162, 44, 0.3);
+  --glow-blue: rgba(88, 120, 255, 0.22);
+  --glow-violet: rgba(172, 130, 255, 0.2);
+  --wash: #eef0f4;
+  --grad-gold: linear-gradient(180deg, #9d6b0b, var(--gold));
+  /* green is a text colour on tinted glass, so on paper it is deepened */
+  --green: #056340;
+  --ink-soft: #57574f;
+  --ink-faint: #5e5e57;
+  /* a dark pane at 66% over pale paper turns muddy, so the statement card
+     stays a near-opaque smoked glass in light mode */
+  --hero-bg: rgba(17, 18, 23, 0.94);
+}
+
+/* Dark panes are lifted a little by their own translucency, so the two faint
+   steps are raised to keep clearing 4.5:1 on a pane rather than on the page.
+   Scoped to the dark theme alone: `:root` would match a light document too,
+   since the theme attribute lives on <html>. */
+[data-theme="dark"] {
+  --ink-soft: #adada6;
+  --ink-faint: #9a9a94;
+}
+
+/* --- 2. Three soft light sources behind everything --- */
+body {
+  background-color: var(--wash);
+  background-image:
+    radial-gradient(90% 58% at 8% -12%, var(--glow-gold), transparent 62%),
+    radial-gradient(85% 55% at 96% 0%, var(--glow-blue), transparent 64%),
+    radial-gradient(130% 72% at 50% 114%, var(--glow-violet), transparent 66%);
+  background-attachment: fixed;
+}
+
+/* --- 3. Panes. Blur, a specular top edge, and a soft cast shadow.
+   The selectors are prefixed with [data-theme] so they also beat the
+   light-theme elevation rules earlier in the file (which are themselves
+   theme-scoped) rather than being overridden by them. --- */
+[data-theme] :is(.card,
+    .serviceCard,
+    .stylistCard,
+    .tradeCard,
+    .pickCard,
+    .methodCard,
+    .storyCard,
+    .flowArt,
+    .walletCard,
+    .proCard,
+    .deskCard,
+    .provStat,
+    .provCard,
+    .provMap,
+    .covMap,
+    .bookingCard,
+    .profileCard,
+    .proEntry,
+    /* `.nInfo` is not a pane: it is the text block inside a notification row,
+       and the row is already in this list. As a surface it drew a second
+       hairline inside every row of the bell, inset by the row's own padding. */
+    .notifyRow,
+    .svcRow,
+    .review,
+    .emptyState,
+    .sheetCard,
+    .slot,
+    .bellBtn,
+    .locPill,
+    .backbtn,
+    .toast) {
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--pane-line);
+  box-shadow: var(--pane-hi), var(--pane-shadow);
+}
+
+/* The glass pass above carries [data-theme] :is(.slot, ...), which computes to
+   the same specificity as those surfaces' .active rules and comes later — so
+   the pane hairline was flattening the selected ring. Restated one level
+   stronger, after it: the pane stays, but a selection always shows. */
+[data-theme] :is(.slot.active, .pickCard.active,
+  .methodCard.active, .tradeCard.active) {
+  border-color: var(--gold-ring);
+}
+
+/* close controls sit on the sheet, so they get the pane edge only */
+[data-theme] :is(.sheet .close, .pvClose, .eviX) {
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--pane-line);
+  box-shadow: var(--pane-hi);
+}
+
+/* the sheet is the largest pane: it floats, so it casts the longest shadow */
+.sheet {
+  background: var(--pane-chrome);
+  border-bottom: none;
+  box-shadow: var(--pane-hi), 0 -30px 70px -30px rgba(0, 0, 0, 0.7);
+  backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
+}
+
+/* the backdrop dims and blurs rather than merely going grey */
+.sheetOverlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+}
+
+/* --- 4. Controls: pills and circles, never squares --- */
+[data-theme] :is(.bookBtn,
+    .nextbtn,
+    .ghostBtn,
+    .cancelBtn,
+    .linkBtn,
+    .exitBtn,
+    .chip,
+    .slot,
+    .badge,
+    .nearBadge,
+    .youTag,
+    .segmented,
+    .proTabs,
+    .journalToggle,
+    .badge.live,
+    .segmented .seg,
+    .proTabs .proTab) {
+  border-radius: var(--r-pill);
+}
+
+[data-theme] :is(input, textarea, select, .bioInput, .addrInput, .noteInput, .rateStar) {
+  border-radius: var(--r-ctrl);
+}
+
+[data-theme] :is(.bellBtn, .sheet .close, .pvClose, .eviX, .backbtn) {
+  border-radius: 50%;
+}
+
+/* the sheet grab handle goes back to being a handle */
+.sheet::before {
+  width: 38px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+
+.bellDot,
+.proTab .count {
+  border-radius: var(--r-pill);
+}
+
+/* avatars are faces, so they are circles again */
+[data-theme] :is(.avatar,
+    .pickAvatar,
+    .stylistCard .avatar,
+    .provHero .avatar,
+    .rateWho .avatar,
+    .avatar.big,
+    .avatar.huge) {
+  border-radius: 50%;
+}
+
+.logoImg,
+.logoImg img,
+.logoImg::after {
+  border-radius: 18px;
+}
+
+/* --- 5. Full-screen pages are not panes. Pro mode used --bg-soft, which is
+   now translucent, so it gets the wash itself instead of showing the home
+   view through it. --- */
+.proMode,
+.deskTint {
+  background-color: var(--wash);
+  background-image:
+    radial-gradient(90% 58% at 8% -12%, var(--glow-gold), transparent 62%),
+    radial-gradient(85% 55% at 96% 0%, var(--glow-blue), transparent 64%),
+    radial-gradient(130% 72% at 50% 114%, var(--glow-violet), transparent 66%);
+}
+
+/* --- 6. The chrome floats above the content --- */
+.bottomNav {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  height: 64px;
+  background: var(--pane-chrome);
+  border: 1px solid var(--pane-line);
+  border-radius: 24px;
+  box-shadow: var(--pane-hi), var(--pane-shadow);
+  backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
+}
+
+/* the active tab reads as one ring wrapping icon and label together — the
+   user's words: "a border around the icon and the text". --gold-line (30%
+   alpha) could not read as a border at all, so the ring is drawn at 55%;
+   the fill stays the faint wash and the inner padding is the deliberate
+   margin between content and ring. The ring arrives expanding and settling
+   past its rest size by a hair — the iOS pill settle. The bloom animates
+   transform only, never opacity: a stalled compositor would freeze the
+   animation at its first frame, and a frozen ring must still be a visible
+   ring (the same reasoning as viewIn's 0.2 start below). */
+.tab.active::after {
+  display: none;
+}
+
+.tab.active::before {
+  content: "";
+  position: absolute;
+  inset: 7px 14px;
+  border-radius: var(--r-pill);
+  background: var(--gold-soft);
+  border: 1.5px solid var(--gold-ring);
+  z-index: 0;
+  animation: tabRingIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+@keyframes tabRingIn {
+  from { transform: scale(0.86); }
+  to { transform: scale(1); }
+}
+
+/* pressing the active tab compresses the ring with the finger, the way a
+   glass pill gives before it springs back */
+.tab.active:active::before {
+  transform: scale(0.96);
+}
+
+/* pressing an inactive tab blooms a quiet glass pill under the finger — the
+   same shape the ring will occupy, so the press and the arrival are one */
+.tab:not(.active):active::after {
+  content: "";
+  position: absolute;
+  inset: 7px 14px;
+  border-radius: var(--r-pill);
+  background: var(--pane-2);
+  z-index: 0;
+}
+
+.tab .ico,
+.tab > span {
+  position: relative;
+  z-index: 1;
+}
+
+.tab.active .ico {
+  transform: none;
+}
+
+/* every view opens on a pinned glass bar that content scrolls under */
+.view {
+  padding: 0 16px 112px;
+}
+
+.homeHead {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: 0 -16px 16px;
+  padding: 18px 16px 14px;
+  background: var(--pane-chrome);
+  border-bottom: 1px solid var(--pane-line);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* --- 7. Typesetting: sentence case where it reads, small caps where it
+   labels. iOS uses both — headlines speak, group labels tag. --- */
+.sectionHead {
+  margin: 26px 2px 12px;
+  padding-top: 0;
+  border-top: none;
+  background: none;
+  /* A label and whatever belongs to it are one row: the title on the left, its
+     count or its button on the right. As a plain block the h2 took the whole
+     width, so "Manage" wrapped onto a second line under "My work" and the
+     count dropped below "Closest professionals". */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sectionHead > .headNote,
+.sectionHead > .linkBtn {
+  flex: none;
+}
+
+.sectionHead:first-of-type {
+  margin-top: 4px;
+}
+
+.sectionHead h2 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--ink);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sheetHead h3 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.rateWord {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  text-transform: none;
+}
+
+.proTag,
+.psK,
+.nInfo .nWhen,
+.journalHead,
+.eviHead,
+.walletLabel,
+.flowNode small,
+.stylistCard .distMode,
+.sheetBlock label {
+  letter-spacing: 0.06em;
+}
+
+/* --- 8. Press feedback: the whole surface dips, the way a glass control does --- */
+.bookBtn,
+.nextbtn,
+.ghostBtn,
+.cancelBtn,
+.linkBtn,
+.exitBtn,
+.chip,
+.slot,
+.tab,
+.pickCard,
+.tradeCard,
+.storyCard,
+.bellBtn,
+.locPill,
+.backbtn,
+.sheet .close,
+.segmented .seg,
+.proTab {
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease,
+    border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bookBtn:active,
+.nextbtn:active,
+.ghostBtn:active,
+.cancelBtn:active,
+.linkBtn:active,
+.exitBtn:active,
+.chip:active,
+.slot:active,
+.pickCard:active,
+.tradeCard:active,
+.storyCard:active,
+.bellBtn:active,
+.locPill:active,
+.backbtn:active,
+.sheet .close:active,
+.segmented .seg:active,
+.proTab:active {
+  transform: scale(0.97);
+}
+
+/* =========================================================
+   Featured slider
+   Real photography in a glass frame. Scroll-snap does the
+   swiping, so the gesture is the platform's own (momentum,
+   rubber-banding, no drag maths in JS) and the track still
+   works with a mouse wheel or a keyboard. Every pixel of
+   text sits on a scrim, because a caption's contrast cannot
+   depend on which photo happened to load.
+   ========================================================= */
+.heroWrap {
+  position: relative;
+  /* The picture feathers into the page instead of sitting in a frame. These two
+     distances are the feather's reach, declared once on the wrapper so the
+     track can mask with them and the caption and dots can step inside them. */
+  --hero-fade: 34px;
+  --hero-fade-y: 22px;
+}
+
+/* There is no frame here on purpose. A bordered pane around a photograph
+   reads as a widget; the picture is meant to bleed into the page, so the frame,
+   its tint and its shadow are gone and the image feathers out on all four
+   edges instead (see .heroImg below). The two fade distances are tokens because
+   the caption and the dots step inside them — text over a half-faded scrim is
+   exactly the contrast problem the feather could introduce. */
+.heroSlider {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin: 6px 0 4px;
+  border-radius: var(--r-card);
+}
+
+.heroSlider::-webkit-scrollbar {
+  display: none;
+}
+
+.heroSlide {
+  position: relative;
+  flex: none;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  isolation: isolate;
+}
+
+/* the trade's drawing: placeholder while the photo loads, and the whole slide
+   if it never does. Deliberately not .heroArt — that class belongs to the
+   welcome page's illustration, whose own margin/max-width would clip this. */
+.heroStill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+  opacity: 0.4;
+}
+
+.heroStill .scene {
+  width: 58%;
+  max-height: 82%;
+}
+
+/* The feather that replaces the frame: one gradient per axis, intersected, so
+   the photograph dissolves into the page rather than ending on a line. The
+   scrim carries the same mask — otherwise its dark band would draw back the
+   very edge the mask just removed.
+
+   A browser that honours neither compositing keyword falls back to the spec
+   default (`add`), which unions the layers and leaves a soft corner rounding
+   instead of a four-side dissolve. That is a duller look, not a broken one, and
+   every shipping engine supports one of the two. */
+.heroImg,
+.heroScrim {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0, rgba(0, 0, 0, 0.62) calc(var(--hero-fade, 34px) * 0.3), #000 var(--hero-fade, 34px), #000 calc(100% - var(--hero-fade, 34px)), rgba(0, 0, 0, 0.62) calc(100% - var(--hero-fade, 34px) * 0.3), transparent 100%),
+    linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.62) calc(var(--hero-fade-y, 22px) * 0.3), #000 var(--hero-fade-y, 22px), #000 calc(100% - var(--hero-fade-y, 22px)), rgba(0, 0, 0, 0.62) calc(100% - var(--hero-fade-y, 22px) * 0.3), transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent 0, rgba(0, 0, 0, 0.62) calc(var(--hero-fade, 34px) * 0.3), #000 var(--hero-fade, 34px), #000 calc(100% - var(--hero-fade, 34px)), rgba(0, 0, 0, 0.62) calc(100% - var(--hero-fade, 34px) * 0.3), transparent 100%),
+    linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 0.62) calc(var(--hero-fade-y, 22px) * 0.3), #000 var(--hero-fade-y, 22px), #000 calc(100% - var(--hero-fade-y, 22px)), rgba(0, 0, 0, 0.62) calc(100% - var(--hero-fade-y, 22px) * 0.3), transparent 100%);
+  mask-composite: intersect;
+}
+
+.heroImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.heroImg.isLoaded {
+  opacity: 1;
+}
+
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Weighted so the caption band clears 4.5:1 even over a white photo: at 66%
+     black over 255 white the scrim lands near 92, and white on that is about
+     7.5:1, while the top of the frame still reads as photograph. */
+  background: linear-gradient(
+    to top,
+    rgba(8, 8, 10, 0.9) 0%,
+    rgba(8, 8, 10, 0.66) 36%,
+    rgba(8, 8, 10, 0.16) 66%,
+    rgba(8, 8, 10, 0) 100%
+  );
+}
+
+.heroCap {
+  position: absolute;
+  /* Inside the feather on both axes. The mask eases upward as well as outward,
+     so at 0.76 of the way in it is already around 0.87 opaque — the scrim under
+     the first glyph is 0.78 of full and white on that still clears 10:1. */
+  left: calc(var(--hero-fade, 34px) * 0.76);
+  right: 84px;
+  bottom: calc(var(--hero-fade-y, 22px) + 4px);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  color: #fff;
+}
+
+.heroCap small {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+
+.heroCap b {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.55);
+}
+
+.heroCap span {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+
+.heroDots {
+  position: absolute;
+  right: 12px;
+  /* 4px above the caption's baseline, and clear of the bottom feather */
+  bottom: calc(var(--hero-fade-y, 22px) + 8px);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 2;
+}
+
+.heroDot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.42);
+  transition: width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.25s ease;
+}
+
+/* the active dot takes the bright gold the dark hero panels use, because it is
+   a control sitting on a photograph rather than on the page */
+.heroDot.on {
+  width: 18px;
+  background: var(--hero-gold);
+}
+
+.heroDot:focus-visible {
+  outline: 2px solid var(--hero-gold);
+  outline-offset: 2px;
+}
+
+/* The slow drift is what makes a still photo read as motion, and it is
+   transform-only, so it never triggers layout. From 1.015 to 1.07 is enough
+   to be felt at 9 seconds and not enough to be noticed on any single frame. */
+@keyframes heroPan {
+  from { transform: scale(1.015); }
+  to { transform: scale(1.07); }
+}
+
+html.anim .heroSlide.isActive .heroImg.isLoaded {
+  animation: heroPan 9s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.anim .heroSlide.isActive .heroImg.isLoaded {
+    animation: none;
+  }
+
+  .heroSlider {
+    scroll-behavior: auto;
+  }
+
+  .heroImg,
+  .heroDot {
+    transition: none;
+  }
+}
+
+/* The category strip's own mask lives with every other strip's, in the Edge
+   fades block: one mechanism, one pair of tokens, for the whole app. */
+
+/* --- 9. Graceful where the glass cannot be rendered, and for anyone who has
+   asked the system to reduce transparency: the panes go solid instead of
+   turning into unreadable tinted film. --- */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  :root {
+    --pane: rgba(30, 31, 35, 0.98);
+    --pane-2: rgba(38, 39, 45, 0.98);
+    --pane-3: rgba(46, 47, 54, 0.98);
+    --pane-chrome: rgba(16, 17, 20, 0.98);
+  }
+
+  [data-theme="light"] {
+    --pane: rgba(255, 255, 255, 0.98);
+    --pane-2: rgba(247, 247, 249, 0.98);
+    --pane-3: rgba(242, 242, 245, 0.98);
+    --pane-chrome: rgba(255, 255, 255, 0.98);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --pane: rgba(30, 31, 35, 0.99);
+    --pane-2: rgba(38, 39, 45, 0.99);
+    --pane-3: rgba(46, 47, 54, 0.99);
+    --pane-chrome: rgba(16, 17, 20, 0.99);
+  }
+
+  [data-theme="light"] {
+    --pane: rgba(255, 255, 255, 0.99);
+    --pane-2: rgba(247, 247, 249, 0.99);
+    --pane-3: rgba(242, 242, 245, 0.99);
+    --pane-chrome: rgba(255, 255, 255, 0.99);
+  }
+
+  body :is(.card, .serviceCard, .stylistCard, .tradeCard, .pickCard, .methodCard,
+      .storyCard, .walletCard, .proCard, .deskCard, .provStat, .provCard,
+      .provMap, .covMap, .bookingCard, .profileCard, .proEntry, .emptyState,
+      .sheet, .sheetCard, .slot, .bellBtn, .locPill, .backbtn, .sheet .close,
+      .pvClose, .eviX, .toast, .bottomNav, .homeHead, .sheetOverlay) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* --- The auth kicker. Sign in and create account share the number and code
+   screens, so every one of them now states which journey it is and how far
+   along it is. The chips are the loudest part of the difference: signing in is
+   two steps, creating an account is five, and that is legible before anyone
+   reads a word. --- */
+.authKicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.authKicker .authMode {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.authSteps {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.authStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-faint);
+  font-size: 9.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.25s ease, color 0.25s ease,
+    border-color 0.25s ease, width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.authStep.done {
+  border-color: var(--gold-line);
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.authStep.cur {
+  width: 26px;
+  border-color: transparent;
+  background: var(--grad-gold);
+  color: var(--on-gold);
+}
+
+/* --- The role screen. Two doors with equal weight: work on Pampa or book on
+   it. The tag on the right names the account type, because that word is what
+   the rest of the app uses ("Signed in as…", "Client only"). --- */
+.roleList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 86%;
+  max-width: 420px;
+  margin: 18px auto 0;
+}
+
+.roleCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 15px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+
+.roleCard.active {
+  border-color: var(--gold-ring);
+  background: var(--gold-soft);
+  animation: ringIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.roleIco {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  color: var(--gold);
+  font-size: 19px;
+}
+
+.roleCard.active .roleIco {
+  border-color: var(--gold-line);
+}
+
+.roleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.roleInfo b {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.roleInfo small {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.roleTag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* --- The pro dashboard (Work tab). Three numbers up top, then what needs the
+   pro, then the door to the escrow desk. Same card language as the client
+   home, so the app still reads as one product. --- */
+.workStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.wStat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 12px 11px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.wStat small {
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.wStat b {
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.workCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workCard .money {
+  flex: none;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}

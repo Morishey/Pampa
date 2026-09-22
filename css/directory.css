@@ -1,0 +1,1006 @@
+/* ===== Pampa directory: discovery, profiles, reviews and activity =====
+   A registered trade showing up to be booked, the public profile, and the rating history on it.
+   ===== */
+
+/* =========================================================
+   The provider directory: a registered trade shows up in the
+   same list as the seeded stylists, so it needs to look like
+   one — flagged as yours, and honest about having no history.
+   ========================================================= */
+.stylistCard.mine {
+  border-color: var(--gold-line);
+}
+
+.stars.new {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+h4 .youTag,
+.pickInfo .youTag {
+  margin-left: 5px;
+}
+
+/* A provider's services, switched from inside the booking sheet. */
+.sheetChips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: none;
+}
+
+.sheetChips::-webkit-scrollbar {
+  display: none;
+}
+
+.sheetChips .chip {
+  flex: none;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   Provider profiles, reviews and activity
+   Public profile page (bio, prices, ratings, coverage map),
+   the rate-and-release sheet, and the activity bell.
+   ========================================================= */
+
+/* --- activity bell in the home header --- */
+.headRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bellBtn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bellBtn .icon {
+  width: 19px;
+  height: 19px;
+}
+
+.bellBtn.hasUnread {
+  color: var(--gold);
+  border-color: var(--gold-line);
+}
+
+/* One band, one size. The header avatar inherits the base 44px, so on Home the
+   profile entry rode 2px proud of the two 40px buttons beside it — the row's
+   top and bottom edges never lined up. The header's avatar is now the same
+   circle as the rest of the band; its fill and gold initial still mark it out
+   as "you". A .big avatar (the professional's own header) keeps its own scale. */
+.headRight .avatar:not(.big) {
+  width: 40px;
+  height: 40px;
+}
+/* (the initial's size stays with .avatar#homeAvatar, whose font: inherit wins
+   as it should — only the box geometry belongs to the band) */
+
+.bellDot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 100px;
+  background: var(--danger-fill);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg);
+}
+
+/* --- the discovery card now carries two actions --- */
+.stylistCard {
+  display: flex;
+  flex-direction: column;
+}
+
+/* A professional who has switched bookings off stays in the strip — their page,
+   their prices and their work are still worth a look — but the card stops
+   promising something the Book button cannot deliver. The dimming goes on the
+   contents, not the card: the list's riseIn animation ends on opacity 1 with a
+   fill mode that outranks a static rule, and filtering the card itself would
+   cost it its glass surface. */
+.stylistCard.paused > * {
+  opacity: 0.62;
+}
+
+.stylistCard.paused .avatar {
+  filter: grayscale(1);
+}
+
+/* A professional who is with a client right now: not off, not free. The card
+   keeps more of its light than a paused one — they are working, not away — and
+   the pill says which of the two it is. */
+.stylistCard.busy > * {
+  opacity: 0.74;
+}
+
+.stylistCard.busy .avatar {
+  filter: grayscale(0.65);
+}
+
+.distPaused,
+.distBusy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gold);
+  background: var(--gold-soft);
+  border-radius: 100px;
+  padding: 3px 8px;
+}
+
+.distPaused .icon,
+.distBusy .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.stylistCard .dist {
+  margin-bottom: 10px;
+}
+
+/* stacked, full-width actions: the shared .cardActions centres its children,
+   which left two half-width buttons floating in a 148px card */
+.stylistCard .cardActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.ghostBtn {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ghostBtn .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.ghostBtn.wide {
+  width: 100%;
+}
+
+.ghostBtn:active {
+  transform: scale(0.98);
+}
+
+.bookBtn.small {
+  padding: 6px 12px;
+}
+
+/* --- profile page --- */
+.profileTint {
+  background: var(--bg);
+}
+
+.provHero {
+  text-align: center;
+  padding: 6px 0 2px;
+}
+
+.avatar.huge {
+  width: 78px;
+  height: 78px;
+  font-size: 30px;
+  margin: 0 auto 12px;
+  background: var(--grad-gold);
+  color: var(--on-gold);
+  border-color: transparent;
+}
+
+.provHero h3 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 20px;
+}
+
+.provTrade {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+.provRate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--gold);
+  margin-top: 7px;
+}
+
+.provRate .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.provChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 14px 0;
+}
+
+.provChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--chip);
+  border-radius: 100px;
+  padding: 5px 11px;
+}
+
+.provChip .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.provChip.on {
+  color: var(--green);
+}
+
+.provChip.off {
+  color: var(--ink-faint);
+}
+
+/* holding somebody's job, rather than off the market */
+.provChip.busy {
+  color: var(--gold);
+}
+
+.provCtas {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+
+/* When the row of actions ends the card, the card's own padding already closes
+   it — the 14px it keeps for the copy that follows it elsewhere showed up as a
+   foot 29px deep against a head of 15. */
+.provCtas:last-child {
+  margin-bottom: 0;
+}
+
+.provStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.provStat {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.psK {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.psV {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 5px 0 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.psN {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.provCard {
+  margin-bottom: 12px;
+}
+
+.provCardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.provCardHead .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
+}
+
+.provCardHead h4 {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.provCardHead .linkBtn {
+  margin-left: auto;
+}
+
+.provBio {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* --- services and prices --- */
+.svcRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.svcRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--card-2);
+  border-radius: 12px;
+}
+
+.svcIco {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 11px;
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svcIco .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.svcInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.svcInfo b {
+  font-size: 13px;
+}
+
+.svcInfo small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.svcRow .svcPrice {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.svcRows + .finePrint {
+  margin-top: 10px;
+}
+
+/* --- ratings and reviews --- */
+.rateHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.rateBig {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rateMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.starsRow {
+  display: inline-flex;
+  gap: 2px;
+  color: var(--line-strong);
+}
+
+.starsRow .star {
+  display: inline-flex;
+}
+
+.starsRow .star .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.starsRow .star.on {
+  color: var(--gold);
+}
+
+.rateBars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.rateBarRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.rateBarRow > span:first-child {
+  width: 10px;
+}
+
+.rateBar {
+  flex: 1;
+  height: 6px;
+  border-radius: 100px;
+  background: var(--chip);
+  overflow: hidden;
+}
+
+.rateBar i {
+  display: block;
+  height: 100%;
+  border-radius: 100px;
+  background: var(--gold);
+}
+
+.rateCount {
+  width: 20px;
+  text-align: right;
+}
+
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review {
+  padding: 10px;
+  background: var(--card-2);
+  border-radius: 12px;
+}
+
+.revTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.revTop b {
+  font-size: 12.5px;
+}
+
+.revTop small {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.revText {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.revText .icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  margin-top: 2px;
+  color: var(--gold);
+  opacity: 0.75;
+}
+
+.review .finePrint {
+  margin-top: 6px;
+}
+
+.yourReview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* --- coverage map --- */
+.covMap {
+  background: var(--card-2);
+  border-radius: 14px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.covMap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.covReach {
+  fill: var(--gold-soft);
+  stroke: var(--gold-line);
+  stroke-width: 0.16;
+  stroke-dasharray: 0.8 0.7;
+}
+
+.covDot {
+  fill: var(--green);
+  opacity: 0.9;
+}
+
+.covStudio {
+  fill: var(--gold);
+  stroke: var(--card-2);
+  stroke-width: 0.16;
+}
+
+.covYou {
+  fill: var(--violet);
+  stroke: var(--card-2);
+  stroke-width: 0.16;
+}
+
+.covLink {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 0.14;
+  stroke-dasharray: 0.6 0.6;
+}
+
+.covLabel {
+  fill: var(--ink-faint);
+  font-weight: 700;
+}
+
+.covLabel.you {
+  fill: var(--violet);
+}
+
+.covLegend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.covLegend .icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--gold);
+}
+
+.covList {
+  display: flex;
+  flex-direction: column;
+}
+
+.covRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--hairline);
+}
+
+.covRow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.covRow .icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--gold);
+}
+
+.covRow b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- rate + release sheet --- */
+.rateWho {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rateWho b {
+  display: block;
+  font-size: 14px;
+}
+
+.rateWho small {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.ratePick {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.rateStar {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 14px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  color: var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.16s ease, color 0.16s ease, background 0.16s ease;
+}
+
+.rateStar .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.rateStar.on {
+  color: var(--gold);
+  background: var(--gold-soft);
+  border-color: var(--gold-line);
+  transform: translateY(-2px);
+}
+
+.rateWord {
+  margin-bottom: 14px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.rateFoot {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rateFoot .linkBtn {
+  align-self: center;
+}
+
+.bioBody {
+  padding: 0 4px 6px;
+}
+
+.bioInput {
+  width: 100%;
+  background: var(--card-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 12px;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  resize: none;
+}
+
+.bioInput:focus {
+  outline: none;
+  border-color: var(--gold-line);
+}
+
+.bioBody .finePrint {
+  margin-top: 8px;
+}
+
+.profileCard .rowBio {
+  max-width: 60%;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* --- activity list --- */
+.notifyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 2px 8px;
+}
+
+.notifyRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 11px;
+  text-align: left;
+  background: var(--card-2);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--ink);
+}
+
+.notifyRow.unread {
+  background: var(--gold-soft);
+  border-color: var(--gold-line);
+}
+
+/* --- Answering a message from the row it arrived on --- */
+/* The row is a container, not a button, only for the events that can be
+   answered: the whole left side stays the way through to the story, and the
+   reply control sits beside it. A row that cannot be answered is untouched. */
+.notifyItem .notifyRow {
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+}
+
+.nMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.nReply {
+  flex: none;
+  align-self: center;
+  margin-right: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
+  border-radius: 999px;
+}
+
+.nReplied {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.nReplied .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.nReplyBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 0 2px 2px;
+  animation: ringIn 0.24s ease;
+}
+
+.nReplyBox input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.nReplySend {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-gold);
+  background: var(--grad-gold);
+  border: none;
+  border-radius: 50%;
+}
+
+.nReplySend .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.nIco {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 11px;
+  background: var(--chip);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nIco .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.nIco.gold {
+  color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.nIco.ok {
+  color: var(--green);
+  background: var(--tint-green);
+}
+
+.nIco.warn {
+  color: var(--danger);
+  background: var(--tint-red);
+}
+
+.nIco.info {
+  color: var(--info);
+  background: var(--tint-blue);
+}
+
+.nInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nInfo b {
+  font-size: 13px;
+}
+
+.nInfo small {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.nInfo .nWhen {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.notifyRow .chev {
+  align-self: center;
+  flex: none;
+  color: var(--ink-faint);
+}
+
+.notifyRow .chev .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* --- light theme: the same elevation rule as the rest of the app --- */
+[data-theme="light"] .bellBtn,
+[data-theme="light"] .provStat,
+[data-theme="light"] .svcRow,
+[data-theme="light"] .review,
+[data-theme="light"] .covMap,
+[data-theme="light"] .notifyRow,
+[data-theme="light"] .bioInput,
+[data-theme="light"] .rateStar {
+  border-color: rgba(18, 22, 30, 0.035);
+  box-shadow: 0 1px 2px rgba(16, 22, 32, 0.04), 0 10px 20px -14px rgba(16, 22, 32, 0.16);
+}
+
+[data-theme="light"] .rateStar.on {
+  border-color: var(--gold-line);
+  box-shadow: 0 6px 14px -6px rgba(153, 103, 8, 0.4);
+}
+
+[data-theme="light"] .notifyRow.unread {
+  border-color: var(--gold-line);
+}
+
+[data-theme="light"] .covStudio,
+[data-theme="light"] .covYou {
+  stroke: var(--card-2);
+}
+

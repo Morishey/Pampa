@@ -4,84 +4,961 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b0d11">
+    <meta name="description" content="Book barbers, stylists, nail techs and spa therapists near you — payment held in escrow until the job is done.">
     <title>Pampa</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="script.js" defer></script>
+    <!-- Installable on a home screen: the manifest names the app, the icons are
+         drawn by tools/make-icons.py, and sw.js caches the shell so it opens
+         with no connection. -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <!-- The tab and bookmark icon: the wordmark, cropped to its ink by
+         tools/make-logo.py (the supplied PNG is 800x800 with the letters in a
+         thin band across the middle, so used raw it would be a gold smudge). -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./img/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="./img/favicon-48.png">
+    <link rel="apple-touch-icon" href="./img/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pampa">
+    <!-- Theme is applied before the first paint so there is no flash of the wrong one. -->
+    <!-- The push half of notifications: subscribes the account with the push
+         server (tools/push-server.js) so news reaches the phone when Pampa is
+         closed. Loaded before the app, which calls into it. -->
+    <script src="pampa-push.js?v=222"></script>
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem("pampa.theme.v1");
+                document.documentElement.setAttribute("data-theme", t === "light" ? "light" : "dark");
+            } catch (e) {
+                document.documentElement.setAttribute("data-theme", "dark");
+            }
+        })();
+    </script>
+    <!-- Stylesheets, in cascade order: tokens define the names, everything
+         after them is written against those names, and interactions.css comes
+         last because it is what a tap feels like. Splitting the sheet changed
+         no rule and no order — a plain list of tags, no build step. -->
+    <link rel="stylesheet" href="css/tokens.css?v=222">
+    <link rel="stylesheet" href="css/onboarding.css?v=222">
+    <link rel="stylesheet" href="css/shell.css?v=222">
+    <link rel="stylesheet" href="css/booking.css?v=222">
+    <link rel="stylesheet" href="css/pro.css?v=222">
+    <link rel="stylesheet" href="css/disputes.css?v=222">
+    <link rel="stylesheet" href="css/system.css?v=222">
+    <link rel="stylesheet" href="css/directory.css?v=222">
+    <link rel="stylesheet" href="css/polish.css?v=222">
+    <link rel="stylesheet" href="css/components.css?v=222">
+    <link rel="stylesheet" href="css/interactions.css?v=222">
+    <!-- pricing loads last: it re-dresses the discovery card into a row, and
+         carries the price ranges, the picker and the negotiation surfaces -->
+    <link rel="stylesheet" href="css/pricing.css?v=222">
+    <link rel="stylesheet" href="css/stories.css?v=222">
+    <!-- The app itself, deferred and in order. Every file shares one global
+         scope, exactly as the single script did, so a later module may call
+         anything an earlier one declared. js/wiring.js must stay last: it
+         installs the listeners and boots. -->
+    <script src="icons.js?v=222" defer></script>
+    <script src="escrow.js?v=222" defer></script>
+    <script src="js/core.js?v=222" defer></script>
+    <script src="js/directory.js?v=222" defer></script>
+    <script src="js/activity.js?v=222" defer></script>
+    <script src="js/pwa.js?v=222" defer></script>
+    <script src="js/ui.js?v=222" defer></script>
+    <script src="js/social.js?v=222" defer></script>
+    <script src="js/home.js?v=222" defer></script>
+    <script src="js/media.js?v=222" defer></script>
+    <script src="js/provider.js?v=222" defer></script>
+    <script src="js/sheets.js?v=222" defer></script>
+    <script src="js/status.js?v=222" defer></script>
+    <script src="js/clips.js?v=222" defer></script>
+    <script src="js/bookings.js?v=222" defer></script>
+    <script src="js/views.js?v=222" defer></script>
+    <script src="js/auth.js?v=222" defer></script>
+    <script src="js/location.js?v=222" defer></script>
+    <script src="js/booking-sheet.js?v=222" defer></script>
+    <script src="js/wiring.js?v=222" defer></script>
 </head>
 
 <body>
     <nav style="display: none;">
         nav Home bookings profile
     </nav>
+
     <!-- INTRO PAGE FOR MOBILE FIRST TIME -->
     <div class="intro">
         <div class="logo">
             <div class="logoImg">
-                <img id="" src="./img/beauty.png" alt="logo">
+                <img src="./img/pampa-logo.png" alt="Pampa">
             </div>
-            <div class="logoText">Pampa</div>
         </div>
     </div>
-    <!-- lOGIN PAGE -->
-    <div class="loginPage" style="display: none;">
 
+    <!-- LOGIN PAGE -->
+    <div id="welcomePage" class="welcomePage" style="display: none;">
         <div class="logo">
             <div class="logoImg">
-                <img id="faceOfPampa" src="./img/beauty.png" alt="logo">
+                <img id="faceOfPampa" src="./img/pampa-logo.png" alt="Pampa">
             </div>
-            <div class="logoText">Pampa</div>
         </div>
+
+        <div class="heroArt" id="heroArt" data-illus="welcome"></div>
+
+        <p class="heroLine">Hair, barbing, nails and spa<br>at your address.</p>
 
         <div class="bttnCage">
             <button class="signIn">Sign in</button>
             <button class="createAccount">Create account</button>
-
         </div>
-
-        <p class="troubleLogin">Trouble sigining in ?</p>
     </div>
+
     <!-- NUMBER -->
     <div id="number" style="display: none;">
         <div class="goBack">
-            <img id="back" src="./img/back.png" alt="back">
+            <button class="backbtn" data-goto="welcomePage" aria-label="Back">
+                <span data-icon="arrowLeft"></span>
+            </button>
         </div>
 
         <div id="topText">
-            <p class="t1">Can we get <br>your number ?</p>
-            <div class="grp1">
-                <input id="dailCode" type="text" class="num1" placeholder="NG +234">
-                <img id="dropDownList" src="./img/down.png" alt="down" style="width: 30px; height: 30px;">
-                <input id="telephone" type="tel" class="num2">
+            <div class="authKicker">
+                <span class="authMode"></span>
+                <span class="authSteps" aria-hidden="true"></span>
             </div>
-            <p class="chargesApply">We’ll text you a code to verify you’re really you.
+            <p class="t1" id="numberTitle">Can we get <br>your number ?</p>
+
+            <!-- One screen, two doors, and the fields follow the door. Signing
+                 up needs a number and a code; signing in needs an identifier
+                 and a password, and never a code. -->
+            <div class="grp1 pwRow" id="signupPhoneRow">
+                <span class="pwIco" data-icon="phone"></span>
+                <input id="dailCode" type="text" class="num1" placeholder="NG +234" value="+234">
+                <input id="telephone" type="tel" class="num2" placeholder="Phone number" inputmode="numeric" maxlength="11">
+            </div>
+
+            <div class="grp1 pwRow" id="signinIdRow" style="display: none;">
+                <span class="pwIco" data-icon="user"></span>
+                <input id="signinId" type="text" class="num2 wide pwInput"
+                    placeholder="Number or username" autocomplete="username" maxlength="40">
+            </div>
+
+            <!-- Sign-in only: the password, with its own reveal toggle. -->
+            <div class="grp1 pwRow" id="signinPwRow" style="display: none;">
+                <span class="pwIco" data-icon="lock"></span>
+                <input id="signinPassword" type="password" class="num2 wide pwInput"
+                    placeholder="Your password" autocomplete="current-password" maxlength="64">
+                <button class="pwEye" id="signinPwEye" type="button" aria-label="Show password">
+                    <span data-icon="eye"></span>
+                </button>
+            </div>
+
+            <p class="chargesApply" id="numberSub">We’ll text you a code to verify you’re really you.
                 <br> Messages and data rates may
                 apply.<span class="blue"> Resend code</span><span id="counter"></span>
             </p>
         </div>
 
-        <button class="nextbtn">Next</button>
-
-
+        <button class="nextbtn" id="sendOtp">Next</button>
     </div>
 
+    <!-- PASSWORD: set one at sign-up, set a new one after a code, change one
+         from Profile. One screen, because it is the same act every time. -->
+    <div id="password" style="display: none;">
+        <div class="goBack">
+            <button class="backbtn" id="passwordBack" aria-label="Back">
+                <span data-icon="arrowLeft"></span>
+            </button>
+        </div>
 
+        <div id="topText">
+            <div class="authKicker">
+                <span class="authMode"></span>
+                <span class="authSteps" aria-hidden="true"></span>
+            </div>
+            <p class="t1" id="passwordTitle">Create a<br>password</p>
+            <p class="authNote" id="passwordNote">You’ll use this to sign in — codes are only for setting up an account.</p>
+            <div class="grp1 pwRow" id="pwCurrentRow" style="display: none;">
+                <span class="pwIco" data-icon="lock"></span>
+                <input id="pwCurrent" type="password" class="num2 wide pwInput"
+                    placeholder="Current password" autocomplete="current-password" maxlength="64">
+                <button class="pwEye" id="pwCurrentEye" type="button" aria-label="Show password">
+                    <span data-icon="eye"></span>
+                </button>
+            </div>
+            <div class="grp1 pwRow">
+                <span class="pwIco" data-icon="key"></span>
+                <input id="pwNew" type="password" class="num2 wide pwInput"
+                    placeholder="New password" autocomplete="new-password" maxlength="64">
+                <button class="pwEye" id="pwNewEye" type="button" aria-label="Show password">
+                    <span data-icon="eye"></span>
+                </button>
+            </div>
+            <p class="pwHint" id="pwHint">At least 6 characters.</p>
+            <p class="errorMsg" id="pwError" style="display: none;">Password must be at least 6 characters</p>
+        </div>
 
+        <button class="nextbtn" id="pwSave">Continue</button>
+    </div>
 
+    <!-- OTP -->
+    <div id="otp" style="display: none;">
+        <div class="goBack">
+            <button class="backbtn" data-goto="number" aria-label="Back">
+                <span data-icon="arrowLeft"></span>
+            </button>
+        </div>
 
+        <div id="topText">
+            <div class="authKicker">
+                <span class="authMode"></span>
+                <span class="authSteps" aria-hidden="true"></span>
+            </div>
+            <p class="t1" id="otpTitle">Enter the code<br>we sent you</p>
+            <p class="otpSub"><span id="otpLead">Sent to</span> <span id="otpPhone"></span>. Demo code: <b>1234</b></p>
+            <div class="grp2">
+                <input class="otp-input" type="tel" inputmode="numeric" maxlength="1" aria-label="digit 1">
+                <input class="otp-input" type="tel" inputmode="numeric" maxlength="1" aria-label="digit 2">
+                <input class="otp-input" type="tel" inputmode="numeric" maxlength="1" aria-label="digit 3">
+                <input class="otp-input" type="tel" inputmode="numeric" maxlength="1" aria-label="digit 4">
+            </div>
+            <p class="errorMsg" id="otpError" style="display: none;">Wrong code, try again</p>
+        </div>
 
+        <button class="nextbtn" id="verifyOtp">Verify</button>
+    </div>
 
+    <!-- NAME -->
+    <div id="name" style="display: none;">
+        <div class="goBack">
+            <button class="backbtn" data-goto="otp" aria-label="Back">
+                <span data-icon="arrowLeft"></span>
+            </button>
+        </div>
 
+        <div id="topText">
+            <div class="authKicker">
+                <span class="authMode"></span>
+                <span class="authSteps" aria-hidden="true"></span>
+            </div>
+            <p class="t1" id="nameTitle">What should we<br>call you ?</p>
+            <div class="grp1">
+                <input id="userName" type="text" class="num2 wide" placeholder="Your name" maxlength="30">
+            </div>
+        </div>
 
+        <button class="nextbtn" id="saveName">Next</button>
+    </div>
 
-    <script src="script.js">
-        function showPage(pageId) {
-            if (pageId === "number") {
-                document.body.style.backgroundColor = "#fffafa";
-            } else {
-                document.body.style.backgroundColor = "#93d4ff"
-            }
-        }
-    </script>
+    <!-- ROLE: professional or client -->
+    <div id="role" style="display: none;">
+        <div class="goBack">
+            <button class="backbtn" id="roleBack" aria-label="Back">
+                <span data-icon="arrowLeft"></span>
+            </button>
+        </div>
+
+        <div id="topText">
+            <div class="authKicker">
+                <span class="authMode"></span>
+                <span class="authSteps" aria-hidden="true"></span>
+            </div>
+            <p class="t1">How will you<br>use <span class="blue">Pampa</span> ?</p>
+            <p class="otpSub">This is set once. A professional takes bookings and is paid through escrow; a client books and pays.</p>
+        </div>
+
+        <div class="roleList" id="roleList"></div>
+
+        <button class="nextbtn roleNext" id="saveRole">Continue</button>
+    </div>
+
+    <!-- TRADE (what they do) -->
+    <div id="trade" style="display: none;">
+        <div class="goBack">
+            <button class="backbtn" data-goto="name" aria-label="Back">
+                <span data-icon="arrowLeft"></span>
+            </button>
+        </div>
+
+        <div id="topText">
+            <div class="authKicker">
+                <span class="authMode"></span>
+                <span class="authSteps" aria-hidden="true"></span>
+            </div>
+            <p class="t1">What do you<br><span class="blue">do</span> ?</p>
+            <p class="otpSub" id="tradeHint">Pick your trade to take jobs on Pampa.</p>
+        </div>
+
+        <div class="tradeList cueScroll" id="tradeList"></div>
+
+        <button class="nextbtn" id="saveTrade">Continue</button>
+    </div>
+
+    <!-- LOCATION -->
+    <div id="location" style="display: none;">
+        <div class="goBack">
+            <button class="backbtn" id="locationBack" aria-label="Back">
+                <span data-icon="arrowLeft"></span>
+            </button>
+        </div>
+
+        <div id="topText">
+            <div class="authKicker">
+                <span class="authMode"></span>
+                <span class="authSteps" aria-hidden="true"></span>
+            </div>
+            <p class="t1">Where should we<br>meet you ?</p>
+            <p class="otpSub" id="locationHint">Use your current location or type your address — we show the pros nearest you.</p>
+        </div>
+
+        <div class="locArt" id="locArt" data-illus="radar"></div>
+
+        <button class="gpsBtn" id="useGps">
+            <span class="gpsIco" data-icon="pin"></span>
+            <span class="gpsTxt">
+                <b>Use my current location</b>
+                <small>One tap — read from this device</small>
+            </span>
+        </button>
+
+        <p class="locOr"><span>or type your address</span></p>
+
+        <div class="locField">
+            <input id="homeAddress" type="text" class="addrInput" placeholder="Street address — e.g. 12 Bode Thomas, Surulere"
+                maxlength="80" autocomplete="street-address" enterkeyhint="done">
+            <span class="addrIco" data-icon="pin"></span>
+        </div>
+
+        <!-- What the app made of those two: the area you were placed in and
+             where that came from, or the reason the address could not be
+             placed. One line of state — never a list to choose from. -->
+        <div class="locFix" id="locFix" aria-live="polite"></div>
+
+        <button class="nextbtn" id="saveLocation">Save location</button>
+    </div>
+
+    <!-- APP -->
+    <div id="app" style="display: none;">
+        <!-- HOME -->
+        <section id="view-home" class="view" style="display: none;">
+            <header class="homeHead">
+                <div class="headLeft">
+                    <p class="hi">Hi <span id="homeName">there</span></p>
+                    <p class="sub" id="homeTradeHint">Beauty and barbing, near you</p>
+                </div>
+                <div class="headRight">
+                    <button class="bellBtn" data-openclips="foryou" aria-label="Watch clips">
+                        <span data-icon="play"></span>
+                    </button>
+                    <button class="bellBtn" id="notifyBtn" aria-label="Activity">
+                        <span data-icon="bell"></span>
+                        <span class="bellDot" id="notifyDot" style="display: none;">0</span>
+                    </button>
+                    <button class="avatar" id="homeAvatar" aria-label="Your profile">P</button>
+                </div>
+            </header>
+
+            <!-- The stories rail first: under the header, above everything
+                 else, because what is happening today is the first thing a
+                 reader meets. One ring each, gold while unwatched, gone on
+                 its own after 24 hours. -->
+            <div class="sectionHead storyHead">
+                <h2>In the spotlight</h2>
+                <span class="headNote">Live · 24 hours</span>
+            </div>
+            <div class="storyStrip" id="storyStrip"></div>
+
+            <!-- Where you are, in one pill: the area on the first line, the
+                 street under it. Tapping it opens the location screen, where
+                 the area, the address and this device's own GPS live
+                 together — one door, not three stacked bars. -->
+            <div class="addrBlock">
+                <button class="addrArea" id="homeAreaBtn">
+                    <span class="addrIco" data-icon="pin"></span>
+                    <span class="addrAreaText">
+                        <b id="homeAreaName">Set your location</b>
+                        <small id="homeAreaNote">Use your location or add your address</small>
+                    </span>
+                    <span class="chev" data-icon="chevron"></span>
+                </button>
+                <div class="addrField searchField" id="searchField">
+                    <span class="addrIco" data-icon="search"></span>
+                    <input id="search" type="search" placeholder="Search a professional or a trade" autocomplete="off">
+                </div>
+                <!-- The three closest professionals, in the same group as the
+                     place they are measured from: the page answers "who is
+                     nearest?" before a single scroll. Written by
+                     renderNearChips — empty (and gone) without a location, and
+                     empty for anyone whose own trade this is. -->
+                <div class="nearChips cueScroll" id="nearChips"></div>
+            </div>
+
+            <div class="chips" id="homeChips">
+                <button class="chip active" data-filter="all">All</button>
+                <button class="chip" data-filter="hair">Hair</button>
+                <button class="chip" data-filter="barb">Barbing</button>
+                <button class="chip" data-filter="nails">Nails</button>
+                <button class="chip" data-filter="spa">Spa</button>
+            </div>
+
+            <!-- Featured slider: real photography, one slide per trade. Tapping a
+                 slide filters the grid below, the same as the trade strip.
+                 The dots sit outside the scrolling track so they hold still
+                 while the slides move under them. -->
+            <!-- A professional's Home is their trade, not the market: what
+                 they do and how it is rated. Everything else on this page is
+                 for people looking to book, and is hidden for them. -->
+            <div id="homeProStats" style="display: none;"></div>
+
+            <div id="homeMarket">
+            <section class="heroWrap" aria-label="Featured services">
+                <div class="heroSlider" id="heroSlider" aria-roledescription="carousel"></div>
+                <div class="heroDots" id="heroDots" role="group" aria-label="Choose slide"></div>
+            </section>
+
+            <!-- No service catalogue on the client's Home: a client chooses a
+                 person, and the person's own services (with the prices they
+                 charge for them) are what the booking sheet opens on. The list
+                 below is everyone, nearest first — the page's whole point. -->
+            <div class="sectionHead">
+                <h2 id="proHead">Closest to you</h2>
+                <span class="headNote" id="proCount"></span>
+            </div>
+            <div class="providerList" id="providerList"></div>
+            </div><!-- /homeMarket -->
+        </section>
+
+        <!-- BOOKINGS -->
+        <section id="view-bookings" class="view" style="display: none;">
+            <header class="homeHead">
+                <div>
+                    <p class="hi">Bookings</p>
+                    <p class="sub">Your upcoming &amp; past appointments</p>
+                </div>
+            </header>
+
+            <div class="chips">
+                <button class="chip active" data-status="upcoming">Upcoming</button>
+                <button class="chip" data-status="past">Past</button>
+            </div>
+
+            <div id="bookingList"></div>
+        </section>
+
+        <!-- WORK (professional dashboard) -->
+        <section id="view-work" class="view" style="display: none;">
+            <header class="homeHead">
+                <div>
+                    <p class="hi">Your work</p>
+                    <p class="sub" id="workWho">Pro dashboard</p>
+                </div>
+                <div class="headRight">
+                    <button class="bellBtn" data-openclips="foryou" aria-label="Watch clips">
+                        <span data-icon="play"></span>
+                    </button>
+                    <button class="avatar big" id="workAvatar" aria-label="Your profile">P</button>
+                </div>
+            </header>
+
+            <!-- The business card comes before the paperwork: who they are,
+                 what they do, where they work — then the gallery, then money. -->
+            <div class="card workHero">
+                <div class="workHeroTop">
+                    <span id="workDp"></span>
+                    <div class="workHeroMeta">
+                        <b id="workName">—</b>
+                        <small id="workTrade">—</small>
+                        <small id="workLoc"></small>
+                        <small id="workRating" class="heroRating"></small>
+                    </div>
+                    <button class="linkBtn" id="workEditContact">Edit</button>
+                </div>
+                <div class="workHeroChips" id="workChips"></div>
+            </div>
+
+            <!-- Taking bookings or not. Above the gallery and the money on
+                 purpose: it is the switch a professional flips most often. -->
+            <div id="workAvail"></div>
+
+            <!-- What clients see on the rail today: one photo, clip or line
+                 that lasts 24 hours. Right under the switch because it is the
+                 other thing a professional touches daily. -->
+            <div id="workStatus"></div>
+
+            <!-- What each of their services costs. The floor and ceiling a
+                 client chooses between, so the rate a booking starts from is
+                 the professional's own, not a catalogue number. -->
+            <div id="workRates"></div>
+
+            <div class="sectionHead">
+                <h2>My work</h2>
+                <button class="linkBtn" id="workManageFolio" data-openfolio="1">Manage</button>
+            </div>
+            <div id="workGallery"></div>
+
+            <div class="sectionHead">
+                <h2>Needs your attention</h2>
+                <span class="headNote" id="workCount"></span>
+            </div>
+            <div id="workRequests"></div>
+
+            <button class="card proEntry" id="workOpenPro">
+                <span class="proIco" data-icon="briefcase"></span>
+                <span class="rowInfo"><b>Open the escrow desk</b><small>Accept, mark done and withdraw your earnings</small></span>
+                <span class="chev" data-icon="chevron"></span>
+            </button>
+        </section>
+
+        <!-- PROFILE -->
+        <section id="view-profile" class="view" style="display: none;">
+            <header class="homeHead">
+                <div>
+                    <p class="hi">Profile</p>
+                </div>
+                <div class="avatar big" id="profileAvatar">P</div>
+            </header>
+
+            <div class="card profileCard">
+                <p class="row"><span>Name</span><b id="profileName"></b></p>
+                <p class="row"><span>Phone</span><b id="profilePhone"></b></p>
+                <p class="row"><span>Email</span><b id="profileEmail">—</b></p>
+                <p class="row"><span>Social</span><b id="profileSocial">—</b></p>
+                <p class="row"><span>I am here as</span><b id="profileRole">Client</b></p>
+                <p class="row"><span>Trade</span><b id="profileTrade"></b></p>
+                <p class="row"><span>Area</span><b id="profileArea"></b></p>
+                <p class="row"><span>Address</span><b id="profileAddress"></b></p>
+                <p class="row"><span>Bio</span><b id="profileBio" class="rowBio">—</b></p>
+            </div>
+
+            <button class="nextbtn ghost icoBtn" id="editLocation"><span data-icon="pin"></span><span>Update my location</span></button>
+            <button class="nextbtn ghost icoBtn" id="editBio"><span data-icon="quote"></span><span id="editBioText">Add my bio</span></button>
+            <button class="nextbtn ghost icoBtn" id="editContact"><span data-icon="userRing"></span><span>Edit my details</span></button>
+
+            <!-- Everyone has a face; only a professional has a public page to
+                 put it on. The portfolio button is the pro-only half. -->
+            <div id="proTools">
+                <div class="sectionHead"><h2 id="proToolsHead">Your picture</h2></div>
+                <div class="dpRow" id="dpRow"></div>
+                <button class="nextbtn ghost icoBtn" id="editPhoto"><span data-icon="camera"></span><span id="editPhotoText">Add a profile photo</span></button>
+                <button class="nextbtn ghost icoBtn" id="editPortfolio"><span data-icon="gallery"></span><span id="editPortfolioText">Add work photos &amp; videos</span></button>
+            </div>
+
+            <button class="nextbtn ghost icoBtn" id="changePassword"><span data-icon="key"></span><span id="changePasswordText">Change my password</span></button>
+
+            <div class="sectionHead"><h2>Earn on Pampa</h2></div>
+            <button class="card proEntry" id="proEntry">
+                <span class="proIco" data-icon="briefcase"></span>
+                <span class="rowInfo"><b id="proEntryTitle">Open the escrow desk</b><small id="proEntryNote">Accept jobs, track escrow and withdraw earnings</small></span>
+                <span class="chev" data-icon="chevron"></span>
+            </button>
+
+            <button class="card proEntry" id="deskEntry">
+                <span class="proIco" data-icon="scale"></span>
+                <span class="rowInfo"><b>Resolution desk</b><small id="deskEntryNote">Settle disputes held in escrow</small></span>
+                <span class="chev" data-icon="chevron"></span>
+            </button>
+
+            <div class="sectionHead"><h2>Preferences</h2></div>
+            <div class="card prefCard">
+                <div class="prefRow">
+                    <span class="prefLabel">Appearance</span>
+                    <div class="segmented" id="themeToggle" role="group" aria-label="Appearance">
+                        <button class="seg" data-theme-set="dark"><span class="segIco" data-icon="moon"></span>Dark</button>
+                        <button class="seg" data-theme-set="light"><span class="segIco" data-icon="sun"></span>Light</button>
+                    </div>
+                </div>
+                <label class="prefRow">
+                    <span class="prefLabel">Save my details on this device</span>
+                    <input type="checkbox" id="rememberMe" class="switch" checked>
+                </label>
+            </div>
+
+            <!-- The app itself, for whoever wants it on a home screen. Both
+                 rows are state-driven: what they say depends on whether this
+                 device can install, already has, or has notifications on. -->
+            <div class="sectionHead"><h2>The app</h2></div>
+            <button class="card proEntry" id="installEntry">
+                <span class="proIco" data-icon="download"></span>
+                <span class="rowInfo"><b id="installTitle">Install Pampa</b><small id="installNote">Add it to your home screen and open it like any other app</small></span>
+                <span class="chev" data-icon="chevron"></span>
+            </button>
+
+            <button class="card proEntry" id="notifyEntry">
+                <span class="proIco" data-icon="bell"></span>
+                <span class="rowInfo"><b id="notifyTitle">Turn on notifications</b><small id="notifyNote">Hear about bookings, escrow and replies to your clips</small></span>
+                <span class="chev" data-icon="chevron"></span>
+            </button>
+
+            <!-- The closed-app half of notifications: the push channel. Its
+                 status line tells the truth for this exact device. -->
+            <p class="pushNote" id="pushStatus" style="display: none;"></p>
+
+            <button class="nextbtn danger" id="logoutBtn">Log out</button>
+            <p class="finePrint">Pampa demo · data stays on this device</p>
+        </section>
+
+        <!-- BOTTOM NAV -->
+        <nav class="bottomNav" id="bottomNav">
+            <button class="tab active" data-view="home">
+                <span class="ico" data-icon="market"></span><span>Home</span>
+            </button>
+            <button class="tab" data-view="work">
+                <span class="ico" data-icon="briefcase"></span><span>Work</span>
+            </button>
+            <button class="tab" data-view="bookings">
+                <span class="ico" data-icon="calendarDot"></span><span>Bookings</span>
+            </button>
+            <button class="tab" data-view="profile">
+                <span class="ico" data-icon="userRing"></span><span>Profile</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- BOOKING SHEET -->
+    <div class="sheetOverlay" id="sheetOverlay" style="display: none;"></div>
+    <!-- Install nudge: offered once after a client's first completed booking,
+         twice at most, never when the app is already installed. -->
+    <div class="sheet" id="nudgeSheet" style="display: none;">
+        <button class="close nudgeClose" id="closeNudge" aria-label="Close"><span data-icon="close"></span></button>
+        <div id="nudgeArt" aria-hidden="true"><span data-icon="phone"></span></div>
+        <h3 id="nudgeTitle">Keep Pampa on your phone</h3>
+        <p id="nudgeBody">You've settled your first booking. Installed, Pampa opens faster, works offline, and its notifications land like any other app's.</p>
+        <div id="nudgeActions">
+            <button class="bookBtn" id="nudgeInstall">Yes — add Pampa to my home screen</button>
+            <button class="ghostBtn" id="nudgeDismiss">Not now</button>
+        </div>
+        <p class="finePrint">No banners after this — we'll only ask once more, and only if it matters.</p>
+    </div>
+    <div class="sheet" id="bookingSheet" style="display: none;">
+        <button class="close" id="closeSheet" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3 id="sheetService">Service</h3>
+                <p id="sheetStylist" class="sub">Stylist</p>
+            </div>
+        </div>
+
+        <div id="sheetBody"></div>
+
+        <div class="sheetFoot">
+            <div class="price" id="sheetPrice">₦0</div>
+            <button class="nextbtn tight" id="confirmBook">Confirm booking</button>
+        </div>
+    </div>
+
+    <!-- PAYMENT SHEET -->
+    <div class="sheet" id="paySheet" style="display: none;">
+        <button class="close" id="closePay" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3 id="payTitle">Pay into escrow</h3>
+                <p class="sub" id="paySub">Held until you confirm the job</p>
+            </div>
+        </div>
+        <div id="payBody"></div>
+        <div class="sheetFoot" id="payFoot">
+            <div class="price" id="payPrice">₦0</div>
+            <button class="nextbtn tight" id="payNow">Pay into escrow</button>
+        </div>
+    </div>
+
+    <!-- NEGOTIATE SHEET (the professional answers a request with a price) -->
+    <div class="sheet" id="negoSheet" style="display: none;">
+        <button class="close" id="closeNego" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>Negotiate the price</h3>
+                <p class="sub" id="negoSub">Your range for this service</p>
+            </div>
+        </div>
+        <div id="negoBody"></div>
+        <div class="sheetFoot">
+            <button class="nextbtn tight" id="negoSend">Send my price</button>
+        </div>
+    </div>
+
+    <!-- PRO MODE -->
+    <div id="proMode" class="proMode" style="display: none;">
+        <header class="proHead">
+            <div>
+                <p class="proTag">Pro mode</p>
+                <p class="hi" id="proWho">Sign in as a stylist</p>
+            </div>
+            <button class="exitBtn" id="proExit">Exit</button>
+        </header>
+        <div class="proTabs">
+            <button class="proTab active" data-protab="requests">Requests <span class="count" id="proReqCount">0</span></button>
+            <button class="proTab" data-protab="jobs">Jobs <span class="count" id="proJobCount" style="display: none;">0</span></button>
+            <button class="proTab" data-protab="wallet">Wallet</button>
+        </div>
+        <div id="proBody"></div>
+    </div>
+
+    <!-- DISPUTE REPORT SHEET -->
+    <div class="sheet" id="disputeSheet" style="display: none;">
+        <button class="close" id="closeDispute" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>Report a problem</h3>
+                <p class="sub" id="disputeSub">Your money stays in escrow</p>
+            </div>
+        </div>
+        <div id="disputeBody"></div>
+        <div class="sheetFoot">
+            <button class="nextbtn tight" id="disputeSubmit">Hold funds &amp; report</button>
+        </div>
+    </div>
+
+    <!-- RESOLUTION DESK (mediator) -->
+    <div id="deskMode" class="proMode deskTint" style="display: none;">
+        <header class="proHead">
+            <div>
+                <p class="proTag">Resolution desk</p>
+                <p class="hi">Disputed escrow</p>
+            </div>
+            <button class="exitBtn" id="deskExit">Exit</button>
+        </header>
+        <div id="deskBody"></div>
+    </div>
+
+    <!-- PROVIDER PROFILE (public page) -->
+    <div id="providerProfile" class="proMode profileTint" style="display: none;">
+        <header class="proHead">
+            <div>
+                <p class="proTag">Provider</p>
+                <p class="hi" id="providerWho">Profile</p>
+            </div>
+            <button class="exitBtn" id="providerExit">Close</button>
+        </header>
+        <div id="providerBody"></div>
+    </div>
+
+    <!-- RATE + RELEASE SHEET -->
+    <div class="sheet" id="rateSheet" style="display: none;">
+        <button class="close" id="closeRate" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>Rate your stylist</h3>
+                <p class="sub" id="rateSub">Your review goes public on their profile</p>
+            </div>
+        </div>
+        <div id="rateBody"></div>
+        <div class="sheetFoot rateFoot">
+            <button class="linkBtn" id="rateSkip">Release without a review</button>
+            <button class="nextbtn tight" id="rateSubmit">Release &amp; post review</button>
+        </div>
+    </div>
+
+    <!-- ACTIVITY / NOTIFICATIONS SHEET -->
+    <div class="sheet" id="notifySheet" style="display: none;">
+        <button class="close" id="closeNotify" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>Activity</h3>
+                <p class="sub" id="notifySub">Everything that moved on your bookings</p>
+            </div>
+        </div>
+        <div id="notifyBody"></div>
+        <div class="sheetFoot">
+            <p class="finePrint" id="notifyPermitNote" style="display: none;"></p>
+            <button class="nextbtn ghost tight" id="notifyPermitBtn" style="display: none;"><span data-icon="bell"></span><span id="notifyPermitText">Turn on notifications</span></button>
+            <button class="nextbtn tight" id="notifyDone">Done</button>
+        </div>
+    </div>
+
+    <!-- BIO SHEET (provider's own profile text) -->
+    <div class="sheet" id="bioSheet" style="display: none;">
+        <button class="close" id="closeBio" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>Your bio</h3>
+                <p class="sub">The line clients read on your profile</p>
+            </div>
+        </div>
+        <div class="bioBody">
+            <textarea id="bioInput" class="bioInput" maxlength="220" rows="4"
+                placeholder="Tell clients what you do best — the cut you're known for, how long you've been at it, whether you travel."></textarea>
+            <p class="finePrint">Up to 220 characters. Leave it empty and Pampa writes one from your trade, area and history.</p>
+        </div>
+        <div class="sheetFoot">
+            <button class="nextbtn tight" id="bioSave">Save bio</button>
+        </div>
+    </div>
+
+    <!-- CONTACT SHEET (name, email, socials — personal details, not the trade) -->
+    <div class="sheet" id="contactSheet" style="display: none;">
+        <button class="close" id="closeContact" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>My details</h3>
+                <p class="sub">Your name, email and social handles</p>
+            </div>
+        </div>
+        <div class="bioBody">
+            <label class="fieldLabel" for="ctName">Display name</label>
+            <input id="ctName" class="bioInput" maxlength="40" placeholder="The name clients see">
+            <label class="fieldLabel" for="ctEmail">Email</label>
+            <input id="ctEmail" class="bioInput" type="email" maxlength="80" placeholder="you@example.com">
+            <label class="fieldLabel" for="ctIg">Instagram</label>
+            <input id="ctIg" class="bioInput" maxlength="40" placeholder="@yourhandle">
+            <label class="fieldLabel" for="ctTt">TikTok</label>
+            <input id="ctTt" class="bioInput" maxlength="40" placeholder="@yourhandle">
+            <label class="fieldLabel" for="ctX">X (Twitter)</label>
+            <input id="ctX" class="bioInput" maxlength="40" placeholder="@yourhandle">
+        </div>
+        <div class="sheetFoot">
+            <button class="nextbtn tight" id="contactSave">Save details</button>
+        </div>
+    </div>
+
+    <!-- PROFILE PHOTO SHEET -->
+    <div class="sheet" id="dpSheet" style="display: none;">
+        <button class="close" id="closeDp" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>Your profile photo</h3>
+                <p class="sub">The picture clients see on every card</p>
+            </div>
+        </div>
+        <div class="sheetBody" id="dpBody"></div>
+        <div class="sheetFoot">
+            <button class="nextbtn tight" id="dpPick">Choose a photo</button>
+            <button class="linkBtn" id="dpClear">Remove photo</button>
+        </div>
+    </div>
+
+    <!-- PORTFOLIO SHEET: work photos and video links -->
+    <div class="sheet" id="folioSheet" style="display: none;">
+        <button class="close" id="closeFolio" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>My work</h3>
+                <p class="sub">Photos and clips clients can see</p>
+            </div>
+        </div>
+        <div class="sheetBody" id="folioBody"></div>
+        <div class="sheetFoot">
+            <button class="nextbtn tight" id="folioPick">Add photos</button>
+            <button class="nextbtn tight ghost" id="videoPick">Add a video</button>
+        </div>
+    </div>
+
+    <!-- One picker for all three: a profile photo, portfolio shots and a clip
+         are the same kind of input, only a different size budget. -->
+    <input type="file" id="dpInput" accept="image/*" hidden>
+    <input type="file" id="workInput" accept="image/*" multiple hidden>
+    <input type="file" id="videoInput" accept="video/*" hidden>
+
+    <!-- CLIP FEED: the vertical rail. Videos are watched here rather than one
+         at a time in the viewer — a wall, scrolled like a feed. -->
+    <div id="clipFeed" style="display: none;">
+        <header class="clipTop">
+            <div class="clipTabs" role="group" aria-label="Clip feed">
+                <button class="clipTab active" data-clipscope="foryou">For you</button>
+                <button class="clipTab" data-clipscope="near">Near you</button>
+            </div>
+            <button class="clipClose" id="clipClose" aria-label="Close"><span data-icon="close"></span></button>
+        </header>
+        <div class="clipScroller" id="clipScroller"></div>
+    </div>
+
+    <!-- CLIP COMMENTS -->
+    <div class="sheet" id="commentSheet" style="display: none;">
+        <button class="close" id="closeComments" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3 id="commentTitle">Comments</h3>
+                <p class="sub" id="commentSub"></p>
+            </div>
+        </div>
+        <div class="sheetBody" id="commentBody"></div>
+        <div class="sheetFoot clipCommentFoot">
+            <!-- Who the next post answers, once Reply is tapped on a comment -->
+            <div class="replyChip" id="replyChip" style="display: none;">
+                <span class="replyChipIco" data-icon="reply"></span>
+                <span class="replyChipText" id="replyChipText"></span>
+                <button class="replyChipX" id="replyCancel" aria-label="Cancel reply"><span data-icon="close"></span></button>
+            </div>
+            <div class="addrField">
+                <span class="addrIco" data-icon="chat"></span>
+                <input id="commentInput" type="text" maxlength="240" placeholder="Add a comment…">
+                <button class="fieldGo" id="commentSend" aria-label="Post comment"><span data-icon="send"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STORY VIEWER: a professional's status, played like a story — bars
+         across the top, tap the right half to move on, the left half to go
+         back, press and hold to stop it, and the rail hands over to the next
+         professional with something new. -->
+    <div id="storyView" style="display: none;" role="dialog" aria-modal="true" aria-label="Status">
+        <div class="svCard" id="svCard">
+            <div class="svBars" id="svBars"></div>
+            <header class="svTop">
+                <span class="svWho" id="svWho">
+                    <span class="svFace" id="svFace"></span>
+                    <span class="svMeta"><b id="svName"></b><small id="svWhen"></small></span>
+                </span>
+                <button class="svClose" id="svClose" aria-label="Close"><span data-icon="close"></span></button>
+            </header>
+            <div class="svStage" id="storyStage"></div>
+            <button class="svTap prev" id="svPrev" aria-label="Previous"></button>
+            <button class="svTap next" id="svNext" aria-label="Next"></button>
+            <footer class="svFoot" id="svFoot"></footer>
+        </div>
+        <p class="svHint" id="svHint">Hold to pause · swipe down to close</p>
+    </div>
+
+    <!-- STATUS SHEET: what a professional posts today -->
+    <div class="sheet" id="statusSheet" style="display: none;">
+        <button class="close" id="closeStatus" aria-label="Close"><span data-icon="close"></span></button>
+        <div class="sheetHead">
+            <div class="logoImg small"><img src="./img/pampa-logo.png" alt=""></div>
+            <div>
+                <h3>Today's status</h3>
+                <p class="sub" id="statusSub">Shows on the spotlight rail for 24 hours</p>
+            </div>
+        </div>
+        <div class="sheetBody" id="statusBody"></div>
+        <div class="sheetFoot">
+            <button class="nextbtn tight" id="statusPost">Post status</button>
+        </div>
+    </div>
+
+    <!-- One picker per kind of status: a picture, or a clip from this device -->
+    <input type="file" id="statusPhotoIn" accept="image/*" hidden>
+    <input type="file" id="statusClipIn" accept="video/*" hidden>
+
+    <!-- WORK VIEWER: full-size photo or a playing clip -->
+    <div id="workView" style="display: none;">
+        <button class="pvClose" id="workViewClose" aria-label="Close"><span data-icon="close"></span></button>
+        <p class="pvLabel" id="workViewLabel"></p>
+        <div class="wvStage" id="workViewStage"></div>
+        <p class="pvHint">Tap anywhere to close</p>
+    </div>
+
+    <!-- DISPUTE EVIDENCE: shared picker + full-size viewer -->
+    <input type="file" id="evidenceInput" accept="image/*" multiple hidden>
+    <div id="photoViewer" style="display: none;">
+        <button class="pvClose" id="pvClose" aria-label="Close"><span data-icon="close"></span></button>
+        <p class="pvLabel" id="pvLabel"></p>
+        <img id="pvImg" alt="Evidence photo">
+        <p class="pvHint">Tap anywhere to close</p>
+    </div>
+
+    <!-- TOASTS -->
+    <div id="toasts"></div>
 </body>
 
 </html>

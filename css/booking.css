@@ -1,0 +1,691 @@
+/* ===== Pampa booking: the sheet, location, fees and escrow surfaces =====
+   Choosing a service, a slot and a professional, saying where you are, and the money states a booking can wear.
+   ===== */
+
+/* ===== Booking sheet ===== */
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(2px);
+  z-index: 30;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 31;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-bottom: none;
+  border-radius: 26px 26px 0 0;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow);
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.sheet.show {
+  transform: translateY(0);
+}
+
+.sheet .close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  font-size: 14px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.sheetHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-right: 40px;
+}
+
+.sheetHead h3 {
+  font-size: 18px;
+}
+
+.sheetBlock {
+  margin-top: 14px;
+}
+
+.sheetBlock label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+/* The label and its action on one row. "Your professional" is a statement about
+   the sheet, and the way out of it belongs on the same line rather than under
+   the card as a second, competing button. */
+.sheetLabelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sheetLabelRow label {
+  margin-bottom: 0;
+}
+
+.pickChange {
+  flex: none;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--gold-line);
+}
+
+/* One card is not a list: it keeps the corner radius it always had, with no
+   list gap beneath it to suggest more are coming. */
+.pickList.chosenOne {
+  gap: 0;
+}
+
+.sheetBlock input[type="date"] {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.sheetBlock input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: var(--icon-invert);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.slot {
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.slot.active {
+  background: var(--gold-soft);
+  border-color: var(--gold-ring);
+  color: var(--gold);
+  animation: ringIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.whereRow {
+  display: flex;
+  gap: 8px;
+}
+
+/* Two ways to have the same job done, side by side and equally available — the
+   icon leads the label so the choice reads before the words do. */
+.where {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.where .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.where.active {
+  background: var(--gold-soft);
+  border-color: var(--gold-ring);
+  color: var(--gold);
+  animation: ringIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.sheetFoot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.sheetFoot .price {
+  font-size: 20px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.nextbtn.tight {
+  flex: 1;
+  margin: 0;
+  padding: 13px;
+}
+
+/* ===== Toasts ===== */
+#toasts {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(92vw, 380px);
+}
+
+.toast {
+  background: var(--toast-bg);
+  border: 1px solid var(--toast-line);
+  color: var(--toast-ink);
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== Location ===== */
+.headLeft {
+  min-width: 0;
+}
+
+.locPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 250px;
+}
+
+.locPill .chev {
+  color: var(--blue-deep);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.gpsBtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 15px 0;
+  padding: 12px 14px;
+  border-radius: 100px;
+  border: 1px solid transparent;
+  background: var(--gold);
+  color: var(--on-gold);
+  font-weight: 600;
+  font-size: 15px;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(240, 181, 60, 0.2);
+}
+
+.gpsBtn .gpsIco {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.gpsBtn .gpsIco svg,
+.gpsBtn .gpsIco span {
+  width: 20px;
+  height: 20px;
+}
+
+.gpsBtn .gpsTxt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.gpsBtn .gpsTxt b {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.gpsBtn .gpsTxt small {
+  font-size: 12px;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+.gpsBtn:active {
+  transform: scale(0.98);
+}
+
+.gpsBtn:disabled {
+  opacity: 0.6;
+  transform: none;
+}
+
+.locField {
+  margin: 12px 15px 0;
+}
+
+.addrInput {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  outline: none;
+  font-size: 15px;
+}
+
+.addrInput:focus {
+  border-color: var(--blue-deep);
+}
+
+/* The area list's rules (.areaWrap, .areaList, .areaRow, .areaMain, .areaDist,
+   .areaTick) lived here until the location step stopped offering a list: the
+   device and the typed address place you now, and the state line that says
+   where they landed is drawn by .locFix in components.css. */
+
+/* ===== Sheet: stylist picker, location, fees ===== */
+.pickList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pickCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.pickCard.active {
+  border-color: var(--blue-ring);
+  background: var(--gold-soft);
+  animation: ringIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.pickAvatar {
+  height: 38px;
+  width: 38px;
+  border-radius: 50%;
+  background: var(--grad-gold);
+  color: var(--on-gold);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.pickInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.pickInfo b {
+  font-size: 14px;
+}
+
+.pickInfo small {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.pickNote.off {
+  color: var(--gold);
+}
+
+/* A professional who is not taking bookings can still be looked at, but the
+   card stops looking like a choice: dimmed, and its tap does nothing. The
+   dimming sits on the contents rather than the card, because the list's riseIn
+   animation finishes on opacity 1 and would overrule a rule of its own. */
+.pickCard.paused {
+  cursor: not-allowed;
+}
+
+.pickCard.paused > * {
+  opacity: 0.6;
+}
+
+.pickCard.paused .pickAvatar {
+  filter: grayscale(1);
+}
+
+.pickCheck {
+  color: var(--blue-deep);
+  font-weight: 800;
+}
+
+.locInfo {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--card-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.locWarn {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--gold);
+}
+
+.slot.taken,
+.slot.past {
+  background: var(--card-2);
+  color: var(--ink-faint);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.feeBox {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.feeRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 3px 0;
+}
+
+.feeRow b {
+  color: var(--ink);
+}
+
+.feeRow.total {
+  border-top: 1px dashed var(--line);
+  margin-top: 6px;
+  padding-top: 8px;
+  font-size: 15px;
+}
+
+.feeRow.total b {
+  font-size: 16px;
+}
+
+.nearBadge {
+  align-self: flex-start;
+  background: var(--tint-green);
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 100px;
+  margin-bottom: 6px;
+}
+
+.stylistCard .dist {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin: 4px 0 8px;
+}
+
+.stylistCard .distKm {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.stylistCard .distMode {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.stylistCard .distMode.on {
+  color: var(--green);
+}
+
+.bookingCard .bLoc {
+  color: var(--ink-soft);
+}
+
+.nextbtn.ghost {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  margin-top: 14px;
+  /* the bare class' 40px bottom margin is the onboarding screens' bottom
+     push; in-app buttons manage their own spacing */
+  margin-bottom: 0;
+}
+
+/* ===== Escrow: badges, booking cards, payment ===== */
+.badge.warn {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.badge.info {
+  background: var(--tint-blue);
+  color: var(--info);
+}
+
+.badge.ok {
+  background: var(--tint-green);
+  color: var(--green);
+}
+
+.badge.done {
+  background: var(--tint-violet);
+  color: var(--violet);
+}
+
+.badge.bad {
+  background: var(--tint-red);
+  color: var(--danger);
+}
+
+/* A booking and everything that acts on it: the card itself, the buttons
+   (Pay, Release, Report a problem), the evidence panels and the money trail.
+   The card is a <button>, so its controls cannot live inside it — nested
+   buttons are invalid and the parser lifts them out — and this wrapper is what
+   keeps them one booking instead of a card with loose controls trailing it. */
+.bookingItem {
+  display: block;
+}
+
+.bookingCard {
+  display: block;
+}
+
+.bookingTop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.bookingTop .b-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bookingTop .badge {
+  align-self: flex-start;
+  /* long money states ("In escrow · awaiting stylist") wrap inside the pill
+     rather than spilling past the card edge */
+  max-width: 132px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.35;
+  margin-left: auto;
+}
+
+.bMoney {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.bookBtn.wide {
+  flex: 1;
+  padding: 11px 14px;
+  font-size: 13px;
+}
+
+.proStep {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 8px;
+}
+
+.proStep.ok {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.proStep.warn {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.methodCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.methodCard.active {
+  border-color: var(--blue-ring);
+  background: var(--gold-soft);
+  animation: ringIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.methodIco {
+  font-size: 22px;
+  width: 30px;
+  text-align: center;
+  flex: none;
+}
+
+.escrowNote {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  background: var(--card-2);
+  border: 1px solid rgba(143, 166, 255, 0.25);
+  border-radius: 12px;
+  padding: 11px 12px;
+}
+
+.escrowRef {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-family: monospace;
+}
+
+.paidDone {
+  text-align: center;
+  padding: 12px 6px 4px;
+}
+
+.tickBig {
+  height: 62px;
+  width: 62px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--tint-green);
+  color: var(--green);
+  font-size: 30px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.paidDone h3 {
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+
+.paidDone .sub {
+  font-size: 13px;
+  line-height: 1.5;
+}
+

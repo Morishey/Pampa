@@ -1,0 +1,14 @@
+# Freebuff's own project metadata (audit snapshots, project id) — local, not app
+.freebuff/
+
+# Vercel's local project link
+.vercel
+
+# Python bytecode from the tools/ scripts
+__pycache__/
+*.pyc
+
+# OS noise
+.DS_Store
+Thumbs.db
+nul

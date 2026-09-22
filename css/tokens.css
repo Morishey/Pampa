@@ -1,0 +1,194 @@
+/* ===== Pampa tokens: the design system, two themes, one accent =====
+   The reset, both palettes, the type scale and the accent. Everything else is written against these names.
+   ===== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Two themes, one accent. Dark is graphite and gold — the LBank register:
+   dark greys rather than pure black, a single saturated yellow for anything
+   actionable, and no colour used for decoration alone. Light is paper with a
+   deeper gold so the same accent stays legible on white. Every surface, line,
+   glow and icon filter below is a token, so nothing had to be duplicated. */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* Monochrome editorial: neutral near-blacks, off-white ink, hairline rules,
+     and exactly one accent doing all of the pointing. No blue cast in the
+     greys, no gradient, no glow — depth comes from contrast and rules. */
+  --bg: #0b0b0c;
+  --bg-soft: #111112;
+  --card: #151516;
+  --card-2: #1b1b1d;
+  --card-3: #212124;
+  --chip: rgba(255, 255, 255, 0.055);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --hairline: rgba(255, 255, 255, 0.06);
+
+  --ink: #f2f2ef;
+  --ink-soft: #9b9b96;
+  /* faint text still has to clear 4.5:1 — nav labels and captions live here */
+  --ink-faint: #85857f;
+
+  --gold: #efc258;
+  --gold-deep: #d9a63c;
+  --gold-soft: rgba(239, 194, 88, 0.12);
+  --gold-line: rgba(239, 194, 88, 0.3);
+  --gold-line-strong: rgba(239, 194, 88, 0.55);
+  /* Selected surfaces. Same hue family as --gold-line but readable at 1.5px,
+     the way the active nav tab reads; the tokens above are for hints and
+     hairlines, this one says "this is the one you picked". */
+  --gold-ring: rgba(239, 194, 88, 0.55);
+  --on-gold: #131313;
+  /* one flat accent — a gradient would make it two */
+  --grad-gold: var(--gold);
+
+  --danger: #f6465d;
+  --danger-fill: #d92d43; /* fills carry white text, so they run darker */
+  --green: #16c784;
+  --info: #8fa6ff;
+  --violet: #b9a7ff;
+  --tint-red: rgba(246, 70, 93, 0.13);
+  --tint-green: rgba(22, 199, 132, 0.13);
+  --tint-blue: rgba(143, 166, 255, 0.14);
+  --tint-violet: rgba(185, 167, 255, 0.14);
+
+  --nav-bg: rgba(12, 12, 13, 0.94);
+  --glass: rgba(255, 255, 255, 0.05);
+  /* The hero/wallet panel is the ink block of the sheet: near-black in both
+     themes, which is why its figures take --hero-gold rather than --gold. */
+  --hero-bg: #131314;
+  --hero-ink: #f4f4f2;
+  --hero-line: rgba(255, 255, 255, 0.16);
+  --hero-gold: #efc258;
+  --toast-bg: #1d1d1f;
+  --toast-ink: #f2f2ef;
+  --toast-line: rgba(255, 255, 255, 0.16);
+  --icon-invert: invert(1) brightness(1.5) saturate(0);
+  --desk-bg: #08080a;
+  /* flattened: the wash behind the shell is gone, so nothing glows */
+  --glow-gold: transparent;
+  --glow-blue: transparent;
+
+  --radius: 12px;
+  /* control radius: buttons, inputs and tags are squared off against the
+     rounded cards, which is what gives the sheet its editorial tension */
+  --r-card: 12px;
+  --r-ctrl: 6px;
+  --r-sheet: 16px;
+  --gap: 12px;
+  --pad: 18px;
+  --shadow: none;
+  --shadow-soft: none;
+
+  /* Legacy aliases — the earlier stylesheets referenced these names.
+     --blue-deep is deliberately the accent, not a second colour: the booking
+     surfaces that select things read it as a border, and a selected slot
+     must speak the same language as a selected tab. */
+  --blue: var(--bg);
+  --blue-deep: var(--gold);
+  --blue-ring: var(--gold-ring);
+  --paper: var(--bg);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  /* Warm paper rather than blue-grey: the light theme is the same monochrome
+     sheet printed the other way round. */
+  --bg: #f4f3f0;
+  --bg-soft: #ffffff;
+  --card: #ffffff;
+  --card-2: #ebe9e3;
+  --card-3: #ffffff;
+  --chip: rgba(20, 20, 18, 0.05);
+  /* Outlines read as noise on paper, so light mode leans on elevation
+     instead: see the scoped calm-down block at the end of this file. */
+  --line: rgba(20, 20, 18, 0.09);
+  --line-strong: rgba(20, 20, 18, 0.16);
+  --hairline: rgba(20, 20, 18, 0.06);
+
+  --ink: #121210;
+  --ink-soft: #57574f;
+  --ink-faint: #65655d;
+
+  /* Gold and green are text colours on paper, not just accents: both are
+     deepened enough to clear 4.5:1 on white and on the tinted wells. The
+     accent is flat here too, so labels on it flip to white. */
+  --gold: #7f5406;
+  --gold-deep: #664302;
+  --gold-soft: rgba(138, 92, 7, 0.1);
+  --gold-line: rgba(138, 92, 7, 0.3);
+  --gold-line-strong: rgba(127, 84, 6, 0.55);
+  --gold-ring: rgba(127, 84, 6, 0.55);
+  --on-gold: #fffdf7;
+  --grad-gold: var(--gold);
+
+  --danger: #cf2c40;
+  --danger-fill: #cf2c40;
+  --green: #0a7f58;
+  --info: #3556c9;
+  --violet: #5b3fd0;
+  --tint-red: rgba(207, 44, 64, 0.1);
+  --tint-green: rgba(11, 143, 99, 0.11);
+  --tint-blue: rgba(53, 86, 201, 0.1);
+  --tint-violet: rgba(91, 63, 208, 0.1);
+
+  --nav-bg: rgba(255, 255, 255, 0.95);
+  --glass: rgba(255, 255, 255, 0.6);
+  --hero-bg: #131314;
+  --hero-ink: #f4f4f2;
+  --hero-line: rgba(255, 255, 255, 0.16);
+  --hero-gold: #efc258;
+  --toast-bg: #1d1d1f;
+  --toast-ink: #f2f2ef;
+  --toast-line: rgba(255, 255, 255, 0.16);
+  --icon-invert: none;
+  --desk-bg: #e9e7e1;
+  --glow-gold: transparent;
+  --glow-blue: transparent;
+
+  /* flat sheet: separation on paper is a hairline plus one soft shadow */
+  --shadow: 0 1px 2px rgba(20, 20, 18, 0.05), 0 14px 30px -20px rgba(20, 20, 18, 0.2);
+  --shadow-soft: 0 1px 2px rgba(20, 20, 18, 0.05), 0 8px 18px -14px rgba(20, 20, 18, 0.18);
+}
+
+html,
+body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(120% 55% at 50% -12%, var(--glow-gold), transparent 62%),
+    radial-gradient(90% 40% at 100% 0%, var(--glow-blue), transparent 60%);
+  background-attachment: fixed;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: rgba(245, 196, 81, 0.28);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+button {
+  font-size: 16px;
+}
+

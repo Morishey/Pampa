@@ -1,0 +1,1461 @@
+/* ===== Pampa components: cards, strips, loading and fades =====
+   The directory layer, dashboard cards, the spotlight strip, the loading states, the edge fades, the activity feed and the upload controls.
+   ===== */
+
+/* =========================================================
+   The directory layer — home address block, the provider's
+   own picture and portfolio, and the full-size viewer.
+   These arrived with the role split and were never styled,
+   so every surface here is built from the same pane tokens
+   the rest of the glass system uses.
+   ========================================================= */
+
+/* --- 1. Home: where you are, in one compact group.
+   The area pill reports and opens the location screen; search sits under it.
+   The street address lives on the location screen now, where the device's own
+   GPS sits beside it — two rows instead of three, and the message is the
+   same. --- */
+.addrBlock {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.addrArea {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 11px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink);
+  border: 1px solid var(--pane-line);
+  border-radius: var(--r-ctrl);
+  background: var(--pane-2);
+  box-shadow: var(--pane-hi);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.addrArea:hover { background: var(--pane); }
+.addrArea:active { transform: scale(0.985); }
+
+.addrIco {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  font-size: 13.5px;
+  border-radius: 50%;
+  color: var(--gold);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
+}
+
+.addrAreaText {
+  flex: 1;
+  min-width: 0;
+}
+
+.addrAreaText b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.addrAreaText small {
+  display: block;
+  margin-top: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.addrArea .chev {
+  flex: none;
+  color: var(--ink-faint);
+}
+
+/* The search field shares the block and the same control language as the pill
+   above it: one group that answers "where" and "what". */
+.addrField {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 11px;
+  border: 1px solid var(--pane-line);
+  border-radius: var(--r-ctrl);
+  background: var(--pane-3);
+  box-shadow: var(--pane-hi);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.searchField .addrIco {
+  width: 16px;
+  height: 16px;
+}
+
+/* Typing in either field lifts the hairline to the strong gold — the same
+   ring language the active nav tab wears, quiet but findable. */
+.addrField:focus-within {
+  border-color: var(--gold-line-strong);
+}
+
+.addrField .addrIco,
+.addrField > .icon {
+  display: grid;
+  place-items: center;
+  width: auto;
+  height: auto;
+  font-size: 16px;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+}
+
+.addrField input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.addrField input::placeholder { color: var(--ink-faint); }
+
+/* The nearest three, in the same glass as the pill above them: the home screen
+   answers "who is closest?" before anything is scrolled. One row that runs
+   sideways when the names are long, through the same overflow vocabulary every
+   other strip uses — and gone entirely (no row, no gap) without a location. */
+.nearChips {
+  display: flex;
+  /* 4px, not 5: three chips have to fit this row — two a client can book and
+     the nearer one it cannot, which is the chip that explains why the nearest
+     professional is missing. It misses by 4px at 5. */
+  gap: 4px;
+  margin-top: -1px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nearChips::-webkit-scrollbar {
+  display: none;
+}
+
+/* No location, nothing to be near, and a professional's own Home is not a
+   market: an empty strip is removed rather than left as a gap in the group. */
+.nearChips:empty {
+  display: none;
+}
+
+.nearChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  max-width: 152px;
+  padding: 4px 7px 4px 4px;
+  color: var(--ink);
+  border: 1px solid var(--pane-line);
+  border-radius: 999px;
+  background: var(--pane-3);
+  box-shadow: var(--pane-hi);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.nearChip:hover { background: var(--pane-2); }
+.nearChip:active { transform: scale(0.97); }
+
+/* the nearest of the three wears the accent ring, so "first" is legible at a
+   glance without a fourth word in the row */
+.nearChip.first {
+  border-color: var(--gold-line-strong);
+}
+
+.nearChip b {
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nearChip small {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* A chip that cannot be acted on says why in the accent, so "near" and
+   "free" never have to be told apart by reading twice. Dashed, too: the row
+   keeps its rhythm but the chip itself no longer claims to be a place to
+   start. */
+.nearChip.blocked {
+  border-style: dashed;
+  border-color: var(--gold-line);
+  background: transparent;
+  box-shadow: none;
+}
+
+.nearChip.blocked .chipAvatar {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.nearChip small.nearWhy {
+  color: var(--gold);
+}
+
+/* The face at chip scale: 20px, the size the card's avatar never goes down to,
+   so the initials need their own size here. The circle itself is the house
+   rule for faces — set in polish.css, and left to it. */
+.nearChip .chipAvatar {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+/* --- 2. Section-head notes: the count beside "Closest professionals" --- */
+.headNote {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An empty result is its own card, so it never floats loose on the page. */
+.searchEmpty {
+  padding: 6px 0 2px;
+}
+
+.searchEmpty .empty {
+  margin: 0;
+}
+
+/* --- 3. Sheet bodies: the two sheets that hold media (photo, portfolio) --- */
+.sheetBody {
+  padding: 2px 4px 4px;
+}
+
+.sheetBody .sheetBlock { margin-top: 12px; }
+
+.sheetBody .sheetBlock label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.sheetBody .empty { margin: 4px 0 2px; }
+
+/* --- 4. A display picture is a picture: fill the tile, never letterbox it --- */
+.avatar img,
+.pickAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+
+.avatar.huge img { border-radius: inherit; }
+
+/* The profile's own-photo row: the tile plus what is behind it. */
+.dpRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding: 14px;
+  border: 1px solid var(--pane-line);
+  border-radius: var(--r-card);
+  background: var(--pane-2);
+  box-shadow: var(--pane-hi);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.dpRow .avatar.huge {
+  margin: 0;
+  flex: none;
+}
+
+.dpMeta {
+  min-width: 0;
+}
+
+.dpMeta b {
+  display: block;
+  font-size: 15.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.dpMeta small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+/* The photo sheet shows the tile at the middle of its own pane. */
+.dpPreview {
+  display: grid;
+  place-items: center;
+  padding: 6px 0 14px;
+}
+
+.dpPreview .avatar.huge { margin: 0; }
+
+/* --- 5. The portfolio grid: square tiles, a play badge on clips --- */
+.folioGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.workTile,
+.folioTile {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--pane-line);
+  border-radius: var(--r-ctrl);
+  background: var(--pane-3);
+  box-shadow: var(--pane-hi);
+  color: var(--ink);
+}
+
+.workTile { transition: transform 0.18s ease, border-color 0.18s ease; }
+.workTile:hover { border-color: var(--gold-line); }
+.workTile:active { transform: scale(0.975); }
+
+.folioThumb,
+.workThumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* a clip is a tile too: its own glyph sits where the photograph would */
+.folioThumb.vid,
+.workThumb.vid {
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  color: var(--gold);
+  background: linear-gradient(160deg, var(--pane), var(--pane-3));
+}
+
+.folioThumb.vid .icon,
+.workThumb.vid .icon {
+  width: 30px;
+  height: 30px;
+  padding: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-line);
+  background: var(--gold-soft);
+}
+
+/* The caption on a work tile sits on a scrim, so it is legible over any photo. */
+.workNote {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px 8px 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82) 62%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The remove control is a target: 28px, pulled into the tile's corner. */
+.folioX {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  background: rgba(10, 10, 12, 0.72);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.folioX:hover { background: var(--danger-fill); border-color: transparent; }
+
+/* The "2 work(s)" chip on a discovery card and the profile. */
+.workTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 650;
+  border-radius: var(--r-pill);
+  color: var(--gold);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
+  white-space: nowrap;
+}
+
+.workTag .icon { width: 12px; height: 12px; }
+
+/* --- 6. The full-size work viewer: the same stage the evidence viewer uses,
+   so a photo, a clip and a YouTube link all open in one place. --- */
+#workView {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(10, 18, 30, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.wvStage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+.wvImg,
+.wvVideo {
+  max-width: 100%;
+  max-height: 74vh;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.wvVideo { width: 100%; background: #000; }
+
+.wvFrame {
+  width: min(100%, 720px);
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  background: #000;
+}
+
+/* A clip that can only be opened where it lives: a button, not a player. */
+.wvLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  font-size: 15px;
+  font-weight: 650;
+  text-decoration: none;
+  border-radius: var(--r-pill);
+  color: var(--on-gold);
+  background-image: var(--grad-gold);
+}
+.wvLink .icon { width: 18px; height: 18px; }
+
+.wvLink:active { transform: scale(0.98); }
+
+/* --- 7. Light theme: glass over paper needs its hairline back --- */
+[data-theme="light"] .addrArea,
+[data-theme="light"] .dpRow,
+[data-theme="light"] .workTile,
+[data-theme="light"] .folioTile {
+  border-color: rgba(20, 20, 18, 0.08);
+}
+
+[data-theme="light"] .addrField {
+  border-color: rgba(20, 20, 18, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+/* --- 8. Contracting: two columns of tiles on a very narrow phone --- */
+@media (max-width: 340px) {
+  .folioGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workTile,
+  .addrArea { transition: none; }
+}
+
+/* ===== Location step: divider, address field, area hint ===== */
+.locOr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 15px 0;
+  color: var(--ink-soft);
+}
+
+.locOr::before,
+.locOr::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.locOr span {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.locField {
+  position: relative;
+  margin: 12px 15px 0;
+}
+
+.addrInput {
+  width: 100%;
+  padding: 13px 42px 13px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  outline: none;
+  font-size: 15px;
+}
+
+/* This glyph is not the home screen's gold badge: .addrIco is shared by the
+   area button (a 30px coin) and this field (a 17px hint), so everything that
+   makes the coin a coin is reset here — box, coin face and all. The size is
+   restated too, so shrinking the home coin cannot drag this hint with it. */
+.locField .addrIco {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  height: auto;
+  font-size: 17px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ink-faint);
+  display: inline-flex;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.locField .addrIco svg,
+.locField .addrIco span {
+  width: 17px;
+  height: 17px;
+}
+
+/* The location step used to end in a scrolling list of ten areas; there is no
+   list any more — the device or the typed address decides. What is left under
+   the field is one line of state, so the step scrolls on a short phone rather
+   than squeezing anything away. */
+#location {
+  overflow-y: auto;
+}
+
+.roleNext {
+  margin-bottom: 46px;
+}
+
+/* ---------- What the location step made of your two answers ---------- */
+.locFix {
+  margin: 10px 15px 0;
+}
+
+.locFixRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid var(--pane-line);
+  border-radius: 14px;
+  background: var(--card-2);
+}
+
+/* placed by the device or named by the address */
+.locFixRow.on {
+  border-color: var(--gold-ring);
+  background: var(--gold-soft);
+  animation: ringIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+/* placed, but from outside the areas we cover */
+.locFixRow.warn {
+  border-color: var(--line-strong);
+}
+
+.locFixIco {
+  display: inline-flex;
+  line-height: 0;
+  margin-top: 1px;
+  color: var(--gold);
+}
+
+.locFixRow.idle .locFixIco {
+  color: var(--ink-faint);
+}
+
+.locFixIco svg,
+.locFixIco span {
+  width: 17px;
+  height: 17px;
+}
+
+.locFixTxt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.locFixTxt b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.locFixTxt small {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* Shakes the address field twice when Continue cannot place what is in it —
+   once carried the area list's own name, from when a list was what followed. */
+.locNudge {
+  animation: areaNudge 0.9s ease 2;
+}
+
+@keyframes areaNudge {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-5px); }
+  60% { transform: translateX(4px); }
+}
+
+/* On short screens the radar illustration would eat the space the field and
+   the Continue button need — drop it below 700px of viewport height. */
+@media (max-height: 700px) {
+  .locArt {
+    display: none;
+  }
+}
+
+/* ==================== Pro dashboard: the business card ==================== */
+/* The business card is a card like the ones under it, so it runs on the same
+   measure: it used to carry 15px of its own side margins on top of the view's
+   16px of padding, which left it 30px narrower than the switch card below and
+   put its left edge 15px inside every other block on the dashboard. */
+.workHero {
+  margin: 4px 0 0;
+  padding: 14px;
+}
+
+/* Where they work is one line, however long the address is: the card's height
+   should not depend on whether somebody wrote "Surulere" or a full street. The
+   whole address is on Profile and in the edit sheet. */
+#workLoc {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workHeroTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* The card's action rides the name line. Left centred in the row it floated
+   beside the third of the four lines instead, which read as a label for the
+   address. -4px puts the pill's own centre on the name's, and the row keeps
+   the avatar centred where it was. */
+.workHeroTop .linkBtn {
+  align-self: flex-start;
+  margin-top: -4px;
+}
+
+/* the shared huge avatar centers itself in its old home; inline here */
+.workHero .avatar.huge {
+  margin: 0;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+}
+
+.workHeroMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.workHeroMeta b {
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.workHeroMeta small {
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+/* the reputation line: same ink as the place, with the star in gold */
+.heroRating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heroRating .icon {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  color: var(--gold);
+}
+
+.workHeroChips {
+  display: flex;
+  /* These three — availability, area, works count — are a report, not a menu,
+     so they must never change the card's height. They used to wrap, and the
+     arithmetic was always against them: at 8px of gap they overflowed the
+     card's inner width by a single pixel, and at 6px they overflowed again the
+     moment the view's own scrollbar took 8px off the client width, leaving
+     "0 works" alone on a line. So the row is a strip: one line at every width,
+     at the cost of the *chips* padding (9px a side, not 11) rather than of the
+     layout. When three chips genuinely cannot fit a narrow phone the app's own
+     scroll cue says there is more to the right, and a swipe finds it. */
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-top: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 1px;
+}
+
+.workHeroChips::-webkit-scrollbar {
+  display: none;
+}
+
+/* none of the three is allowed to squash the others to stay on the line */
+.workHeroChips .provChip {
+  flex: none;
+  padding: 5px 9px;
+}
+
+/* The Work stack runs on one rhythm. The business card used to sit flush
+   against the switch card and the attention list against the escrow entry
+   (0px gaps) while the section labels had 26/12 of their own, so the page read
+   as four loosely related pieces instead of one dashboard. */
+#view-work #workAvail,
+#view-work #workStatus {
+  margin-top: 12px;
+}
+
+/* A block that renders nothing takes no gap with it: the status card and the
+   rates card are written by their own renderers, and an empty wrapper should
+   not leave a hole in the stack. */
+#view-work > div:empty {
+  display: none;
+}
+
+#view-work #workRequests + .proEntry {
+  margin-top: 12px;
+}
+
+/* The attention list's empty state is poster-sized everywhere else; on the
+   professional's dashboard it is one line of reassurance between them and the
+   money, not a picture to scroll past. */
+#view-work #workRequests .emptyState {
+  padding: 20px 14px 18px;
+}
+
+#view-work #workRequests .emptyState .illus {
+  max-width: 76px;
+  margin-bottom: 10px;
+}
+
+/* the dashboard gallery inherits the public page's tile grid */
+/* The gallery tiles line up with the cards above and below them, not 15px
+   inside them. */
+#workGallery .folioGrid {
+  margin: 2px 0 0;
+}
+
+#workGallery .provCard {
+  margin: 2px 0 0;
+}
+
+/* ==================== Contact sheet field labels ==================== */
+.fieldLabel {
+  display: block;
+  margin: 10px 2px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.bioBody .fieldLabel:first-child {
+  margin-top: 0;
+}
+
+/* ==================== Spotlight strip (client home) ==================== */
+.storyArt {
+  position: relative;
+  overflow: hidden;
+}
+
+.storyThumb {
+  display: block;
+  width: 100%;
+  height: 118px;
+  object-fit: cover;
+  border-radius: calc(var(--radius, 16px) - 6px);
+  background: var(--card-2);
+}
+
+.storyThumb.vidIco,
+.storyArt.vid .storyThumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+}
+
+.storyN {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 100px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+
+/* ==================== Pro Home: profession + ratings, no market ==================== */
+/* The same measure as every other block on Home: this card used to carry 15px
+   of its own side margins on top of the view's 16px, so the professional's own
+   card was 30px narrower than the address block and the market above and below
+   it. */
+.proHomeCard {
+  margin: 4px 0 0;
+}
+
+.proTradeIco {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.proTradeIco svg,
+.proTradeIco span {
+  width: 26px;
+  height: 26px;
+}
+
+.proHomeRates {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.phRate {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card-2);
+  text-align: center;
+}
+
+.phRate b {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.phRate small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.proHomeReviews {
+  margin-top: 12px;
+}
+
+/* ==================== Loading: one spinner, one bar ====================
+   The spinner sits *in* the button that is working, so the thing that cannot
+   be pressed again is the thing that says it is busy. It is drawn from
+   `currentColor`, so it inherits whatever the button's own ink is — gold on
+   the primary buttons, ink on the ghost ones — and never introduces a colour
+   of its own. The label dims rather than disappears: a button that empties
+   its own text reads as a broken button, not a working one. */
+@keyframes pampaSpin {
+  to { transform: rotate(360deg); }
+}
+
+.btnBusy {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+/* The spinner borrows the button's own ink through --btn-spin, so it can never
+   land gold-on-gold and vanish; the default suits the dark buttons, and the two
+   gold ones declare it themselves (`--btn-spin` on the *button*, never as a
+   border override here: setting `border-color` on the pseudo-element would
+   repaint the top edge too, and a ring with no gap is a ring that looks
+   still). */
+.btnBusy::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid var(--btn-spin, var(--gold));
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: pampaSpin 0.68s linear infinite;
+}
+
+/* every child is hidden, glyphs included, but the text is a bare node — that
+   is what `color: transparent` above is for */
+.btnBusy > * {
+  visibility: hidden;
+}
+
+
+
+/* The top bar answers the other half of the question — something is working
+   and it is not the button you are looking at. Indeterminate by design: the
+   app cannot know how long a hash or a redraw takes, and a fake percentage
+   would be a lie. It slides to 72% and waits, then fills and leaves. */
+#workBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+#workBar.on {
+  opacity: 1;
+}
+
+#workBar span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--grad-gold);
+  box-shadow: 0 0 12px -2px var(--gold);
+  border-radius: 0 3px 3px 0;
+  transition: width 1.1s cubic-bezier(0.22, 0.7, 0.2, 1);
+}
+
+#workBar.done span {
+  transition: width 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btnBusy::after,
+  #workBar span {
+    animation: none;
+  }
+}
+
+/* ==================== Edge fades: every scroller announces more to a side ====================
+   The cue has to be a property of the **visible box**, not of the content: a
+   pseudo-element laid inside a scroller is part of the scrollable content, so
+   `::before { left: 0 }` sits at the start of the row and scrolls off to the
+   left the moment you scroll — invisible exactly when there is something to
+   the left, which is precisely when it was wanted. The fade is therefore a
+   **mask on the scroller itself**, and every scroller in the app drives the
+   same tokens through the same helper, so none of them can disagree about
+   which side has more.
+
+   The same statement is made on both axes, because a row and a column are the
+   same problem turned a quarter turn:
+
+     hasOverflowX + moreL/moreR   a row that runs sideways (chips, strips,
+                                  the category slider)
+     hasOverflowY + moreT/moreB   a column that runs down (the trade and area
+                                  pickers)
+
+   None of these are declarative: `updateScrollCue()` measures the box, and the
+   class is on only while that box can actually scroll. So a row that fits and
+   a list that fits are both fully opaque — the old vertical class drew its
+   fade whether or not anything was hidden, which is a cue lying about content
+   that was not there. The chips row and the vertical lists run through this
+   same helper — there is deliberately no second vocabulary of classes for
+   "the chips kind" or "the list kind" of scroller.
+
+   No scroller here overflows on both axes, so the two masks never have to
+   compose. If one ever does, it needs `mask-composite: intersect` over both
+   gradients — the hero slider's four-edge feather is the worked example. */
+.hasOverflowX {
+  --fadeL: 0px;
+  --fadeR: 0px;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    rgba(0, 0, 0, 0.45) calc(var(--fadeL) * 0.45),
+    #000 var(--fadeL),
+    #000 calc(100% - var(--fadeR)),
+    rgba(0, 0, 0, 0.45) calc(100% - var(--fadeR) * 0.45),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    rgba(0, 0, 0, 0.45) calc(var(--fadeL) * 0.45),
+    #000 var(--fadeL),
+    #000 calc(100% - var(--fadeR)),
+    rgba(0, 0, 0, 0.45) calc(100% - var(--fadeR) * 0.45),
+    transparent 100%
+  );
+  /* liquid edges: the widths are registered custom properties, so a fade
+     easing in or out as the reader scrolls is a transition, not a snap */
+  transition: --fadeL 0.45s ease, --fadeR 0.45s ease;
+}
+
+.hasOverflowX.moreL {
+  --fadeL: var(--edge-fade, 26px);
+}
+
+.hasOverflowX.moreR {
+  --fadeR: var(--edge-fade, 26px);
+}
+
+/* The same statement down the page: a column that runs past its bottom — or
+   back past its top — gets the same treatment, and a list that fits gets
+   nothing at all. */
+.hasOverflowY {
+  --fadeT: 0px;
+  --fadeB: 0px;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0,
+    rgba(0, 0, 0, 0.45) calc(var(--fadeT) * 0.45),
+    #000 var(--fadeT),
+    #000 calc(100% - var(--fadeB)),
+    rgba(0, 0, 0, 0.45) calc(100% - var(--fadeB) * 0.45),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0,
+    rgba(0, 0, 0, 0.45) calc(var(--fadeT) * 0.45),
+    #000 var(--fadeT),
+    #000 calc(100% - var(--fadeB)),
+    rgba(0, 0, 0, 0.45) calc(100% - var(--fadeB) * 0.45),
+    transparent 100%
+  );
+  transition: --fadeT 0.45s ease, --fadeB 0.45s ease;
+}
+
+.hasOverflowY.moreT {
+  --fadeT: var(--edge-fade-y, 30px);
+}
+
+.hasOverflowY.moreB {
+  --fadeB: var(--edge-fade-y, 30px);
+}
+
+/* A pill is about 60px wide and the row's padding is 2px, so the full strip
+   fade would eat a third of the first chip. Narrower here, same mechanism. */
+.chips {
+  --edge-fade: 18px;
+}
+
+/* The liquid in the liquid edges: the fade widths are registered properties,
+   so an active edge breathes — a few pixels in and out over a slow loop — and
+   a fade that appears or disappears as the reader scrolls eases there instead
+   of snapping. Reduced motion gets the plain honest fade. */
+@property --fadeL {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fadeR {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fadeT {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fadeB {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+html.anim .hasOverflowX.moreL {
+  animation: fadeBreatheL 7s ease-in-out infinite;
+}
+
+html.anim .hasOverflowX.moreR {
+  animation: fadeBreatheR 7s ease-in-out infinite;
+}
+
+@keyframes fadeBreatheL {
+  0%,
+  100% {
+    --fadeL: calc(var(--edge-fade, 26px) - 4px);
+  }
+
+  50% {
+    --fadeL: calc(var(--edge-fade, 26px) + 4px);
+  }
+}
+
+@keyframes fadeBreatheR {
+  0%,
+  100% {
+    --fadeR: calc(var(--edge-fade, 26px) - 4px);
+  }
+
+  50% {
+    --fadeR: calc(var(--edge-fade, 26px) + 4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hasOverflowX,
+  .hasOverflowY {
+    transition: none;
+  }
+
+  html.anim .hasOverflowX.moreL,
+  html.anim .hasOverflowX.moreR {
+    animation: none;
+  }
+}
+
+/* ==================== Pro Home: recent activity feed ==================== */
+.actFeed {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.actRow {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.actRow:last-child {
+  border-bottom: 0;
+}
+
+.actAt {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  min-width: 78px;
+}
+
+.actWhat {
+  font-size: 13px;
+  min-width: 0;
+}
+
+.actWhat b {
+  font-weight: 600;
+}
+
+/* The activity timestamps are 11.5px, so light theme needs more than the
+   shared soft ink to hold 4.5:1 on the card. */
+[data-theme="light"] .actAt {
+  color: #44443d;
+}
+
+/* The heading carries its own refresh, so the ledger can be re-read without
+   expanding the list. Small round control, no label to crowd the row. */
+.actFeed .journalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.actRefresh {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--gold-soft);
+  color: var(--ink-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.actRefresh svg {
+  width: 14px;
+  height: 14px;
+}
+
+.actRefresh:hover {
+  color: var(--gold);
+}
+
+.actRefresh.spin svg {
+  animation: actSpin .6s ease;
+}
+
+@keyframes actSpin {
+  to { transform: rotate(360deg); }
+}
+
+.actMore {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 0 2px;
+  border: 0;
+  background: none;
+  color: var(--gold);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Pull-to-refresh: the list leans away from the finger, and the hint above it
+   names what a release will do. Only transform is animated, so it stays cheap. */
+.actFeed {
+  position: relative;
+  transition: transform .2s ease;
+  will-change: transform;
+}
+
+.actFeed.pulling {
+  transition: none;
+}
+
+.actFeed.pulling::after,
+.actFeed.ready::after {
+  content: "Pull to refresh";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -20px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.actFeed.ready::after {
+  content: "Release to refresh";
+  color: var(--gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actFeed { transition: none; }
+  .actRefresh.spin svg { animation: none; }
+}
+
+/* A date whose every slot is gone needs to say so, or six dead pills read as
+   a broken screen. Sits inside the slot grid, spanning all of its columns. */
+.slotHint {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* ==================== Upload controls and identity ==================== */
+/* The paste-a-link field carries its own submit, so a pasted link never has to
+   be chased with the Enter key. */
+.addrField .fieldGo {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  margin-right: -8px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  color: var(--gold);
+  cursor: pointer;
+}
+
+.addrField .fieldGo svg,
+.addrField .fieldGo span {
+  width: 15px;
+  height: 15px;
+}
+
+/* The professional's own face leads their Home card, with the trade badged
+   onto it so the card still says what they do. */
+.proHomeFace {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.proHomeFace .avatar.huge {
+  width: 58px;
+  height: 58px;
+  margin: 0;
+  font-size: 22px;
+}
+
+.proHomeTrade {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.proHomeTrade svg,
+.proHomeTrade span {
+  width: 13px;
+  height: 13px;
+}
+
+.workHeroTop .proTradeIco {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+}
+
+/* The dashboard hero picture is the way to change it — a camera sits in the
+   corner so the picture reads as editable rather than decorative. */
+.workDpBtn {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.workDpEdit {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+}
+
+.workDpEdit svg,
+.workDpEdit span {
+  width: 13px;
+  height: 13px;
+}
+

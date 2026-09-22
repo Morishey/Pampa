@@ -1,0 +1,364 @@
+/* ===== Pampa disputes: the resolution desk =====
+   The desk a frozen escrow is settled from, the money trail it journals, and the evidence both sides file.
+   ===== */
+
+/* ===== Resolution desk (dispute settlement) ===== */
+.deskTint {
+  background: var(--bg);
+}
+
+.deskStats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.deskStats > div {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.deskStats span {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.deskStats small {
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.deskNote {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  background: rgba(245, 196, 81, 0.08);
+  border: 1px solid var(--gold-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.deskCard {
+  border-left: 3px solid var(--danger);
+}
+
+.settledCard {
+  border-left-color: var(--green);
+}
+
+.disputeWhy {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--tint-red);
+  border: 1px solid rgba(246, 70, 93, 0.25);
+  border-radius: 12px;
+  padding: 9px 11px;
+  margin: 8px 0;
+}
+
+.disputeWhy .note {
+  display: block;
+  margin-top: 4px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.resolutionLine {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--tint-green);
+  border: 1px solid rgba(22, 199, 132, 0.25);
+  border-radius: 12px;
+  padding: 9px 11px;
+  margin: 8px 0;
+}
+
+.resolutionLine small {
+  color: var(--ink-soft);
+}
+
+.deskAsk {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin: 10px 0 6px;
+}
+
+.outcomeRow {
+  display: flex;
+  gap: 6px;
+}
+
+.outcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 9px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.outcome.active {
+  border-color: var(--blue-ring);
+  background: var(--card-2);
+  color: var(--ink);
+  animation: ringIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.outcomeIco {
+  font-size: 15px;
+}
+
+.splitBox {
+  margin: 10px 0 4px;
+  background: var(--card-2);
+  border: 1px solid var(--gold-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.splitTop {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.splitTop b {
+  display: block;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.splitRange {
+  width: 100%;
+  margin: 10px 0 4px;
+  accent-color: var(--gold);
+}
+
+.splitBox .finePrint {
+  margin: 0;
+}
+
+/* ===== Money trail (journal) ===== */
+.journal {
+  margin: 8px 0;
+  border-left: 2px dashed var(--line);
+  padding-left: 10px;
+}
+
+.journalHead {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 5px;
+}
+
+.journalRow {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink);
+  display: flex;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.journalRow span {
+  flex: 0 0 74px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.journalWrap {
+  margin-top: 8px;
+}
+
+.journalToggle {
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 100px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.journalBody {
+  margin-top: 8px;
+}
+
+.noteInput {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.noteInput:focus {
+  outline: none;
+  border-color: var(--blue-deep);
+  box-shadow: 0 0 0 2px rgba(245, 196, 81, 0.18);
+}
+
+/* ===== Dispute evidence — photos and statements from both sides ===== */
+.eviRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.eviThumb {
+  position: relative;
+  display: block;
+  width: 74px;
+  height: 74px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  cursor: zoom-in;
+}
+
+.eviThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.eviX {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  height: 20px;
+  width: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(15, 22, 33, 0.72);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.eviAdd {
+  width: 100%;
+  border: 1px dashed var(--gold-line);
+  background: var(--gold-soft);
+  color: var(--gold);
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eviSide {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--danger);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  background: var(--card);
+}
+
+.eviSide.proSide {
+  border-left-color: var(--blue-deep);
+  background: var(--card-2);
+}
+
+.eviHead {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 5px;
+}
+
+.eviNote {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.eviSide .finePrint {
+  margin: 2px 0 0;
+  text-align: left;
+}
+
+/* ===== Full-size evidence viewer ===== */
+#photoViewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 130;
+  background: rgba(10, 18, 30, 0.94);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+}
+
+#photoViewer img {
+  max-width: 100%;
+  max-height: 74vh;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.pvLabel {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.pvHint {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.pvClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  height: 36px;
+  width: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+

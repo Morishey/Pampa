@@ -1,0 +1,389 @@
+/* ===== Pampa onboarding: splash, logo, welcome and the auth screens =====
+   What a first-time visitor sees before the app itself: the splash, the mark, the welcome, and the number, code, name and password screens.
+   ===== */
+
+/* ===== Intro splash ===== */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg);
+  background-image: radial-gradient(80% 45% at 50% 32%, var(--glow-gold), transparent 70%);
+  transition: opacity 0.6s ease;
+}
+
+.intro.slide-up {
+  animation: slideUp 1s forwards;
+}
+
+@keyframes slideUp {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100%);
+    opacity: 1;
+  }
+}
+
+/* ===== Logo ===== */
+.logo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* The mark is the wordmark now, not a square drawing: a 4.7:1 plate holding
+   "PAMPA", sized so the letters come out at their own height rather than
+   centred in a box of empty tiles. The image is contained, never covered —
+   cover would slice two letters off a wordmark in a square shape. */
+.logoImg {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 7px 8px;
+  height: 46px;
+  width: 168px;
+  border-radius: 180px;
+  background-color: var(--glass);
+  border: 1px solid var(--gold-line);
+  box-shadow: 0 0 0 8px var(--gold-soft), var(--shadow-soft);
+}
+
+/* A ring that expands out of the mark: the only decorated animation on the
+   splash, and it costs nothing but transform + opacity. */
+.logoImg::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-line);
+  animation: halo 3.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes halo {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.6;
+  }
+  70% {
+    transform: scale(1.32);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.32);
+    opacity: 0;
+  }
+}
+
+.logoImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 180px;
+}
+
+/* The same plate in a sheet header: the wordmark at 15px letters, which is as
+   small as bubble type reads without turning into a gold band. */
+.logoImg.small {
+  height: 34px;
+  width: 76px;
+  padding: 5px 6px;
+  flex: none;
+}
+
+/* .logoText used to sit under the mark, spelling the name out a second time.
+   The mark is the name now, so the rule went with the two divs it served. */
+
+/* ===== Welcome / login ===== */
+.welcomePage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-color: var(--bg);
+  background-image: radial-gradient(85% 45% at 50% 26%, var(--glow-gold), transparent 70%);
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease;
+  opacity: 0;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.welcomePage.entered {
+  opacity: 1;
+}
+
+.welcomePage.slide-out {
+  transform: translateX(-100%);
+}
+
+.bttnCage {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+}
+
+.signIn,
+.createAccount {
+  width: 334px;
+  max-width: 86vw;
+  height: 68px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 16px;
+  text-align: center;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.signIn {
+  color: var(--gold);
+  border: 1px solid var(--gold-line);
+  background: rgba(245, 196, 81, 0.05);
+}
+
+.createAccount {
+  border: none;
+  margin-top: 12px;
+  color: var(--on-gold);
+  background: var(--grad-gold);
+  box-shadow: 0 12px 28px rgba(240, 181, 60, 0.22);
+  --btn-spin: var(--on-gold);
+}
+
+.signIn:hover {
+  background-color: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.createAccount:hover {
+  filter: brightness(1.06);
+  color: var(--on-gold);
+}
+
+.troubleLogin {
+  color: var(--ink-soft);
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 30px;
+  cursor: pointer;
+}
+
+/* ===== Auth screens (number, otp, name) ===== */
+#number,
+#otp,
+#role,
+#name,
+#trade,
+#location,
+#password {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  width: 100%;
+  height: 100vh;
+  background-color: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  transform: translateX(100%);
+  transition: transform 0.5s ease-in-out;
+  opacity: 1;
+}
+
+#number.show,
+#otp.show,
+#role.show,
+#name.show,
+#trade.show,
+#location.show,
+#password.show {
+  transform: translateX(0);
+}
+
+.goBack {
+  padding: 10px 0 0 10px;
+}
+
+.backbtn {
+  border: none;
+  background: none;
+  padding: 6px;
+  border-radius: 12px;
+  line-height: 0;
+  color: var(--ink);
+  font-size: 22px;
+}
+
+.backbtn .icon {
+  width: 1em;
+  height: 1em;
+  opacity: 0.9;
+}
+
+.backbtn:hover .icon {
+  opacity: 1;
+}
+
+.backbtn:active {
+  background: var(--chip);
+}
+
+#topText {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 48px;
+  margin-left: 15px;
+}
+
+.t1 {
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.grp1 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.num1,
+.num2 {
+  color: var(--ink);
+  font-size: 20px;
+  padding: 8px 5px;
+  border: none;
+  border-bottom: 1.5px solid var(--line-strong);
+  outline: none;
+  border-radius: 0;
+  background-color: transparent;
+  min-width: 0;
+}
+
+.num1 {
+  max-width: 90px;
+}
+
+.num2 {
+  max-width: 225px;
+  margin-left: 30px;
+}
+
+.num2.wide {
+  max-width: 280px;
+  margin-left: 0;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+
+.chargesApply {
+  margin-top: 32px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: normal;
+  letter-spacing: -0.1px;
+  max-width: 320px;
+}
+
+.blue {
+  color: var(--blue-deep);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.otpSub {
+  margin-top: 12px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.grp2 {
+  display: flex;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.otp-input {
+  width: 56px;
+  height: 60px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-bottom: 2px solid var(--line-strong);
+  outline: none;
+  border-radius: 12px;
+  background: var(--card-2);
+}
+
+.otp-input:focus {
+  border-bottom-color: var(--blue-deep);
+}
+
+.errorMsg {
+  margin-top: 16px;
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.nextbtn {
+  display: flex;
+  width: 85%;
+  outline: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 15px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 100px;
+  background: var(--grad-gold);
+  color: var(--on-gold);
+  /* the busy ring takes the label's colour, so it stays visible on the gold
+     fill; the variants below put it back for their own fills */
+  --btn-spin: var(--on-gold);
+  margin: auto auto 40px;
+  box-shadow: 0 10px 24px rgba(240, 181, 60, 0.2);
+  transition: opacity 0.2s ease, transform 0.1s ease;
+}
+
+.nextbtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.nextbtn:active {
+  transform: scale(0.98);
+}
+
+.nextbtn.danger {
+  background: var(--danger);
+  margin-top: 28px;
+  /* in-app: no bottom push — that belongs to the auth screens' CTA */
+  margin-bottom: 0;
+}
+

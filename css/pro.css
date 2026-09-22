@@ -1,0 +1,392 @@
+/* ===== Pampa pro: the professional mode =====
+   The dashboard surfaces of their own, and the desktop frame the app is demonstrated in.
+   ===== */
+
+/* ===== Pro mode ===== */
+.proEntry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+.proIco {
+  font-size: 22px;
+}
+
+.rowInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.rowInfo b {
+  font-size: 15px;
+}
+
+.rowInfo small {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.proMode {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: var(--bg-soft);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 24px;
+  overflow-y: auto;
+}
+
+.proHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.proTag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.exitBtn {
+  border: 1px solid var(--line-strong);
+  background: var(--chip);
+  border-radius: 100px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.proTabs {
+  display: flex;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 4px;
+  margin-bottom: 12px;
+}
+
+.proTab {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 9px 6px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.proTab.active {
+  background: var(--grad-gold);
+  color: var(--on-gold);
+}
+
+.proTab .count {
+  background: var(--gold);
+  color: var(--on-gold);
+  border-radius: 100px;
+  font-size: 11px;
+  padding: 1px 6px;
+  font-weight: 800;
+}
+
+.proTab.active .count {
+  background: rgba(20, 22, 27, 0.2);
+  color: var(--on-gold);
+}
+
+.walletCard {
+  position: relative;
+  background: var(--hero-bg);
+  border: 1px solid var(--hero-line);
+  color: var(--hero-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--shadow-soft);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.walletCard .linkBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.linkBtn {
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  border-radius: 100px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.walletLabel {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.walletBig {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 2px 0 12px;
+}
+
+.walletSplit {
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid var(--hero-line);
+  padding-top: 12px;
+}
+
+.walletSplit > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.walletSplit span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.walletSplit small {
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.proCard {
+  margin-bottom: 10px;
+}
+
+.proTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.proTop h4 {
+  font-size: 15px;
+}
+
+.proMeta {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+
+.proEarn {
+  font-size: 13px;
+  margin-top: 8px;
+  color: var(--ink);
+}
+
+.proEarn b {
+  font-size: 15px;
+}
+
+.proActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.proIntro {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.proRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.proRow b {
+  color: var(--ink);
+}
+
+.destForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.destForm .nextbtn.tight {
+  margin: 4px 0 0;
+}
+
+.sectionHead h2 {
+  font-size: 16px;
+}
+
+/* ===== Desktop phone frame ===== */
+@media only screen and (min-width: 769px) {
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--desk-bg);
+    background-image:
+      radial-gradient(60% 55% at 50% 0%, var(--glow-gold), transparent 65%),
+      radial-gradient(70% 60% at 50% 100%, var(--glow-blue), transparent 60%);
+  }
+
+  /* The app frame is a flex item of the desk body, and every view inside it is
+     absolutely positioned — so it had no in-flow content to take a width from
+     and collapsed to a **0px column** on any window wider than the phone: the
+     cards spilled out of a two-pixel sliver and the nav ran the width of the
+     desk. A flex item with no width is sized by its content, and this one has
+     none; it is given one here, capped at the phone's own measure. */
+  #app {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    flex: none;
+    margin: 0 auto;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  #number,
+  #otp,
+  #role,
+  #name,
+  #trade,
+  #location,
+  #proMode,
+  #deskMode {
+    max-width: 420px;
+    margin: 0 auto;
+    box-shadow: var(--shadow);
+  }
+}
+
+/* =========================================================
+   Availability — taking bookings, or not
+   The state is drawn before the words are read: a green tick opens the switch,
+   a clock closes it, and the copy underneath says exactly what closing costs
+   (nothing that is already paid for).
+   ========================================================= */
+.availCard {
+  padding: 14px;
+}
+
+/* The one thing the switch cannot say, said where the pro will reach for the
+   switch: which client is holding the chair, and what hands it back. */
+.availSession {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--gold-line-strong, var(--gold-line));
+  border-radius: 14px;
+  background: var(--gold-soft);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.availSession > .icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  color: var(--gold);
+}
+
+.availSession span {
+  display: block;
+}
+
+.availSession b {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--gold);
+  font-size: 12.5px;
+}
+
+.availSession small {
+  display: block;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.availRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.availIco {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 17px;
+  color: var(--ink-faint);
+  background: var(--chip);
+  border: 1px solid var(--line);
+}
+
+.availIco.on {
+  color: var(--green);
+  background: var(--tint-green);
+  border-color: var(--tint-green);
+}
+
+/* the same state, one line, on the professional's Home card */
+.proAvailTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.proAvailTag .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.proAvailTag.on {
+  color: var(--green);
+}
+
+.proAvailTag.off {
+  color: var(--ink-faint);
+}
+
+.proAvailTag.busy {
+  color: var(--gold);
+}
+

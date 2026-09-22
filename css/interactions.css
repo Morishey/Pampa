@@ -1,0 +1,992 @@
+/* ===== Pampa interactions: what a tap feels like =====
+   Press feedback, view transitions, the password fields, the nav avatar and the clip rail.
+   ===== */
+
+/* ==================== Press feedback ==================== */
+/* One motion language for everything tappable: a quick squeeze under the
+   finger and a spring back that overshoots a hair on release. Only transform
+   and colour are touched, so nothing here costs a layout pass. */
+button,
+.tab,
+.chip,
+.slot,
+[data-book],
+.proEntry {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled),
+.tab,
+.chip,
+.slot,
+.proEntry {
+  transition: transform 0.16s cubic-bezier(0.22, 0.9, 0.3, 1.35),
+    box-shadow 0.22s ease, background-color 0.22s ease, color 0.22s ease,
+    border-color 0.22s ease, opacity 0.22s ease;
+}
+
+button:not(:disabled):active,
+.tab:active,
+.chip:active,
+.slot:active,
+.proEntry:active {
+  transform: scale(0.955);
+}
+
+/* a tapped card in a list squeezes less than a pill: it is a bigger surface */
+.card:active,
+.stylistCard:active,
+.serviceCard:active {
+  transform: scale(0.985);
+}
+
+/* Fill-family selected states (chips, segments, desk tabs, escrow tabs) give
+   one deeper press while chosen, so gold reads as a surface you can push. */
+.chip.active:active,
+.seg.active:active,
+.proTab.active:active,
+.methodCard.active:active {
+  transform: scale(0.94);
+}
+
+/* ==================== The selected ring ====================
+   One arrival for every "you picked this" state: the ring blooms from 84%
+   and settles past its rest size by a hair — the same settle the nav pill
+   wears, so selection feels identical everywhere the app asks you to choose.
+   Booking sheets, role cards, trade cards, outcome tiles, slots and the
+   bottom nav all share these keyframes. */
+@keyframes ringIn {
+  from { transform: scale(0.88); }
+  to { transform: scale(1); }
+}
+/* Transform only, no opacity, for the same reason the nav ring has none: a
+   frozen animation must leave a fully visible ring behind, and an 88% start
+   still reads as a bloom without ever risking an invisible pick. */
+
+.card,
+.stylistCard,
+.serviceCard {
+  transition: transform 0.18s cubic-bezier(0.22, 0.9, 0.3, 1.3),
+    box-shadow 0.24s ease, border-color 0.24s ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* A button that cannot be pressed must not wear the gold of an action: a paused
+   professional keeps their name on the card, not a dead call to book them. */
+.bookBtn:disabled {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--chip);
+  color: var(--ink-faint);
+  box-shadow: none;
+}
+
+.bookBtn:disabled .icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* Nothing above should move a control that is mid-reveal inside a sheet. */
+.sheet button:active {
+  transform: scale(0.97);
+}
+
+/* ==================== View transitions ==================== */
+/* Switching dashboards fades and lifts the new one into place instead of
+   cutting to it. Keyframes, not transitions, so it plays once on arrival. */
+@keyframes viewIn {
+  from { opacity: 0.2; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* No fill mode: the transform must not outlive the animation, or the view
+   would keep acting as a containing block for anything fixed inside it. The
+   fade starts at 0.2 rather than 0 for the same reason the class is dropped on
+   a timer in switchView — a stalled compositor must never be able to leave a
+   dashboard invisible. */
+.view.viewIn {
+  animation: viewIn 0.26s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+/* Cards inside a freshly shown view arrive in a short stagger, so a dashboard
+   reads as a stack that settles rather than a slab that appears. */
+@keyframes cardIn {
+  from { opacity: 0.35; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.view.viewIn .card,
+.view.viewIn .sectionHead {
+  animation: cardIn 0.32s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.view.viewIn .card:nth-of-type(2) { animation-delay: 0.04s; }
+.view.viewIn .card:nth-of-type(3) { animation-delay: 0.08s; }
+.view.viewIn .card:nth-of-type(4) { animation-delay: 0.12s; }
+.view.viewIn .card:nth-of-type(5) { animation-delay: 0.16s; }
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled),
+  .tab, .chip, .slot, .proEntry, .card, .stylistCard, .serviceCard {
+    transition: none;
+  }
+  button:not(:disabled):active,
+  .tab:active, .chip:active, .slot:active, .proEntry:active,
+  .card:active, .stylistCard:active, .serviceCard:active {
+    transform: none;
+  }
+  .tab.active::before { animation: none; }
+  .tab:not(.active):active::after { content: none; }
+  .slot.active, .where.active, .pickCard.active,
+  .methodCard.active, .roleCard.active, .tradeCard.active, .outcome.active {
+    animation: none;
+  }
+  .view.viewIn,
+  .view.viewIn .card,
+  .view.viewIn .sectionHead {
+    animation: none;
+  }
+}
+
+/* A share link in the viewer: a poster with an explicit way to load the
+   player, so opening a portfolio item never pulls a remote player by itself. */
+.wvYt {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.wvYtThumb {
+  width: 100%;
+  border-radius: 16px;
+  display: block;
+  background: var(--hero-bg);
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.wvYtPlay {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 100px;
+  background: var(--grad-gold);
+  color: var(--on-gold);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wvYtPlay svg,
+.wvYtPlay span {
+  width: 17px;
+  height: 17px;
+}
+
+.wvYtOpen {
+  font-size: 12.5px;
+  color: var(--hero-ink);
+  opacity: 0.72;
+  text-decoration: underline;
+}
+
+/* ==================== Password fields ==================== */
+/* The code screens use a bare underlined input; the password field is a shield
+   against the same line, with the reveal toggle inside it. */
+.pwRow {
+  position: relative;
+  gap: 10px;
+}
+
+.pwRow .pwIco {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--ink-faint);
+}
+
+.pwRow .pwIco svg,
+.pwRow .pwIco span {
+  width: 17px;
+  height: 17px;
+}
+
+.pwInput {
+  letter-spacing: 0.02em;
+}
+
+.pwInput.shake {
+  animation: pwShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes pwShake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+
+.pwEye {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.pwEye:hover {
+  color: var(--gold);
+}
+
+.pwEye svg,
+.pwEye span {
+  width: 17px;
+  height: 17px;
+}
+
+.authNote {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.pwHint {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+/* light theme: the underline and the note both need more ink on paper */
+[data-theme="light"] .authNote {
+  color: #4a4a44;
+}
+
+/* ==================== Nav avatar ==================== */
+/* The top-nav avatar is a button now: the picture sits in it when the account
+   has one, the initial stands in until it does. */
+.avatar#homeAvatar {
+  padding: 0;
+  overflow: hidden;
+  font: inherit;
+  font-weight: 700;
+  color: var(--gold);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.avatar#homeAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+
+.avatar#homeAvatar:hover {
+  border-color: var(--gold);
+}
+
+/* ==================== The clip rail ==================== */
+/* A video wall is dark in both themes — a clip is watched, not read — so this
+   surface carries its own ink and its own gold rather than the page tokens. */
+#clipFeed {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: #08090c;
+  color: #f4f4f2;
+}
+
+body.clipsOpen {
+  overflow: hidden;
+}
+
+.clipTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 34px;
+  background: linear-gradient(180deg, rgba(4, 5, 8, 0.72), transparent);
+}
+
+.clipTabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.clipTab {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 100px;
+  background: none;
+  color: rgba(244, 244, 242, 0.72);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.clipTab.active {
+  background: var(--gold);
+  color: #17170f;
+}
+
+.clipClose {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f4f4f2;
+  cursor: pointer;
+}
+
+.clipClose svg,
+.clipClose span {
+  width: 17px;
+  height: 17px;
+}
+
+/* One clip per screen, and it snaps: the rail is scrolled, never skimmed. */
+.clipScroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.clipScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.clipSlide {
+  position: relative;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+  background: #0b0c10;
+}
+
+.clipStage {
+  position: absolute;
+  inset: 0;
+}
+
+.clipVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #0b0c10;
+}
+
+/* The scrim keeps the caption legible over any frame. */
+.clipScrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(4, 5, 8, 0.5) 0%, transparent 22%, transparent 46%, rgba(4, 5, 8, 0.86) 100%);
+}
+
+.clipSlide.paused .clipStage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 5, 8, 0.28);
+}
+
+.clipSpinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-top-color: var(--gold);
+  animation: clipSpin 0.9s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes clipSpin {
+  to { transform: rotate(360deg); }
+}
+
+.clipPoster {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.clipPoster img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clipPosterArt {
+  background: linear-gradient(160deg, #1a1a1d, #0a0a0c);
+}
+
+.clipPosterArt .artStage,
+.clipPosterArt svg {
+  max-width: 62%;
+}
+
+.clipPoster .wvYtPlay,
+.clipPoster .wvLink {
+  position: relative;
+  z-index: 2;
+}
+
+.clipMeta {
+  position: absolute;
+  left: 16px;
+  right: 84px;
+  bottom: 26px;
+  z-index: 2;
+}
+
+.clipWho {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.clipWho .avatar.small {
+  width: 40px;
+  height: 40px;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.clipWhoText {
+  display: block;
+  min-width: 0;
+}
+
+.clipWhoText b {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.clipWhoText small {
+  display: block;
+  font-size: 12.5px;
+  color: rgba(244, 244, 242, 0.72);
+}
+
+.clipNote {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(244, 244, 242, 0.92);
+}
+
+.clipRail {
+  position: absolute;
+  right: 12px;
+  bottom: 34px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.clipAct {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #f4f4f2;
+  font: inherit;
+  cursor: pointer;
+}
+
+.clipAct svg,
+.clipAct span {
+  width: 27px;
+  height: 27px;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.45));
+}
+
+.clipAct b {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.clipAct.like.on {
+  color: #ff4d6d;
+}
+
+.clipAct.like.on svg {
+  fill: currentColor;
+}
+
+.clipHint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: rgba(244, 244, 242, 0.42);
+}
+
+.clipEmpty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 0 24px;
+  text-align: center;
+  color: #f4f4f2;
+}
+
+/* the heart that blooms on a double-tap */
+.heartBurst {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 92px;
+  height: 92px;
+  margin: -46px 0 0 -46px;
+  z-index: 4;
+  color: #ff4d6d;
+  pointer-events: none;
+  animation: heartPop 0.8s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+.heartBurst svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+@keyframes heartPop {
+  0% { opacity: 0; transform: scale(0.4); }
+  35% { opacity: 1; transform: scale(1.08); }
+  70% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+/* ==================== Clip counts on tiles ==================== */
+/* Top-right, not bottom-left: the caption owns the bottom of a tile, and on a
+   94px square the counts pill and the caption's first line were drawn on top
+   of each other — the pill won, so a clip's title was invisible. */
+.workSocial {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  background: rgba(8, 9, 12, 0.62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #f4f4f2;
+  font-size: 11.5px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.workSocial svg,
+.workSocial span {
+  width: 13px;
+  height: 13px;
+}
+
+.folioTile {
+  position: relative;
+}
+
+/* ==================== Comments ==================== */
+.clipCommentFoot {
+  margin-top: 12px;
+}
+
+.commentRow {
+  display: flex;
+  gap: 11px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.commentRow:last-child {
+  border-bottom: 0;
+}
+
+.commentAva {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.commentInfo {
+  min-width: 0;
+}
+
+.commentInfo b {
+  font-size: 13.5px;
+}
+
+.commentInfo small {
+  margin-left: 7px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.commentInfo p {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.commentEmpty {
+  margin: 18px 2px;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+[data-theme="light"] .commentInfo small {
+  color: #44443d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clipSpinner { animation: none; }
+  .heartBurst { animation: none; opacity: 0; }
+  .clipScroller { scroll-behavior: auto; }
+}
+
+/* A clip with a dead source says so, in the slide, rather than going black. */
+.clipDead {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: 0 28px;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(244, 244, 242, 0.72);
+}
+
+/* ==================== Replies under a comment ==================== */
+/* A reply reads as part of its parent's thread: smaller avatar, indented,
+   separated from the parent's own paragraph rather than looking like a sibling
+   comment in the flat list. */
+.replyList {
+  margin-top: 10px;
+  padding-left: 12px;
+  border-left: 2px solid var(--line);
+  display: grid;
+  gap: 2px;
+}
+
+.replyRow {
+  display: flex;
+  gap: 9px;
+  padding: 7px 0 2px;
+}
+
+.commentAva.small {
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
+}
+
+/* The owner's invitation to answer, on the comment it belongs to. */
+.replyGo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  padding: 4px 10px 4px 7px;
+  border: 1px solid var(--gold-line);
+  border-radius: 100px;
+  background: var(--gold-soft);
+  color: var(--gold);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.replyGo .icon { width: 12px; height: 12px; }
+.replyGo:active { transform: scale(0.96); }
+
+/* Who the composer is answering, above the box. */
+.replyChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--gold-line);
+  border-radius: 100px;
+  background: var(--gold-soft);
+}
+
+.replyChipIco { display: grid; place-items: center; color: var(--gold); }
+.replyChipIco .icon { width: 13px; height: 13px; }
+
+.replyChipText {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.replyChipX {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-faint);
+}
+
+.replyChipX .icon { width: 12px; height: 12px; }
+.replyChipX:active { background: var(--line); }
+
+/* ==================== Clip news in the activity feed ==================== */
+/* A social row is a button like any other row, so it opens the clip it is
+   about; a small icon says which kind of news it is before the words do. */
+button.actRow {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  background: none;
+  border: 0;
+  color: inherit;
+}
+
+.actIco {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  color: var(--gold);
+  vertical-align: -5px;
+}
+
+.actIco .icon { width: 11px; height: 11px; }
+
+.actSocial:active { opacity: 0.75; }
+
+/* ==================== Sheet over the rail ==================== */
+/* The comment sheet and the bell sheet both sit above the clip rail (z 60), so
+   a conversation can happen without closing the video. The overlay follows —
+   above the rail, below the sheets — so the rail dims while a sheet is up. */
+body.clipsOpen .sheet { z-index: 75; }
+body.clipsOpen .sheetOverlay { z-index: 70; }
+
+/* The install and notification rows in Profile read as state, not as another
+   pair of buttons: the gold lift marks what is already done. */
+#installEntry.isOn,
+#notifyEntry.isOn {
+  border-color: var(--gold-line);
+}
+
+#installEntry.isOn .proIco,
+#notifyEntry.isOn .proIco {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+/* The permission note at the foot of the bell sheet. */
+#notifyPermitNote {
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+/* ==================== Deep links: jump and land ==================== */
+/* A booking card is a jump target now, so it is a real button: no chrome of
+   its own, and the browser's focus ring is the only thing that ever outlines
+   it. */
+button.bookingCard {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button.bookingCard:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* The card a deep link lands on says so: one soft pulse, then it stays. */
+@keyframes cardFlash {
+  0% { box-shadow: 0 0 0 0 rgba(230, 179, 66, 0); background: none; }
+  35% { box-shadow: 0 0 0 3px rgba(230, 179, 66, 0.35); background: rgba(230, 179, 66, 0.06); }
+  100% { box-shadow: 0 0 0 0 rgba(230, 179, 66, 0); background: none; }
+}
+.cardFlash {
+  animation: cardFlash 1.5s ease-out 1;
+}
+
+/* The pro's work card keeps its list-row shape now that it is a button too */
+button.workCard {
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ==================== Push from the server ==================== */
+/* A delivery attempt that could not leave the page — no worker yet, or the
+   key not reachable — is worth one line, not a dead control. */
+.pushNote {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.pushNote.good { color: var(--ok, #3ecf8e); }
+
+/* The nudge after a first completed booking: it rises with the sheets and
+   never wears the cheap linear gradient a bare overlay would imply. */
+#nudgeSheet {
+  max-width: 420px;
+  padding: 26px 24px 18px;
+  text-align: center;
+  gap: 0;
+}
+#nudgeSheet .nudgeClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--chip-bg);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#nudgeSheet .nudgeClose:hover { background: var(--line); }
+#nudgeArt {
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 14px;
+  border-radius: 24px;
+  background: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #14161b;
+  box-shadow: 0 14px 34px rgba(230, 179, 66, 0.32);
+}
+#nudgeArt svg { width: 38px; height: 38px; }
+#nudgeTitle {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+#nudgeBody {
+  margin: 0 auto 18px;
+  max-width: 300px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+#nudgeActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+#nudgeActions .ghostBtn {
+  justify-content: center;
+  font-size: 12.5px;
+  opacity: 0.75;
+}
+#nudgeActions .ghostBtn:hover { opacity: 1; }
+
+/* Replies work from the bell, so a card can arrive already scrolled */
+@media (prefers-reduced-motion: reduce) {
+  .cardFlash { animation: none; }
+}

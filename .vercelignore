@@ -1,0 +1,7 @@
+# What Vercel uploads. The app is the site: index.html, css/, js/, img/,
+# manifest.webmanifest, sw.js and pampa-push.js. Everything else is local.
+.freebuff
+tools
+.git
+.gitignore
+README.md
