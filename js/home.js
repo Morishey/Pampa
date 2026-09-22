@@ -381,9 +381,10 @@ function renderStylists() {
      same chips and search that narrow the rest of the page, so "nails" shows
      the nail technicians and nothing else. */
   const q = (state.query || "").trim().toLowerCase();
-  const matched = allProviders().slice().sort(byNearestStudio).filter(function (s) {
+  const sortFn = state.priceSort === "low" || state.priceSort === "high" ? byPrice : byNearestStudio;
+  const matched = allProviders().slice().sort(sortFn).filter(function (s) {
     const catOk = state.catFilter === "all" || (s.cats || []).indexOf(state.catFilter) !== -1;
-    return catOk && providerMatches(s, q);
+    return catOk && providerMatches(s, q) && budgetPasses(s) && distancePasses(s);
   });
   /* A professional who is live right now comes up the list: their tier sits
      above the rest, nearest-first within it, because a ring on the rail means
@@ -397,13 +398,16 @@ function renderStylists() {
 
   const count = $("#proCount");
   if (count) {
+    const order = state.priceSort === "low" ? "cheapest first"
+      : state.priceSort === "high" ? "highest first" : "nearest first";
     count.textContent = !hasLocation()
       ? "Set your area to sort by distance"
       : (list.length === 1
         ? "1 professional" + (live.length ? " · live now" : "")
-        : list.length + " professionals \u00b7 nearest first" + (live.length ? " \u00b7 " + live.length + " live now" : ""));
+        : list.length + " professionals \u00b7 " + order + (live.length ? " \u00b7 " + live.length + " live now" : ""));
   }
   renderStylistsHead();
+  renderHomeFilters();
 
   if (!list.length) {
     grid.innerHTML = '<div class="searchEmpty">' +
@@ -453,8 +457,9 @@ function renderStylists() {
             '<span class="distMode' + (covers ? " on" : "") + '">' + (covers ? "Visits you" : "Studio only") + "</span>"
           : '<span class="distKm">' + icon("pin") + "Set location</span>") +
       (range && head
-        ? '<span class="priceTag" title="' + esc(head.name + " — what they charge") + '">' +
-            "<b>" + esc(rangeText(range)) + "</b><small>" + esc(head.name) + "</small></span>"
+        ? '<span class="priceTag" title="' + esc(head.name + " — from " + naira(range.min) + " up to " + naira(range.max)) + '">' +
+            "<b>" + esc(rangeText(range)) + "</b><small>" + esc(head.name) + "</small>" +
+            '<span class="priceCeil">up to ' + naira(range.max) + "</span></span>"
         : "") +
       (works.length ? '<span class="workTag">' + icon("gallery") + works.length + " work" + (works.length === 1 ? "" : "s") + "</span>" : "") +
       (open ? ""
@@ -487,7 +492,119 @@ function renderStylistsHead() {
   const h = $("#proHead");
   if (!h) return;
   const q = (state.query || "").trim();
-  h.textContent = q ? "Professionals matching \u201c" + q + "\u201d" : "Closest to you";
+  const parts = [];
+  if (q) parts.push("matching \u201c" + q + "\u201d");
+  if (state.budget) parts.push("from " + naira(BUDGETS[state.budget].max) + " down");
+  if (state.distFilter) parts.push("within " + DISTANCES[state.distFilter].km + " km");
+  if (state.priceSort === "low") parts.push("cheapest first");
+  else if (state.priceSort === "high") parts.push("highest first");
+  h.textContent = q || parts.length
+    ? "Professionals " + parts.join(" \u00b7 ")
+    : "Closest to you";
+}
+
+/* ---------- What I can afford, and how far I'll go ----------
+   Price ranges exist so a client can pick inside them — but a client scanning
+   the list had no way to say "under ₦2,000" and see only the professionals
+   whose headline work starts at or under that. So the page now asks both
+   questions next to the trade chips: a budget row built from the ranges
+   professionals actually publish, and a distance row that caps the trip.
+
+   Both are *filters on the price a booking can actually start at*: the budget
+   row tests a professional's lowest headline price against the band, and the
+   distance row tests the same fix-to-fix distance every card shows. Neither
+   touches the professional's own rate settings. */
+const BUDGETS = {
+  low:    { max: 2000,  label: "Under \u20a62,000" },
+  mid:    { max: 5000,  label: "Under \u20a65,000" },
+  high:   { max: 10000, label: "Under \u20a610,000" },
+  any:    { max: null,  label: "Any price" },
+};
+
+const DISTANCES = {
+  near:  { km: 2,  label: "Within 2 km" },
+  mid2:  { km: 5,  label: "Within 5 km" },
+  far:   { km: 10, label: "Within 10 km" },
+  any:   { km: null, label: "Any distance" },
+};
+
+/* The price a professional's headline work can start at: the floor of their
+   published range for the service their card leads with. This is the number a
+   "can I afford them?" filter is honest about — not the midpoint, which they
+   might never actually pay. */
+function headlineFloor(st) {
+  const head = headlineServiceFor(st);
+  if (!head) return null;
+  return rangeFor(st, head.id).min;
+}
+
+/* The price it can reach at the top: the ceiling of the same range. This is
+   what makes the market legible as competition — the client sees not just
+   where a professional starts but the most they charge, side by side with
+   the others on the page. */
+function headlineCeil(st) {
+  const head = headlineServiceFor(st);
+  if (!head) return null;
+  return rangeFor(st, head.id).max;
+}
+
+function budgetPasses(st) {
+  if (!state.budget || state.budget === "any") return true;
+  const floor = headlineFloor(st);
+  if (floor == null) return true; /* nothing published: don't hide them */
+  return floor <= BUDGETS[state.budget].max;
+}
+
+function distancePasses(st) {
+  if (!state.distFilter || state.distFilter === "any") return true;
+  const km = kmToStudio(st);
+  if (km == null) return true;
+  return km <= DISTANCES[state.distFilter].km;
+}
+
+function renderHomeFilters() {
+  const bRow = $("#budgetChips");
+  const dRow = $("#distanceChips");
+  if (!bRow || !dRow) return;
+  const mine = (state.user || {}).role === "pro";
+  /* A professional browsing their own trade has no one to shop for, and the
+     rows would be dead controls on their Home — the same rule the trade chips
+     follow. */
+  if (mine) {
+    bRow.innerHTML = "";
+    dRow.innerHTML = "";
+    return;
+  }
+  bRow.innerHTML = Object.keys(BUDGETS).map(function (k) {
+    return '<button class="chip' + (state.budget === k ? " active" : "") +
+      '" data-budget="' + k + '">' + BUDGETS[k].label + "</button>";
+  }).join("") +
+    '<button class="chip' + (state.priceSort ? "" : " active") + '" data-pricesort="1">' +
+      icon("sliders") + (state.priceSort === "low" ? "Cheapest first"
+        : state.priceSort === "high" ? "Highest first" : "Nearest first") + "</button>";
+  /* Distance needs a location to measure from: without one the row would
+     filter by a centre nobody chose. */
+  if (!hasLocation()) {
+    dRow.innerHTML = "";
+  } else {
+    dRow.innerHTML = Object.keys(DISTANCES).map(function (k) {
+      return '<button class="chip' + (state.distFilter === k ? " active" : "") +
+        '" data-distance="' + k + '">' + DISTANCES[k].label + "</button>";
+    }).join("");
+  }
+  bindStripScroll(bRow);
+  bindStripScroll(dRow);
+}
+
+/* The sort that makes ranges competitive rather than decorative: nearest is
+   the default, cheapest puts the lowest floor first, highest puts the biggest
+   ceiling first — a client hunting premium work can find it in one tap. */
+function byPrice(a, b) {
+  const fa = headlineFloor(a), fb = headlineFloor(b);
+  if (fa == null) return 1;
+  if (fb == null) return -1;
+  if (state.priceSort === "high") return headlineCeil(b) - headlineCeil(a) || fa - fb;
+  return fa - fb || kmToStudio(a) - kmToStudio(b);
 }
 
 /* The service catalogue is no longer a grid on Home — a client picks a person

@@ -1034,6 +1034,32 @@ function wire() {
     renderStylists();
     renderStories();
   });
+  /* The budget and distance rows are written by renderHomeFilters, so their
+     taps are delegated here — one listener for both rows, same shape as the
+     trade chips. */
+  document.addEventListener("click", function (e) {
+    const b = e.target.closest("[data-budget]");
+    if (b) {
+      state.budget = state.budget === b.dataset.budget ? null : b.dataset.budget;
+      renderStylists();
+      return;
+    }
+    const d = e.target.closest("[data-distance]");
+    if (d) {
+      state.distFilter = state.distFilter === d.dataset.distance ? null : d.dataset.distance;
+      renderStylists();
+      return;
+    }
+    /* The sort chip cycles nearest → cheapest → highest → nearest. It lives in
+       the filters block so the market's order is a control, not a hidden
+       default. */
+    const srt = e.target.closest("[data-pricesort]");
+    if (srt) {
+      state.priceSort = state.priceSort === "low" ? "high"
+        : state.priceSort === "high" ? null : "low";
+      renderStylists();
+    }
+  });
   $("#rememberMe").addEventListener("change", function (e) {
     if (state.user) {
       state.user.remember = e.target.checked;

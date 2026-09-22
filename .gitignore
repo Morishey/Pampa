@@ -9,7 +9,18 @@
 __pycache__/
 *.pyc
 
+# Supabase working files: the CLI token, the desk-admin credentials the
+# verification writes, the migration pusher and the cleanup scripts. All of it
+# is gitignored inside supabase/ too, but ignore it here as well so no amount
+# of `git add` carelessness can ever pick the token up.
+supabase/.temp/
+
 # OS noise
 .DS_Store
 Thumbs.db
 nul
+
+# The local dev server's own log and pid, started by the tooling that serves
+# the app over http — nothing to do with the app itself.
+.server.log
+.server.pid

@@ -170,12 +170,15 @@ function providerWorkHtml(p) {
       (vid
         ? '<span class="workThumb vid">' + icon("play") + "</span>"
         : '<img class="workThumb" src="' + esc(w.src) + '" alt="" loading="lazy">') +
-      (w.note ? '<span class="workNote">' + esc(w.note) + "</span>" : "") +
+      (w.note
+        ? '<span class="workNote' + (vid && w.dur ? " hasDur" : "") + '">' + esc(w.note) + "</span>"
+        : "") +
       (vid
         ? '<span class="workSocial">' + icon("heart") +
             '<b data-likecount="' + esc(id) + '">' + clipLikeTotal({ id: id, provider: p }) + "</b>" +
             icon("chat") + '<b data-commentcount="' + esc(id) + '">' + commentsFor(id).length + "</b></span>"
         : "") +
+      (vid && w.dur ? '<span class="workDur">' + fmtDur(w.dur) + "</span>" : "") +
       "</button>";
   }).join("") + "</div>";
 }

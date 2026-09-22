@@ -151,7 +151,10 @@ function renderFolioSheet() {
               /* the owner sees how their clip is doing, where they manage it */
               '<span class="workSocial">' + icon("heart") +
                 '<b data-likecount="' + esc(id) + '">' + clipLikeTotal({ id: id, provider: rec || {} }) + "</b>" +
-                icon("chat") + '<b data-commentcount="' + esc(id) + '">' + commentsFor(id).length + "</b></span>"
+                icon("chat") + '<b data-commentcount="' + esc(id) + '">' + commentsFor(id).length + "</b></span>" +
+              /* the length, where every player in the world puts it. Older clips
+                 were added before the app measured them, so it is optional. */
+              (w.dur ? '<span class="workDur">' + fmtDur(w.dur) + "</span>" : "")
             : '<img class="folioThumb" src="' + esc(w.src) + '" alt="">') +
           '<button class="folioX" data-work-rm="' + esc(w.id) + '" aria-label="Remove work ' + (i + 1) + '">' +
             icon("close") + "</button></div>";
@@ -159,13 +162,13 @@ function renderFolioSheet() {
     : emptyState("search", "No work shown yet", "Add a few photos of cuts, braids or sets you have finished — clients decide on them.");
 
   body.innerHTML = grid +
-    '<div class="sheetBlock"><label>Add a video</label>' +
+    '<div class="sheetBlock"><label>Paste a video link</label>' +
       '<div class="addrField">' + icon("play") +
         '<input id="workLink" type="url" maxlength="300" placeholder="Paste a video link (mp4, YouTube…)">' +
         '<button class="fieldGo" data-addlink="1" aria-label="Add this link">' + icon("plus") + "</button>" +
       "</div>" +
-      '<p class="finePrint">Paste a link and tap +, or use <b>Add a video</b> below to upload a clip from this device (up to ' +
-        VIDEO_MAX_MB + ' MB — anything longer is better as a link).</p>' +
+      '<p class="finePrint">Paste a link and tap +, or use <b>Add a video</b> below for a clip from this device — it is cut down to fit ' +
+        VIDEO_MAX_MB + " MB and posted with its own length. It never leaves this phone.</p>" +
     "</div>" +
     '<p class="finePrint">Photos are shrunk to ' + WORK_MAX + "px on the long edge. A clip plays inline in the viewer. " + works.length + " of " + WORK_LIMIT + " used.</p>";
 
@@ -179,48 +182,53 @@ function renderFolioSheet() {
 /* A clip straight from the device. A video cannot be shrunk the way a photo can
    without a transcoder, so the file is kept whole and only accepted while it
    fits the storage budget the whole directory shares. */
-function addWorkVideoFile(file) {
+async function addWorkVideoFile(file) {
   const rec = myProviderRecord();
   if (!rec) { toast("Add a trade first — work lives on your public page"); return; }
   if (!file) return;
-  const works = worksOf(rec);
-  if (works.length >= WORK_LIMIT) { toast("That is the whole portfolio for now — remove one first"); return; }
+  if (worksOf(rec).length >= WORK_LIMIT) { toast("That is the whole portfolio for now — remove one first"); return; }
   if (!/^video\//i.test(file.type || "")) { toast("That file is not a video"); return; }
-  if (file.size > VIDEO_MAX_BYTES) {
-    toast("That clip is " + fileSizeText(file.size) + " — over the " + VIDEO_MAX_MB + " MB the device can hold. Paste a link instead.");
-    return;
-  }
-  const reader = new FileReader();
+
   const pick = $("#videoPick");
+  const label = pick ? pick.textContent : "";
   setBusy(pick, true);
   beginWork();
-  reader.onerror = function () {
-    setBusy(pick, false);
-    endWork();
-    toast("Could not read that clip");
-  };
-  reader.onload = function () {
-    setBusy(pick, false);
-    endWork();
+  try {
+    /* The clip is re-encoded down to something this device can hold, and it
+       takes about as long as the clip lasts — so the button counts it out. */
+    const out = await compressClip(file, function (frac) {
+      setWorkProgress(frac);
+      if (pick) pick.textContent = "Cutting clip \u00b7 " + Math.round(frac * 100) + "%";
+    });
     const entry = {
       id: "w" + Date.now(),
       kind: "video",
-      src: String(reader.result || ""),
+      src: out.src,
       name: file.name || "clip",
       note: "",
+      dur: out.duration,
       at: new Date().toISOString()
     };
-    rec.works = works.concat([entry]);
+    /* Read the list again rather than reusing what was captured before the
+       encode: that wait is seconds long, and anything added during it would
+       be dropped by a stale array. */
+    const current = worksOf(rec);
+    rec.works = current.concat([entry]);
     if (!saveDirectory()) {
-      rec.works = works;
-      toast("This device is out of storage — that clip was too heavy. Paste a link instead.");
+      rec.works = current;
+      toast("This device is out of storage \u2014 paste a video link instead");
       return;
     }
     renderFolioSheet();
     refreshProviderSurfaces();
-    toast("Clip added to your work");
-  };
-  reader.readAsDataURL(file);
+    toast(clipSavedText(out));
+  } catch (e) {
+    toast(clipErrorMessage(e));
+  } finally {
+    if (pick) pick.textContent = label;
+    setBusy(pick, false);
+    endWork();
+  }
 }
 
 function addWorkFiles(files) {

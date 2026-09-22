@@ -73,8 +73,17 @@ async function dbCall(fn, args) {
   const body = Object.assign({}, args || {});
   /* Every function that touches data takes the token. Adding it here rather
      than at each call site means a call can never accidentally go out
-     anonymous. */
-  if (body.p_token === undefined) body.p_token = dbToken();
+     anonymous — a signed-out caller sends `p_token: null` and is told so in
+     words ("Not signed in"), rather than being handed someone else's data.
+
+     The two exceptions are the ones that hand out a session in the first place.
+     They declare no `p_token` at all, and PostgREST resolves a function call by
+     matching the argument names it is given — so sending them a token, even a
+     null one, makes it look for an overload that does not exist and answer
+     "Could not find the function public.pampa_register(…)". That reads like the
+     function is missing, which is why it is worth naming here. */
+  const MINTS_A_SESSION = { pampa_register: true, pampa_login: true };
+  if (body.p_token === undefined && !MINTS_A_SESSION[fn]) body.p_token = dbToken();
 
   let res;
   try {
@@ -180,6 +189,15 @@ const db = {
   releaseBooking: (id, rating, note) =>
     dbCall("pampa_booking_release", { p_booking: id, p_rating: rating || null, p_note: note || "" }),
   cancelBooking: (id) => dbCall("pampa_booking_cancel", { p_booking: id }),
+
+  /* The desk. `myFlags` is how the app knows whether to draw the desk at all:
+     it is told about its own account and nobody else's. Granting is an admin
+     action, enforced in the database — a client calling this is refused, not
+     ignored. */
+  myFlags: () => dbCall("pampa_my_flags"),
+  deskGrant: (handle, on) =>
+    dbCall("pampa_desk_grant", { p_handle: handle, p_on: on === undefined ? true : !!on }),
+  deskRoster: () => dbCall("pampa_desk_roster"),
 
   /* Disputes and the desk */
   disputeBooking: (id, reason, photos) =>

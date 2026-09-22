@@ -25,7 +25,7 @@
     <!-- The push half of notifications: subscribes the account with the push
          server (tools/push-server.js) so news reaches the phone when Pampa is
          closed. Loaded before the app, which calls into it. -->
-    <script src="pampa-push.js?v=228"></script>
+    <script src="pampa-push.js?v=235"></script>
     <script>
         (function () {
             try {
@@ -40,45 +40,45 @@
          after them is written against those names, and interactions.css comes
          last because it is what a tap feels like. Splitting the sheet changed
          no rule and no order — a plain list of tags, no build step. -->
-    <link rel="stylesheet" href="css/tokens.css?v=228">
-    <link rel="stylesheet" href="css/onboarding.css?v=228">
-    <link rel="stylesheet" href="css/shell.css?v=228">
-    <link rel="stylesheet" href="css/booking.css?v=228">
-    <link rel="stylesheet" href="css/pro.css?v=228">
-    <link rel="stylesheet" href="css/disputes.css?v=228">
-    <link rel="stylesheet" href="css/system.css?v=228">
-    <link rel="stylesheet" href="css/directory.css?v=228">
-    <link rel="stylesheet" href="css/polish.css?v=228">
-    <link rel="stylesheet" href="css/components.css?v=228">
-    <link rel="stylesheet" href="css/interactions.css?v=228">
+    <link rel="stylesheet" href="css/tokens.css?v=235">
+    <link rel="stylesheet" href="css/onboarding.css?v=235">
+    <link rel="stylesheet" href="css/shell.css?v=235">
+    <link rel="stylesheet" href="css/booking.css?v=235">
+    <link rel="stylesheet" href="css/pro.css?v=235">
+    <link rel="stylesheet" href="css/disputes.css?v=235">
+    <link rel="stylesheet" href="css/system.css?v=235">
+    <link rel="stylesheet" href="css/directory.css?v=235">
+    <link rel="stylesheet" href="css/polish.css?v=235">
+    <link rel="stylesheet" href="css/components.css?v=235">
+    <link rel="stylesheet" href="css/interactions.css?v=235">
     <!-- pricing loads last: it re-dresses the discovery card into a row, and
          carries the price ranges, the picker and the negotiation surfaces -->
-    <link rel="stylesheet" href="css/pricing.css?v=228">
-    <link rel="stylesheet" href="css/stories.css?v=228">
+    <link rel="stylesheet" href="css/pricing.css?v=235">
+    <link rel="stylesheet" href="css/stories.css?v=235">
     <!-- The app itself, deferred and in order. Every file shares one global
          scope, exactly as the single script did, so a later module may call
          anything an earlier one declared. js/wiring.js must stay last: it
          installs the listeners and boots. -->
-    <script src="icons.js?v=228" defer></script>
-    <script src="escrow.js?v=228" defer></script>
-    <script src="js/core.js?v=228" defer></script>
-    <script src="js/directory.js?v=228" defer></script>
-    <script src="js/activity.js?v=228" defer></script>
-    <script src="js/pwa.js?v=228" defer></script>
-    <script src="js/ui.js?v=228" defer></script>
-    <script src="js/social.js?v=228" defer></script>
-    <script src="js/home.js?v=228" defer></script>
-    <script src="js/media.js?v=228" defer></script>
-    <script src="js/provider.js?v=228" defer></script>
-    <script src="js/sheets.js?v=228" defer></script>
-    <script src="js/status.js?v=228" defer></script>
-    <script src="js/clips.js?v=228" defer></script>
-    <script src="js/bookings.js?v=228" defer></script>
-    <script src="js/views.js?v=228" defer></script>
-    <script src="js/auth.js?v=228" defer></script>
-    <script src="js/location.js?v=228" defer></script>
-    <script src="js/booking-sheet.js?v=228" defer></script>
-    <script src="js/wiring.js?v=228" defer></script>
+    <script src="icons.js?v=235" defer></script>
+    <script src="escrow.js?v=235" defer></script>
+    <script src="js/core.js?v=235" defer></script>
+    <script src="js/directory.js?v=235" defer></script>
+    <script src="js/activity.js?v=235" defer></script>
+    <script src="js/pwa.js?v=235" defer></script>
+    <script src="js/ui.js?v=235" defer></script>
+    <script src="js/social.js?v=235" defer></script>
+    <script src="js/home.js?v=235" defer></script>
+    <script src="js/media.js?v=235" defer></script>
+    <script src="js/provider.js?v=235" defer></script>
+    <script src="js/sheets.js?v=235" defer></script>
+    <script src="js/status.js?v=235" defer></script>
+    <script src="js/clips.js?v=235" defer></script>
+    <script src="js/bookings.js?v=235" defer></script>
+    <script src="js/views.js?v=235" defer></script>
+    <script src="js/auth.js?v=235" defer></script>
+    <script src="js/location.js?v=235" defer></script>
+    <script src="js/booking-sheet.js?v=235" defer></script>
+    <script src="js/wiring.js?v=235" defer></script>
 </head>
 
 <body>
@@ -408,6 +408,13 @@
                 <button class="chip" data-filter="nails">Nails</button>
                 <button class="chip" data-filter="spa">Spa</button>
             </div>
+
+            <!-- What I can afford, and how far I'll go: the two questions a
+                 price range is there to answer. Both are written by
+                 renderHomeFilters, which knows the trades on the page and
+                 hides what would filter nothing. -->
+            <div class="chips" id="budgetChips" aria-label="Filter by what you can afford"></div>
+            <div class="chips" id="distanceChips" aria-label="Filter by distance"></div>
 
             <!-- Featured slider: real photography, one slide per trade. Tapping a
                  slide filters the grid below, the same as the trade strip.

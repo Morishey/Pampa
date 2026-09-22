@@ -910,8 +910,8 @@ function renderStatusSheet() {
     picker = '<div class="sheetBlock"><label>Clip</label>' +
       (statusDraft.src
         ? '<div class="statusPreviewBig"><video src="' + esc(statusDraft.src) + '" playsinline muted preload="metadata"></video></div>'
-        : '<p class="finePrint">A short clip from this device (up to ' + VIDEO_MAX_MB +
-          " MB \u2014 longer is better as a link), or paste a link below.</p>") +
+        : '<p class="finePrint">A clip from this device is cut down to fit ' + VIDEO_MAX_MB +
+          " MB and posted with its own length \u2014 or paste a link below.</p>") +
       '<div class="rowBtns"><button class="nextbtn tight" id="statusPickClip">' +
         icon("play") + (statusDraft.src ? " Change clip" : " Choose a clip") + "</button></div>" +
       '<div class="addrField">' + icon("play") +
@@ -981,33 +981,34 @@ function statusAddPhoto(file) {
     .catch(function () { toast("Could not read that image"); });
 }
 
-function statusAddClip(file) {
+async function statusAddClip(file) {
   const me = myProviderRecord();
   if (!me || !file) return;
   if (!/^video\//i.test(file.type || "")) { toast("That file is not a video"); return; }
-  if (file.size > VIDEO_MAX_BYTES) {
-    toast("That clip is " + fileSizeText(file.size) + " \u2014 over the " + VIDEO_MAX_MB +
-      " MB a status can hold. Paste a link instead.");
-    return;
-  }
-  const reader = new FileReader();
+
   const btn = $("#statusPickClip");
+  const label = btn ? btn.textContent : "";
   setBusy(btn, true);
   beginWork();
-  reader.onerror = function () {
-    setBusy(btn, false);
-    endWork();
-    toast("Could not read that clip");
-  };
-  reader.onload = function () {
-    setBusy(btn, false);
-    endWork();
+  try {
+    /* Same re-encode as the portfolio: a status lives for a day, so it is the
+       last place to keep a 40 MB original. */
+    const out = await compressClip(file, function (frac) {
+      setWorkProgress(frac);
+      if (btn) btn.textContent = "Cutting clip \u00b7 " + Math.round(frac * 100) + "%";
+    });
     statusDraft.kind = "clip";
-    statusDraft.src = String(reader.result || "");
+    statusDraft.src = out.src;
+    statusDraft.dur = out.duration;
     renderStatusSheet();
-    toast("Clip ready \u2014 post it");
-  };
-  reader.readAsDataURL(file);
+    toast(clipSavedText(out));
+  } catch (e) {
+    toast(clipErrorMessage(e));
+  } finally {
+    if (btn) btn.textContent = label;
+    setBusy(btn, false);
+    endWork();
+  }
 }
 
 function statusUseWork(workId) {

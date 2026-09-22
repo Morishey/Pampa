@@ -101,6 +101,32 @@
   opacity: 0.9;
 }
 
+/* The ceiling, named: the range shows the band, this line says the most they
+   charge in as many words — the fact that makes pricing between professionals
+   comparable at a glance. */
+.priceTag .priceCeil {
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0.85;
+  margin-top: 1px;
+}
+
+/* The filter rows answer two different questions from the trade chips above
+   them, so they sit a half-step quieter: same chips, slightly smaller, so the
+   eye reads trade → budget → distance as one narrowing decision. */
+#budgetChips .chip,
+#distanceChips .chip {
+  padding: 6px 13px;
+  font-size: 12px;
+}
+
+#budgetChips .chip svg,
+#distanceChips .chip svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* --- 2. The price a client names --- */
 /* A range reads as a slider with three places worth one tap: the floor, the
    middle, the ceiling. The number itself is the largest thing in the block,

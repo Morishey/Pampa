@@ -220,6 +220,11 @@ const state = {
   statusFilter: "upcoming",
   catFilter: "all",
   query: "",
+  /* the client's shopping filters: what they can afford, how far they'll go,
+     and the order the market is read in (nearest / cheapest / highest) */
+  budget: null,
+  distFilter: null,
+  priceSort: null,
   draft: {},
   /* which provider's public page is open, if any */
   providerView: null,

@@ -138,6 +138,18 @@
 
 .addrField input::placeholder { color: var(--ink-faint); }
 
+/* The glyph inside either field is sized here, never left to its own intrinsic
+   size. An unsized SVG in this flex row rendered 368px wide, which pushed the
+   sheet's content 36px past its own edge and clipped the last tile of the
+   portfolio grid below it. */
+.addrField .addrIco svg,
+.addrField > .icon,
+.addrField > .icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
 /* The nearest three, in the same glass as the pill above them: the home screen
    answers "who is closest?" before anything is scrolled. One row that runs
    sideways when the names are long, through the same overflow vocabulary every
@@ -335,7 +347,7 @@
 /* --- 5. The portfolio grid: square tiles, a play badge on clips --- */
 .folioGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -427,6 +439,24 @@
 
 .folioX:hover { background: var(--danger-fill); border-color: transparent; }
 
+/* A caption and a duration can share a tile's foot without overlapping: the
+   note gives up the corner the length badge occupies. */
+.workNote.hasDur { padding-right: 52px; }
+
+/* On a portfolio tile the counts pill owns the top-right, and the two were
+   drawn over each other on a clip. The remove button takes the top-left here.
+   Scoped to the portfolio sheet on purpose: on a status tile the top-left
+   already carries the view count, and there the button stays where it is. */
+#folioBody .folioX {
+  top: 5px;
+  left: 5px;
+  right: auto;
+}
+
+/* A grid item defaults to min-width:auto, so any single wide child could force
+   the row wider than the sheet it sits in. */
+.folioTile { min-width: 0; }
+
 /* The "2 work(s)" chip on a discovery card and the profile. */
 .workTag {
   display: inline-flex;
@@ -516,9 +546,18 @@
   background: rgba(255, 255, 255, 0.72);
 }
 
+/* A clip tile is a pane, not a photograph, and on paper the near-white pane
+   left the play badge floating with nothing to sit on. It gets a solid card
+   and the strong gold ring, so the badge reads as the control it is. */
+[data-theme="light"] .folioThumb.vid .icon,
+[data-theme="light"] .workThumb.vid .icon {
+  border-color: var(--gold-line-strong);
+  background: var(--card-3);
+}
+
 /* --- 8. Contracting: two columns of tiles on a very narrow phone --- */
 @media (max-width: 340px) {
-  .folioGrid { grid-template-columns: repeat(2, 1fr); }
+  .folioGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

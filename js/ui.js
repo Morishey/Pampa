@@ -68,6 +68,18 @@ function endWork() {
   }, 260);
 }
 
+/* Real progress, for the one job in the app whose length is known in advance:
+   re-encoding a clip takes about as long as the clip lasts, so the bar can say
+   how far along it is rather than pretending. Ignored unless the bar is up, so
+   a caller never has to check first. */
+function setWorkProgress(frac) {
+  const el = document.getElementById("workBar");
+  if (!el || !el.classList.contains("on")) return;
+  const fill = el.firstChild;
+  const pct = Math.max(2, Math.min(97, Math.round((Number(frac) || 0) * 100)));
+  fill.style.width = pct + "%";
+}
+
 /* An action that returns a promise: busy button, top bar, both cleared
    whichever way it settles. */
 function work(btn, promise) {

@@ -27,8 +27,9 @@
  * ========================================================= */
 
 const PAMPA_SUPABASE = {
-  url: "",
-  anonKey: "",
+  url: "https://fdwezuycrysgzhblunqp.supabase.co",
+  anonKey:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkd2V6dXljcnlzZ3poYmx1bnFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTkzNTksImV4cCI6MjEwNTY3NTM1OX0.YfooQBh9r3EmNpEP-XIhWqrUc3W_IbYlmoZePalk0Zg",
 };
 
 /* True once the two values above are filled in. Everything that talks to the

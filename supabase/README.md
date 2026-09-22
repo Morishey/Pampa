@@ -83,12 +83,31 @@ leaves escrow.
    With the values empty the app keeps running on localStorage, so this file can
    sit in the repo safely until the database exists.
 
-5. **Make yourself a mediator** if you want the resolution desk. The desk is a
-   flag on an ordinary account, not a third role:
+5. **Name the first admin**, once, if you want the resolution desk. The desk is a
+   flag on an ordinary account, not a third role — and it is *granted, never
+   taken*: a trigger refuses any change to it that does not come from
+   `pampa_desk_grant()`. So the very first one is set by hand, in the SQL editor:
 
    ```sql
-   update public.pampa_accounts set desk = true where handle = '<your-handle>';
+   begin;
+   select set_config('pampa.granting', 'on', true);
+   update public.pampa_accounts set admin = true, desk = true where handle = '<your-handle>';
+   commit;
    ```
+
+   After that nobody needs the editor again. From the app (or any PostgREST
+   call as that admin), further mediators are promoted by handle:
+
+   ```js
+   await db.deskGrant("0805…");      // desk on
+   await db.deskGrant("0805…", false); // desk off
+   await db.deskRoster();              // who is on it
+   ```
+
+   Two powers are deliberately separate: `desk` decides a dispute, `admin`
+   decides who decides. An admin cannot revoke their own desk, because that is a
+   lockout wearing the clothes of a permission change, and the roster is admin
+   only — it is a list of the people to pressure.
 
 ## What is here, and what is not
 
@@ -102,12 +121,72 @@ leaves escrow.
 | ⬜ | statuses, clips, likes, comments (the social half — needs Storage for media) |
 | ⬜ | notifications and push subscriptions |
 | ⬜ | seeding the demo professionals (Amara, Tunde, Zainab, Sofia) into Postgres |
-| ⬜ | wiring the app's call sites over from localStorage to `db.*` |
+| ✅ | resolution desk: granted by an admin over RPC, not by pasted SQL |
+| ✅ | the backend proven end to end against live Postgres (`tools/verify-db.mjs`) |
+| ⬜ | wiring the app's call sites over from localStorage to `db.*` — nothing loads `js/config.js` or `js/db.js` yet |
 
-The app is still running on localStorage today. `js/db.js` is the client half of
-the migration, written against these signatures and tested only by
-`node --check` — it has not been exercised against a live database yet, because
-there is not one to exercise it against.
+The app is still running on localStorage today, and that is the last step: the
+database is live and proven, but **nothing in `index.html` loads `js/config.js`
+or `js/db.js` yet**, so the pages you see are still reading the device. Adding
+those two script tags is what switches the app over, and it should be done one
+screen at a time rather than in one commit.
+
+## Is it working?
+
+`tools/verify-db.mjs` answers that, and it answers it by calling the database
+the way the app will: PostgREST, the anon key, real session tokens. No service
+key, no direct table writes, no psql.
+
+```bash
+node tools/verify-db.mjs
+```
+
+It registers a client and a barber ~180 m apart, sets the barber's price bands,
+checks the directory returns the precise distance and the ceiling, then runs the
+whole escrow loop — request, pay, accept, complete, release with a rating, payout
+net of the fee in the wallet — and the dispute leg with photos from both sides.
+It asserts *relationships* (`total = price + travel`, `payout = total − fee`,
+`toClient + toPro + fee = held`) rather than naira amounts, so a change to a rate
+card cannot break it.
+
+The negative tests are the point of it: the anon key reading `pampa_accounts`,
+`pampa_sessions` or `pampa_bookings` must fail **with "permission denied"** — a
+401 from a bad key is not the same thing — a client cannot accept their own
+request or release somebody else's booking, a duplicate handle is refused, an
+inverted range is refused, a non-admin cannot grant the desk, and the flag cannot
+be smuggled in through a profile update. A refusal only counts when it is refused
+for the right reason, so a mistyped argument name cannot look like a security
+boundary.
+
+Two things it needs to run and one it can skip:
+
+- **The anon key and URL** come from `js/config.js` — parsed, not duplicated, so
+  it verifies the config the app will ship with. `PAMPA_SUPABASE_URL` and
+  `PAMPA_SUPABASE_ANON_KEY` override it.
+- **Settling a dispute** needs an admin, and the first admin is named by hand
+  (step 5 above). Hand those in and the leg runs:
+
+  ```bash
+  PAMPA_ADMIN_HANDLE=<handle> PAMPA_ADMIN_PASSWORD=<password> node tools/verify-db.mjs
+  ```
+
+  With them, the run proves the whole desk path: an admin promoting a mediator
+  over the RPC, that mediator splitting a frozen escrow, both halves landing — a
+  refund on the client's card, a payout row in the professional's wallet — and
+  the decision journalled on the booking. Without them it reports that leg as
+  SKIPPED. It never passes silently.
+- **It cleans up after itself.** Every account is named `Verifier …` and the run
+  writes `supabase/.temp/verify-cleanup.sql` naming their exact ids. Note why
+  that matters: `pampa_booking_events` refuses every `update` and `delete` by
+  trigger, so deleting a booking cascades into the journal and fails. The script
+  disables that trigger around the deletes and puts it straight back.
+
+### Already done for this project
+
+The project is `pampa` (`fdwezuycrysgzhblunqp`, `eu-central-1`), the three
+migrations are pushed and recorded, `js/config.js` holds its URL and anon key,
+and the verification passes 35 of 35 with nothing skipped. No admin exists yet —
+step 5 is still yours to run, naming whoever you trust to settle a dispute.
 
 ## Known gaps
 
