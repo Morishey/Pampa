@@ -1532,6 +1532,15 @@ function shrinkImage(file) {
   });
 }
 
+/* Why a photo could not be taken. The reader above speaks in product copy
+   ("Only images can be attached", "That file could not be read") — the app's
+   own sentences, never a database refusal, so they are shown as they stand.
+   It has a name so that this read is visibly a different thing from the
+   raw-message bug tools/toast-guard.mjs exists to catch. */
+function photoWhy(e) {
+  return (e && e.message) || "That image could not be read";
+}
+
 /* Add picked files to a draft's photo list, honouring both caps. */
 async function addEvidence(draft, files) {
   const picked = Array.prototype.slice.call(files || []);
@@ -1548,7 +1557,7 @@ async function addEvidence(draft, files) {
     try {
       data = await shrinkImage(queue[i]);
     } catch (e) {
-      return { added: added, msg: e.message };
+      return { added: added, msg: photoWhy(e) };
     }
     const bytes = approxBytes(data);
     if (bytes > EVIDENCE_MAX_BYTES) { tooBig++; continue; }

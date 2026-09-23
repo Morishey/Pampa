@@ -278,11 +278,13 @@ async function dbFinishRegistration(areaId, address, point) {
       return;
     }
     /* A refusal the app has already explained on the sign-in screen (a session
-       that died between the form and the save) is not repeated here. */
-    if (e && e.silent) return;
-    toast(e && e.message
-      ? "Pampa couldn't save that account: " + e.message
-      : "Pampa couldn't save that account — you're on this device only");
+       that died between the form and the save) is not repeated here: dbText
+       answers null for it, and toast says nothing when handed nothing. The
+       server's own sentence is introduced; the fallback is already whole, so
+       the prefix never lands on it. */
+    toast(dbText(e,
+      "Pampa couldn't save that account — you're on this device only",
+      "Pampa couldn't save that account: "));
   }
 }
 

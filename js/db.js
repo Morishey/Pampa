@@ -171,10 +171,16 @@ async function dbCall(fn, args) {
 /* What a caller should show for a refused call: the server's own words, or the
    fallback it was handed. A refusal the app has already explained somewhere the
    person can still read comes back null — there is nothing to add, so nothing
-   is added. Pair it with toast(), which says nothing when handed nothing. */
-function dbText(e, fallback) {
+   is added. Pair it with toast(), which says nothing when handed nothing.
+
+   `prefix` introduces the server's own sentence only — "Pampa couldn't save
+   that account: " in front of a Postgres refusal — so a fallback that is
+   already a finished sentence is never doubled up. tools/toast-guard.mjs is
+   the fence: every sink that shows an error's words reads them from here. */
+function dbText(e, fallback, prefix) {
   if (e && e.silent) return null;
-  return (e && e.message) ? e.message : (fallback || null);
+  if (e && e.message) return (prefix || "") + e.message;
+  return fallback || null;
 }
 
 /* ---------- What the app calls ---------- */

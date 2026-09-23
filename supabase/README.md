@@ -123,13 +123,19 @@ leaves escrow.
 | ⬜ | seeding the demo professionals (Amara, Tunde, Zainab, Sofia) into Postgres |
 | ✅ | resolution desk: granted by an admin over RPC, not by pasted SQL |
 | ✅ | the backend proven end to end against live Postgres (`tools/verify-db.mjs`) |
-| ⬜ | wiring the app's call sites over from localStorage to `db.*` — nothing loads `js/config.js` or `js/db.js` yet |
+| ✅ | no shipped file can hand a raw Postgres refusal to a person (`tools/toast-guard.mjs`, run as the verifier's first two legs) |
 
-The app is still running on localStorage today, and that is the last step: the
-database is live and proven, but **nothing in `index.html` loads `js/config.js`
-or `js/db.js` yet**, so the pages you see are still reading the device. Adding
-those two script tags is what switches the app over, and it should be done one
-screen at a time rather than in one commit.
+The transactional half of the app is on the database: registration, sessions,
+sign-in and sign-out, the directory with distance measured server-side, bookings
+and every escrow transition, ratings, profile pushes, payouts and the resolution
+desk — all through RPCs against the tables above, and all driven by the verifier.
+
+What is still device-local is the media and social half: a professional's
+portfolio uploads, clips with their likes and comments, 24-hour statuses, the
+bell's read state and the preferences. None of those have tables yet — on the
+server a directory record carries no media columns — so signing in on a new
+phone returns your account, bookings, money and ratings, but not your gallery or
+your clips.
 
 ## Is it working?
 
@@ -140,6 +146,15 @@ key, no direct table writes, no psql.
 ```bash
 node tools/verify-db.mjs
 ```
+
+It opens with two legs that need no database at all, because a static regression
+should not depend on a project answering today. The first proves the toast guard
+still catches a raw message (`node tools/toast-guard.mjs --self-test` proves the
+same thing on its own); the second reads every shipped file and fails if any of
+them has grown a fresh `.message` read inside a toast, a dialog body or the
+`msg` field a transition returns — the shape that once showed Postgres plumbing
+to a client. `node tools/toast-guard.mjs` runs that scan by itself, and names
+the line to fix.
 
 It registers a client and a barber ~180 m apart, sets the barber's price bands,
 checks the directory returns the precise distance and the ceiling, then runs the
@@ -185,7 +200,8 @@ Two things it needs to run and one it can skip:
 
 The project is `pampa` (`fdwezuycrysgzhblunqp`, `eu-central-1`), the three
 migrations are pushed and recorded, `js/config.js` holds its URL and anon key,
-and the verification passes 35 of 35 with nothing skipped. No admin exists yet —
+and the verification passed every leg with nothing skipped on its last full
+run — the two static toast-guard legs included. No admin exists yet —
 step 5 is still yours to run, naming whoever you trust to settle a dispute.
 
 ## Known gaps

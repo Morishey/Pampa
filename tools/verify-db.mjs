@@ -23,11 +23,18 @@
  * the roster is not readable, and the flag cannot be smuggled in through a
  * profile patch. The settlement leg is reported SKIPPED with the two commands
  * that finish it.
+ *
+ * Two legs need no database at all — they read the app's own files. The toast
+ * guard fails if a shipped file hands a raw Postgres refusal to a person, and
+ * its self-test fails if the guard stopped catching what it was written for.
+ * Both run before the config check, so a static regression is reported whether
+ * or not a project answers today.
  * ========================================================= */
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { selfTest, scanToasts } from "./toast-guard.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -218,6 +225,30 @@ function track(label, reg) {
 
 async function main() {
   console.log(`\nPampa backend verification\n  ${BASE}\n  anon key ${ANON ? ANON.slice(0, 12) + "…" : "(none)"}\n`);
+
+  /* -- 0. The static legs -------------------------------------------------
+     They read the app's own files rather than the database, so they run
+     before the config check: a raw Postgres refusal reaching a person is a
+     regression whether or not a project answers today, and the first leg
+     proves the fence is still standing rather than merely quiet. */
+
+  await check("the toast guard still catches a raw message", () => {
+    const rows = selfTest();
+    const bad = rows.filter((r) => !r.ok);
+    if (bad.length) {
+      throw new Error(bad.map((r) => `"${r.name}" expected ${r.want} finding(s), got ${r.got}`).join(" · "));
+    }
+    return `${rows.length} fixtures, every one judged as intended`;
+  });
+
+  await check("no shipped file hands a raw database message to a person", () => {
+    const r = scanToasts();
+    if (!r.ok) throw new Error(r.hits.map((h) => `${h.file}:${h.line} ${h.text}`).join(" · "));
+    return `${r.files.length} shipped files scanned · ` +
+      (r.allowed.length
+        ? `${r.allowed.length} allowance${r.allowed.length === 1 ? "" : "s"} (${r.allowed.map((a) => a.file + ":" + a.line).join(", ")})`
+        : "no raw-message sink and no allowance in any of them");
+  });
 
   if (!BASE || !ANON) {
     record("FAIL", "configuration", "js/config.js has no url/anonKey and none was passed in");

@@ -367,7 +367,10 @@ function submitSignin() {
         signInFromDevice(id, password);
         return;
       }
-      toast(e && e.message ? e.message : "That didn’t go through — try again");
+      /* the server's own words when there are any; a session that died under
+         the form is already explained on the sign-in screen, so this says
+         nothing rather than saying it twice */
+      toast(dbText(e, "That didn’t go through — try again"));
       const input = $("#signinPassword");
       if (input) {
         input.classList.add("shake");
