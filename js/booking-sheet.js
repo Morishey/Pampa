@@ -511,8 +511,42 @@ function confirmBooking() {
   };
   /* Only a professional the database knows can take a server booking: the
      seeded stylists and any record made on this device alone have no uuid to
-     file the job against, so they keep the local road below. */
-  if (dbConfigured() && dbSignedIn() && st.providerAccountId) {
+     file the job against, so they keep the local road below.
+
+     A professional who *is* on the server gets the server road and no other.
+     The local road used to be the fallback for a signed-out client as well,
+     which quietly wrote the booking into this device's ledger while the app
+     went on looking online: a slot the professional would never see, and a
+     client told it was held. Finding no session here means the one this device
+     was holding has been refused — so the sheet ends where the app does, at
+     the sign-in screen, rather than routing around the database. */
+  if (dbConfigured() && st.providerAccountId && !dbSignedIn()) {
+    const who = st.name || "this professional";
+    if ((state.user || {}).serverId) {
+      /* This device was signed in to a real account and the session behind it
+         is gone — the same story the boot restore tells. */
+      if (typeof pampaSessionEnded === "function") pampaSessionEnded();
+      else toast("Your session ended — sign in again to book " + who);
+      return;
+    }
+    /* An account that only ever lived on this device, looking at a
+       professional who lives on the server. The booking cannot be placed
+       anywhere the professional would see it, so the honest answer is to
+       offer the account they need — and not a local slot pretending. */
+    pampaConfirm({
+      title: "Sign in to book " + who + "?",
+      body: who + " takes bookings through Pampa, so you need a Pampa account this device is signed in to — not just the one saved here.",
+      confirmLabel: "Sign in",
+      cancelLabel: "Not now",
+      danger: false,
+    }).then(function (yes) {
+      if (!yes) return;
+      tearDownSession();
+      setAuthMode("signin");
+    });
+    return;
+  }
+  if (dbConfigured() && st.providerAccountId) {
     const btn = $("#confirmBook");
     setBusy(btn, true);
     beginWork();

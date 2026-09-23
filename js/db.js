@@ -35,11 +35,22 @@ function dbSession() {
 function dbSessionSet(session) {
   try {
     if (!session || !session.token) localStorage.removeItem(PAMPA_SESSION_KEY);
-    else localStorage.setItem(PAMPA_SESSION_KEY, JSON.stringify(session));
+    else {
+      localStorage.setItem(PAMPA_SESSION_KEY, JSON.stringify(session));
+      /* A live token means the dead one has been replaced, so the app is
+         allowed to hear about the next refusal. */
+      dbDeadSession = false;
+    }
   } catch (e) {
     console.warn("Pampa: session not saved", e);
   }
 }
+
+/* Has this device already been told its session is dead? The refusal arrives
+   once per call, and several calls are usually in flight together — the boot
+   sync alone is three — so without this the app would sign the same person out
+   three times and stack three explanations. */
+let dbDeadSession = false;
 
 /* The token alone, for the calls below. */
 function dbToken() {
@@ -48,8 +59,10 @@ function dbToken() {
 }
 
 /* Signed in as far as this device knows. The database is the authority — a
-   revoked or expired token is only discovered on the next call, which is why
-   every caller has to handle the "your session has ended" error below. */
+   revoked or expired token is only discovered on the next call. When that
+   happens dbCall ends the session itself (see below), so a caller has nothing
+   to do about the dead session: it only has to decide what to say about the
+   action that failed. */
 function dbSignedIn() {
   return dbConfigured() && !!dbToken();
 }
@@ -124,7 +137,25 @@ async function dbCall(fn, args) {
     );
     err.code = (data && data.code) || String(res.status);
     err.status = res.status;
-    if (err.code === "28000") dbSessionSet(null);
+    if (err.code === "28000") {
+      /* There is a difference between "signed out" and "no longer signed in",
+         and it is the whole point of this branch. A call that *carried* a token
+         and was refused anyway means the session this device holds is dead:
+         revoked, expired at sixty days, or the account was deleted underneath
+         it. Left alone, that state is a dashboard that still looks signed in
+         while every call behind it is refused — so the app is told, once, and
+         it signs the person out properly. A call that carried no token was
+         never signed in, and is only ever told "not signed in".
+
+         pampa_logout is excluded because the caller is already leaving: asking
+         to end a session cannot be news that it ended. */
+      const carriedToken = !!body.p_token;
+      dbSessionSet(null);
+      if (carriedToken && fn !== "pampa_logout" && !dbDeadSession) {
+        dbDeadSession = true;
+        if (typeof pampaSessionEnded === "function") pampaSessionEnded();
+      }
+    }
     throw err;
   }
 

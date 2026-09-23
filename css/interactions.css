@@ -297,6 +297,27 @@ button:disabled {
   color: #4a4a44;
 }
 
+/* The one explanation the sign-in screen carries itself: a session that ended
+   underneath the app — revoked elsewhere, past its sixty days, or its account
+   deleted. A line rather than a toast, because it has to still be there while
+   the person types, and because it is the app's only voice on the subject:
+   dbCall reports a dead session once, and every layer that wanted to announce
+   it would otherwise announce it again. */
+.sessionNote {
+  margin: 16px 0 0;
+  padding: 10px 13px;
+  border: 1px solid var(--gold-line);
+  border-radius: var(--r-ctrl);
+  background: var(--gold-soft);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+[data-theme="light"] .sessionNote {
+  color: #4a4a44;
+}
+
 /* ==================== Nav avatar ==================== */
 /* The top-nav avatar is a button now: the picture sits in it when the account
    has one, the initial stands in until it does. */

@@ -198,6 +198,8 @@ function authPagesGo(target) {
    there is no separate "via" for the screens to disagree about. */
 function setAuthMode(mode) {
   authMode = mode === "signup" ? "signup" : "signin";
+  /* the explanation belongs to the sign-in door it was written for */
+  if (authMode !== "signin") hideSessionNote();
   applyAuthCopy();
   const pw = $("#signinPassword");
   if (pw) pw.value = "";
@@ -332,6 +334,7 @@ function accountByIdentifier(id) {
 
 /* The password door: one screen, two fields, and no code anywhere in it. */
 function submitSignin() {
+  hideSessionNote();
   const id = $("#signinId").value.trim();
   const password = $("#signinPassword").value;
   if (!id) { toast("Enter your number or username"); return; }
@@ -730,64 +733,113 @@ function bindPushToAccount() {
   });
 }
 
+/* Every door this device opened for the account that is leaving, closed in one
+   place — because there are two ways a session ends and only one of them used
+   to do any of this. The person tapping Sign out is the obvious one. The other
+   is the server ending it: a token revoked elsewhere, the sixty days running
+   out, or the account deleted. That one used to leave the dashboard standing
+   with nothing behind it, which is the whole reason this is a function. */
+function tearDownSession() {
+  state.user = null;
+  state.view = "home";
+  state.catFilter = "all";
+  state.query = "";
+  /* one account's expanded feed must not greet the next */
+  actExpanded = false;
+  actPullReset();
+  /* nor should one account's news keep chiming over the next one's session,
+     or its session clock keep redrawing the app behind a signed-out screen */
+  stopNewsWatch();
+  stopSessionWatch();
+  clearReplyTarget();
+  /* nor their open surfaces: the clip rail and any sheet on top of it would
+     otherwise still be showing the previous account's clips and comments */
+  if (typeof closeClipFeed === "function") closeClipFeed();
+  /* nor the full-screen account surfaces: the escrow desk, the resolution desk
+     and a provider's page all outlive a session unless they are closed here */
+  if (typeof closeAccountSurfaces === "function") closeAccountSurfaces();
+  const commentSheet = $("#commentSheet");
+  if (commentSheet) { commentSheet.classList.remove("show"); commentSheet.style.display = "none"; }
+  const overlay = $("#sheetOverlay");
+  if (overlay) overlay.style.display = "none";
+  /* nor their face: the nav avatar is cleared with the session that filled it */
+  const nav = $("#homeAvatar");
+  if (nav) {
+    nav.innerHTML = "P";
+    nav.setAttribute("aria-label", "Your profile");
+  }
+  /* the push registration was made for this account — the server must not
+     chime somebody else's phone with this one's news */
+  if (window.PampaPush) window.PampaPush.unsubscribeAll();
+  /* The device's half of signing out is done here; this is the server's — the
+     token is revoked so it cannot be replayed, and the cloud caches this
+     session filled are emptied with it. */
+  if (typeof dbCloudSignOut === "function") dbCloudSignOut();
+  const searchInput = $("#search");
+  if (searchInput) searchInput.value = "";
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  $("#app").style.display = "none";
+  $("#userName").value = "";
+  $("#telephone").value = "";
+  $("#signinId").value = "";
+  $("#signinPassword").value = "";
+  pendingAccount = null;
+  /* the accounts book survives logout on purpose — it is what lets the next
+     sign-in skip onboarding */
+  showPage("welcomePage");
+}
+
 function logout() {
   /* Signing out closes every door on this device — worth one confirmation.
-     The rest of the teardown runs on the promise so the screen doesn't flash
-     while the dialog is up. */
+     The teardown runs on the promise so the screen doesn't flash while the
+     dialog is up. */
   pampaConfirm({
     title: "Sign out?",
     body: "You'll need to sign in again to reach your bookings and this device's session ends here.",
     confirmLabel: "Sign out",
   }).then(function (yes) {
     if (!yes) return;
-      state.user = null;
-    state.view = "home";
-    state.catFilter = "all";
-    state.query = "";
-    /* one account's expanded feed must not greet the next */
-    actExpanded = false;
-    actPullReset();
-    /* nor should one account's news keep chiming over the next one's session,
-       or its session clock keep redrawing the app behind a signed-out screen */
-    stopNewsWatch();
-    stopSessionWatch();
-    clearReplyTarget();
-    /* nor their open surfaces: the clip rail and any sheet on top of it would
-       otherwise still be showing the previous account's clips and comments */
-    if (typeof closeClipFeed === "function") closeClipFeed();
-    /* nor the full-screen account surfaces: the escrow desk, the resolution desk
-       and a provider's page all outlive a session unless they are closed here */
-    if (typeof closeAccountSurfaces === "function") closeAccountSurfaces();
-    const commentSheet = $("#commentSheet");
-    if (commentSheet) { commentSheet.classList.remove("show"); commentSheet.style.display = "none"; }
-    const overlay = $("#sheetOverlay");
-    if (overlay) overlay.style.display = "none";
-    /* nor their face: the nav avatar is cleared with the session that filled it */
-    const nav = $("#homeAvatar");
-    if (nav) {
-      nav.innerHTML = "P";
-      nav.setAttribute("aria-label", "Your profile");
-    }
-    /* the push registration was made for this account — the server must not
-       chime somebody else's phone with this one's news */
-    if (window.PampaPush) window.PampaPush.unsubscribeAll();
-    /* The device's half of signing out is done below; this is the server's — the
-       token is revoked so it cannot be replayed, and the cloud caches this
-       session filled are emptied with it. */
-    if (typeof dbCloudSignOut === "function") dbCloudSignOut();
-    const searchInput = $("#search");
-    if (searchInput) searchInput.value = "";
-    try { localStorage.removeItem(KEY); } catch (e) {}
-    $("#app").style.display = "none";
-    $("#userName").value = "";
-    $("#telephone").value = "";
-    $("#signinId").value = "";
-    $("#signinPassword").value = "";
-    pendingAccount = null;
-    /* the accounts book survives logout on purpose — it is what lets the next
-       sign-in skip onboarding */
-    showPage("welcomePage");
+    tearDownSession();
     toast("You have been logged out");
   });
+}
+
+/* A session the server has already ended. db.js reports it the moment any call
+   comes back 28000 carrying a token — a revoked session, an expired one, or an
+   account deleted out from under the app. There is nothing to confirm and
+   nobody to warn: the person is looking at a dashboard whose every button is
+   already refused, so the honest thing is to take them back to the sign-in
+   screen and say why. Their handle is left in the field, because they are the
+   one person we know is signing in next. */
+function pampaSessionEnded() {
+  const was = state.user || {};
+  const lastId = was.username || was.phone || "";
+  tearDownSession();
+  /* The splash is still queued behind a boot-time restore: stand its timers
+     down the way a restored session does, or the intro slides back over the
+     sign-in screen a second after it opens. */
+  dbSessionLanded = true;
+  const intro = $(".intro");
+  if (intro) intro.style.display = "none";
+  setAuthMode("signin");
+  /* Why the dashboard went away is said on the screen rather than in a toast:
+     the person has a handle to type and a password to remember, and a message
+     that has already faded by then explains nothing. */
+  showSessionNote("Your session ended — sign in again.");
+  const id = $("#signinId");
+  if (id && !id.value && lastId) id.value = lastId;
+}
+
+/* ---------- The note the sign-in screen carries ---------- */
+function showSessionNote(text) {
+  const el = $("#sessionNote");
+  if (!el) return;
+  el.textContent = text;
+  el.style.removeProperty("display");
+}
+
+function hideSessionNote() {
+  const el = $("#sessionNote");
+  if (el) el.style.display = "none";
 }
 

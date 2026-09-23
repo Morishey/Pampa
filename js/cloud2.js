@@ -122,12 +122,22 @@ function dbUnwrapSession(res) {
 }
 
 async function dbCloudRestore() {
-  if (!dbSignedIn()) return;
+  if (!dbConfigured()) return;
+  if (!dbSignedIn()) {
+    /* No session — but this device may still be holding an identity the server
+       issued (serverId), which is what a refused token leaves behind once
+       dbCall has thrown it away. The cached dashboard is not a session, and
+       showing it is exactly how the app came to look signed in while the
+       server had no idea who was calling. A device-local account has no
+       serverId and keeps the local product it has always been. */
+    if (state.user && state.user.serverId) pampaSessionEnded();
+    return;
+  }
   let res = null;
   try {
     res = dbUnwrapSession(await db.me());
   } catch (e) {
-    return; /* the session was already dropped if it was dead */
+    return; /* dbCall has already ended the session and said why */
   }
   if (!res || !res.account) return;
   const hadUser = !!state.user;
