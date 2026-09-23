@@ -585,6 +585,11 @@ function renderWork() {
     if (active.length) bits.push(active.length + " in progress");
     count.textContent = bits.join(" · ");
   }
+  /* The queue leads the page, and it says so out loud only when somebody is
+     actually waiting: the gold hairline and the live dot are the same
+     language the Home card speaks, so the two surfaces read as one app. */
+  const desk = $("#deskQueue");
+  if (desk) desk.classList.toggle("live", waiting.length > 0);
 
   let list = "";
   if (!needsMe.length) {

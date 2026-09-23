@@ -25,7 +25,7 @@
     <!-- The push half of notifications: subscribes the account with the push
          server (tools/push-server.js) so news reaches the phone when Pampa is
          closed. Loaded before the app, which calls into it. -->
-    <script src="pampa-push.js?v=256"></script>
+    <script src="pampa-push.js?v=257"></script>
     <script>
         (function () {
             try {
@@ -40,53 +40,53 @@
          after them is written against those names, and interactions.css comes
          last because it is what a tap feels like. Splitting the sheet changed
          no rule and no order — a plain list of tags, no build step. -->
-    <link rel="stylesheet" href="css/tokens.css?v=256">
-    <link rel="stylesheet" href="css/onboarding.css?v=256">
-    <link rel="stylesheet" href="css/shell.css?v=256">
-    <link rel="stylesheet" href="css/booking.css?v=256">
-    <link rel="stylesheet" href="css/pro.css?v=256">
-    <link rel="stylesheet" href="css/disputes.css?v=256">
-    <link rel="stylesheet" href="css/system.css?v=256">
-    <link rel="stylesheet" href="css/directory.css?v=256">
-    <link rel="stylesheet" href="css/polish.css?v=256">
-    <link rel="stylesheet" href="css/components.css?v=256">
-    <link rel="stylesheet" href="css/interactions.css?v=256">
+    <link rel="stylesheet" href="css/tokens.css?v=257">
+    <link rel="stylesheet" href="css/onboarding.css?v=257">
+    <link rel="stylesheet" href="css/shell.css?v=257">
+    <link rel="stylesheet" href="css/booking.css?v=257">
+    <link rel="stylesheet" href="css/pro.css?v=257">
+    <link rel="stylesheet" href="css/disputes.css?v=257">
+    <link rel="stylesheet" href="css/system.css?v=257">
+    <link rel="stylesheet" href="css/directory.css?v=257">
+    <link rel="stylesheet" href="css/polish.css?v=257">
+    <link rel="stylesheet" href="css/components.css?v=257">
+    <link rel="stylesheet" href="css/interactions.css?v=257">
     <!-- pricing loads last: it re-dresses the discovery card into a row, and
          carries the price ranges, the picker and the negotiation surfaces -->
-    <link rel="stylesheet" href="css/pricing.css?v=256">
-    <link rel="stylesheet" href="css/stories.css?v=256">
+    <link rel="stylesheet" href="css/pricing.css?v=257">
+    <link rel="stylesheet" href="css/stories.css?v=257">
     <!-- The app itself, deferred and in order. Every file shares one global
          scope, exactly as the single script did, so a later module may call
          anything an earlier one declared. js/wiring.js must stay last: it
          installs the listeners and boots. -->
-    <script src="icons.js?v=256" defer></script>
-    <script src="escrow.js?v=256" defer></script>
+    <script src="icons.js?v=257" defer></script>
+    <script src="escrow.js?v=257" defer></script>
     <!-- Where the database is, and the client that talks to it. config first
          (dbConfigured() reads it), db second (every cloud call rides on it);
          both before core, whose boot consults them. -->
-    <script src="js/config.js?v=256" defer></script>
-    <script src="js/db.js?v=256" defer></script>
-    <script src="js/cloud.js?v=256" defer></script>
-    <script src="js/cloud2.js?v=256" defer></script>
-    <script src="js/confirm.js?v=256" defer></script>
-    <script src="js/core.js?v=256" defer></script>
-    <script src="js/directory.js?v=256" defer></script>
-    <script src="js/activity.js?v=256" defer></script>
-    <script src="js/pwa.js?v=256" defer></script>
-    <script src="js/ui.js?v=256" defer></script>
-    <script src="js/social.js?v=256" defer></script>
-    <script src="js/home.js?v=256" defer></script>
-    <script src="js/media.js?v=256" defer></script>
-    <script src="js/provider.js?v=256" defer></script>
-    <script src="js/sheets.js?v=256" defer></script>
-    <script src="js/status.js?v=256" defer></script>
-    <script src="js/clips.js?v=256" defer></script>
-    <script src="js/bookings.js?v=256" defer></script>
-    <script src="js/views.js?v=256" defer></script>
-    <script src="js/auth.js?v=256" defer></script>
-    <script src="js/location.js?v=256" defer></script>
-    <script src="js/booking-sheet.js?v=256" defer></script>
-    <script src="js/wiring.js?v=256" defer></script>
+    <script src="js/config.js?v=257" defer></script>
+    <script src="js/db.js?v=257" defer></script>
+    <script src="js/cloud.js?v=257" defer></script>
+    <script src="js/cloud2.js?v=257" defer></script>
+    <script src="js/confirm.js?v=257" defer></script>
+    <script src="js/core.js?v=257" defer></script>
+    <script src="js/directory.js?v=257" defer></script>
+    <script src="js/activity.js?v=257" defer></script>
+    <script src="js/pwa.js?v=257" defer></script>
+    <script src="js/ui.js?v=257" defer></script>
+    <script src="js/social.js?v=257" defer></script>
+    <script src="js/home.js?v=257" defer></script>
+    <script src="js/media.js?v=257" defer></script>
+    <script src="js/provider.js?v=257" defer></script>
+    <script src="js/sheets.js?v=257" defer></script>
+    <script src="js/status.js?v=257" defer></script>
+    <script src="js/clips.js?v=257" defer></script>
+    <script src="js/bookings.js?v=257" defer></script>
+    <script src="js/views.js?v=257" defer></script>
+    <script src="js/auth.js?v=257" defer></script>
+    <script src="js/location.js?v=257" defer></script>
+    <script src="js/booking-sheet.js?v=257" defer></script>
+    <script src="js/wiring.js?v=257" defer></script>
 </head>
 
 <body>
@@ -510,6 +510,19 @@
                 </div>
             </header>
 
+            <!-- What needs this professional comes first: the queue is the
+                 page's first job. It is counted on Home — one headline in
+                 one place — and acted on here; the note beside the heading
+                 says which half of the list a row is in (to accept, in
+                 progress). Gold hairline while somebody is actually waiting. -->
+            <div class="deskQueue" id="deskQueue">
+                <div class="sectionHead">
+                    <h2>On your desk</h2>
+                    <span class="headNote" id="workCount"></span>
+                </div>
+                <div id="workRequests"></div>
+            </div>
+
             <!-- The business card comes before the paperwork: who they are,
                  what they do, where they work — then the gallery, then money. -->
             <div class="card workHero">
@@ -545,17 +558,6 @@
                 <button class="linkBtn" id="workManageFolio" data-openfolio="1">Manage</button>
             </div>
             <div id="workGallery"></div>
-
-            <!-- The queue itself, not a second attention card: what needs this
-                 professional is counted on Home — one headline in one place —
-                 and this page is where it is acted on. The note beside the
-                 heading says what the list holds (to accept, in progress)
-                 rather than repeating the Home card's count. -->
-            <div class="sectionHead">
-                <h2>On your desk</h2>
-                <span class="headNote" id="workCount"></span>
-            </div>
-            <div id="workRequests"></div>
 
             <button class="card proEntry" id="workOpenPro">
                 <span class="proIco" data-icon="briefcase"></span>

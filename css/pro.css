@@ -397,3 +397,89 @@
   color: var(--gold);
 }
 
+/* ---------- On your desk: the queue leads the page ----------------------
+   The professional's dashboard has one job before it has a profile: see who
+   is waiting. So the queue is the first card on the page, and it speaks the
+   same language as the Home attention card when somebody is actually waiting
+   — a gold hairline, a wash behind the head, a slow pulse on the live dot —
+   so the two surfaces read as one app rather than two dashboards. */
+.deskQueue {
+  position: relative;
+  margin: 2px 0 14px;
+  padding: 12px 14px 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.deskQueue .sectionHead {
+  margin: 0 0 8px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 10px;
+  /* on a narrow phone the note drops to its own line as a whole, instead of
+     squeezing into two lines beside the heading */
+  flex-wrap: wrap;
+}
+
+/* it leads the page now, so it reads a shade larger than the section heads
+   further down the same dashboard */
+.deskQueue .sectionHead h2 {
+  font-size: 18px;
+}
+
+/* somebody is waiting: the page's first fact earns the gold */
+.deskQueue.live {
+  border-color: var(--gold-line);
+}
+
+.deskQueue.live::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 72px;
+  background: linear-gradient(180deg, var(--gold-soft), transparent);
+  pointer-events: none;
+}
+
+.deskQueue.live .sectionHead h2::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  vertical-align: 3px;
+  animation: deskPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes deskPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* the note becomes a pill only while it is carrying something */
+.deskQueue.live .headNote {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-line);
+  color: var(--ink);
+}
+
+/* the light theme's card border is a whisper; the gold has to survive it */
+[data-theme="light"] .deskQueue {
+  border-color: rgba(18, 22, 30, 0.05);
+  box-shadow: 0 1px 2px rgba(16, 22, 32, 0.04), 0 10px 22px -16px rgba(16, 22, 32, 0.18);
+}
+
+[data-theme="light"] .deskQueue.live {
+  border-color: var(--gold-line-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deskQueue.live .sectionHead h2::after { animation: none; }
+}
