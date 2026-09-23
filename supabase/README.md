@@ -147,14 +147,33 @@ key, no direct table writes, no psql.
 node tools/verify-db.mjs
 ```
 
-It opens with two legs that need no database at all, because a static regression
-should not depend on a project answering today. The first proves the toast guard
-still catches a raw message (`node tools/toast-guard.mjs --self-test` proves the
-same thing on its own); the second reads every shipped file and fails if any of
-them has grown a fresh `.message` read inside a toast, a dialog body or the
-`msg` field a transition returns — the shape that once showed Postgres plumbing
-to a client. `node tools/toast-guard.mjs` runs that scan by itself, and names
-the line to fix.
+It opens with static legs that need no database at all, because a static
+regression should not depend on a project answering today. The first proves the
+toast guard still catches a raw message (`node tools/toast-guard.mjs
+--self-test` proves the same thing on its own); the second reads every shipped
+file and fails if any of them has grown a fresh `.message` read inside a toast,
+a dialog body or the `msg` field a transition returns — the shape that once
+showed Postgres plumbing to a client. `node tools/toast-guard.mjs` runs that
+scan by itself, and names the line to fix.
+
+The third is the rendered cascade audit (`tools/render-audit.mjs`). The nav-badge
+bug — a broad `.tab > span` rule quietly out-ranking the badge's own
+`.tabDot` rule, so the booking count slid half over the neighbouring tab — was
+invisible to every read of the source, because "does this selector ever apply
+here" is a question about rendered containment, which only a browser answers.
+So the audit boots a real headless Chromium, stages every surface device-locally
+(both roles' views, the booking/escrow/dispute/rate sheets, notifications, the
+provider page, the clip feed, the story viewer, the signed-out screens), and on
+each asks the cascade the browser actually resolved: for every floating
+component on screen, does a rule that never names it take a geometry declaration
+away from the rule that does? It also plants the original trap and insists on
+seeing it reported, so the check cannot go quietly blind; a run where the plant
+is not caught fails even though every surface looks clean. It needs a browser
+but no database or network — the cloud is refused at the fetch level, the live
+project never hears of it — and where no Chrome or Edge exists the leg is
+reported SKIP with the reason rather than pretended to have run.
+`node tools/render-audit.mjs` runs it standalone, with `--list`, `--no-plant`
+and `--keep-open` for poking.
 
 It registers a client and a barber ~180 m apart, sets the barber's price bands,
 checks the directory returns the precise distance and the ceiling, then runs the

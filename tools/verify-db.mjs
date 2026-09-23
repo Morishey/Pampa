@@ -35,6 +35,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { selfTest, scanToasts } from "./toast-guard.mjs";
+import * as renderAudit from "./render-audit.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -249,6 +250,34 @@ async function main() {
         ? `${r.allowed.length} allowance${r.allowed.length === 1 ? "" : "s"} (${r.allowed.map((a) => a.file + ":" + a.line).join(", ")})`
         : "no raw-message sink and no allowance in any of them");
   });
+
+  /* The rendered cascade audit: the check the nav-badge bug earned. It boots
+     a real headless browser, walks every surface the app renders, and fails
+     if any floating component's own rule loses a geometry declaration to a
+     rule that never names it — judged from the DOM, so containment, media
+     conditions and cascade order are the browser's own answers. It needs a
+     browser but no database, so where none exists it is reported SKIP with
+     the reason rather than pretended to have run. */
+  const browser = renderAudit.findBrowser();
+  if (!browser) {
+    await skip("every floating component keeps its own rule when the app renders", "no Chrome or Edge found — install one or set PAMPA_BROWSER");
+  } else {
+    await check("every floating component keeps its own rule when the app renders", async () => {
+      const r = await renderAudit.runRenderAudit({});
+      if (r.skipped) throw new Error(r.why);
+      const err = r.surfaces.filter((s) => !s.ok);
+      if (err.length) {
+        throw new Error("surfaces that could not be audited: " +
+          err.map((s) => `${s.name} (${s.note})`).join(" · "));
+      }
+      if (r.findings.length) {
+        throw new Error(r.findings.map((f) => `[${f.surface}] ${f.element} { ${f.prop} } beaten by ${f.beatenBy}`).join(" · "));
+      }
+      const caught = r.planted >= 0 ? " · planted trap caught" : "";
+      const widths = (r.surfaces[0] && r.surfaces[0].name.indexOf(" @ ") === -1) ? " + 360/412/800" : "";
+      return `${r.surfaces.length} surface passes rendered in ${r.browser.split(/[\\/]/).pop()}${widths}${caught}`;
+    });
+  }
 
   if (!BASE || !ANON) {
     record("FAIL", "configuration", "js/config.js has no url/anonKey and none was passed in");
