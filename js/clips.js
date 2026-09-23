@@ -250,13 +250,17 @@ function clipPlayIndex(idx) {
     const video = slide.querySelector(".clipVideo");
     if (!video) return;
     if (i === idx) {
+      /* the ring watches from before the first byte is asked for, so a clip
+         that has to buffer says so — and one already in hand never does */
+      watchClipLoad(video, slide);
+      bindClipVideoFallback(video, slide);
       if (!video.getAttribute("src")) video.setAttribute("src", video.dataset.clipsrc || "");
       video.muted = clipFeedState.muted;
-      bindClipVideoFallback(video, slide);
       const attempt = video.play();
       if (attempt && attempt.catch) {
         attempt.catch(function () {
           slide.classList.add("paused");
+          hideClipRing(video);
         });
       }
     } else if (!video.paused) {
@@ -265,12 +269,61 @@ function clipPlayIndex(idx) {
   });
 }
 
+/* The ring over a clip is a signal, not decoration. A clip that is playing
+   should wear nothing, so the ring stays dark by default and is lit only while
+   the video itself reports it is waiting on data — and not even then for a
+   hiccup: a third of a second of grace means a stall too short to notice never
+   flashes a ring at all. A clip already on the device, or already served from
+   the cache, therefore goes straight to playing with nothing over it. */
+const CLIP_RING_GRACE = 320;      /* a hitch shorter than this is not news */
+const CLIP_RING_MIN = 420;        /* once lit, long enough to be read */
+
+function watchClipLoad(video, slide) {
+  if (!video || video.__ringBound) return;
+  video.__ringBound = true;
+  const ring = slide && slide.querySelector(".clipSpinner");
+  if (!ring) return;
+  video.__ring = ring;
+  const show = function () {
+    video.__ringTimer = 0;
+    video.__ringShownAt = Date.now();
+    ring.classList.add("on");
+  };
+  const arm = function () {
+    if (video.__ringTimer) return;
+    video.__ringTimer = setTimeout(show, CLIP_RING_GRACE);
+  };
+  /* loadstart is the first byte being asked for; waiting and stalled are the
+     video saying it has run dry. Everything below means it is back. */
+  ["loadstart", "waiting", "stalled"].forEach(function (name) {
+    video.addEventListener(name, arm);
+  });
+  ["playing", "canplay", "loadeddata", "seeked", "pause", "ended", "error", "emptied"].forEach(function (name) {
+    video.addEventListener(name, function () { hideClipRing(video); });
+  });
+}
+
+function hideClipRing(video) {
+  if (!video) return;
+  if (video.__ringTimer) { clearTimeout(video.__ringTimer); video.__ringTimer = 0; }
+  const ring = video.__ring;
+  if (!ring || !ring.classList.contains("on")) return;
+  const lit = Date.now() - (video.__ringShownAt || 0);
+  if (lit >= CLIP_RING_MIN) { ring.classList.remove("on"); return; }
+  /* A ring that appears and vanishes inside a blink reads as a glitch rather
+     than as loading, so once it is lit it stays lit for the beat it takes to
+     be read. */
+  clearTimeout(video.__ringHold);
+  video.__ringHold = setTimeout(function () { ring.classList.remove("on"); }, CLIP_RING_MIN - lit);
+}
+
 /* A clip that cannot play — a dead link, or a device with no network — says so
    in its own slide instead of sitting there black. */
 function bindClipVideoFallback(video, slide) {
   if (!video || video.__fallbackBound) return;
   video.__fallbackBound = true;
   video.addEventListener("error", function () {
+    hideClipRing(video);
     const stage = slide.querySelector(".clipStage");
     if (!stage) return;
     stage.innerHTML = '<div class="clipPoster clipPosterArt">' +

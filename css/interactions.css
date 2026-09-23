@@ -474,6 +474,11 @@ body.clipsOpen {
   background: rgba(4, 5, 8, 0.28);
 }
 
+/* Dark by default. This ring is a signal, and a signal that is always lit
+   says nothing — it used to sit spinning over clips that were playing fine.
+   It is turned on only while its own video reports it is waiting on data
+   (watchClipLoad in clips.js) and off the moment the clip is playing, paused,
+   or gone. Nothing here animates while it is off. */
 .clipSpinner {
   position: absolute;
   top: 50%;
@@ -484,8 +489,15 @@ body.clipsOpen {
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.28);
   border-top-color: var(--gold);
-  animation: clipSpin 0.9s linear infinite;
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
+}
+
+.clipSpinner.on {
+  opacity: 1;
+  visibility: visible;
+  animation: clipSpin 0.9s linear infinite;
 }
 
 @keyframes clipSpin {
@@ -781,7 +793,7 @@ body.clipsOpen {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .clipSpinner { animation: none; }
+  .clipSpinner.on { animation: none; }
   .heartBurst { animation: none; opacity: 0; }
   .clipScroller { scroll-behavior: auto; }
 }
