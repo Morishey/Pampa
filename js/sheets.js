@@ -41,6 +41,11 @@ function saveContact() {
   save();
   rememberAccount();
   registerProviderSelf();
+  /* And to the account itself: registerProviderSelf only speaks for a
+     professional's public record, so without this a client's name and handles
+     never left the phone — and the name on a booking card is read from the
+     account. */
+  if (typeof dbPushAccountDetails === "function") dbPushAccountDetails();
   hideSheetEl("#contactSheet");
   renderProfile();
   renderWork();
@@ -110,6 +115,9 @@ function pickDpFile(file) {
     rememberAccount();
     save();
     refreshProviderSurfaces();
+    /* A pro's face rides along with their public record above; a client has no
+       such record, so the account is the only place their picture can live. */
+    if (typeof dbPushAccountDetails === "function") dbPushAccountDetails();
     toast("Profile photo saved");
   }).catch(function () {
     toast("Could not read that image");
@@ -132,6 +140,8 @@ function clearDp() {
     rememberAccount();
     save();
     refreshProviderSurfaces();
+    /* the removal reaches the server too, or other devices keep the old face */
+    if (typeof dbPushAccountDetails === "function") dbPushAccountDetails();
     toast("Photo removed — you show as your initial again");
   });
 }

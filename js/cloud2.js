@@ -285,6 +285,31 @@ function dbPushProfile(patch) {
   });
 }
 
+/* The account's own details: the name a booking card is drawn with, the face
+   beside it, and the handles somebody may want to reach you on. A professional
+   keeps a public record as well — registerProviderSelf pushes that on every
+   save — but the *account* is where the name a booking is filed under comes
+   from, and it is the only place a client keeps theirs at all. Before this
+   existed, a professional's edits travelled and a client's did not: rename
+   yourself and the card the professional read still said what you were called
+   at sign-up, because pampa_booking_create stores the account's display_name.
+
+   Fire-and-forget, like the other pushes: a save must not wait on the network,
+   and the next save carries anything that failed. */
+function dbPushAccountDetails() {
+  if (!dbSignedIn()) return;
+  const u = state.user || {};
+  if (!u.name) return;
+  const s = u.social || {};
+  db.updateProfile({
+    name: u.name,
+    dp: u.dp || "",
+    socials: { ig: s.ig || null, tt: s.tt || null, x: s.x || null },
+  }).catch(function (e) {
+    console.warn("Pampa: account push failed", e);
+  });
+}
+
 function dbPushAvailability(on) {
   if (!dbSignedIn()) return;
   db.setAvailability(!!on).catch(function (e) {
