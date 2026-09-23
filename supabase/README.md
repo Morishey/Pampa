@@ -198,17 +198,23 @@ Two things it needs to run and one it can skip:
   it verifies the config the app will ship with. `PAMPA_SUPABASE_URL` and
   `PAMPA_SUPABASE_ANON_KEY` override it.
 - **Settling a dispute** needs an admin, and the first admin is named by hand
-  (step 5 above). Hand those in and the leg runs:
+  (step 5 above) — the design, since any other way in would be a back door. The
+  run brings its own key to that door, three ways in order:
 
-  ```bash
-  PAMPA_ADMIN_HANDLE=<handle> PAMPA_ADMIN_PASSWORD=<password> node tools/verify-db.mjs
-  ```
+  1. `PAMPA_ADMIN_HANDLE` / `PAMPA_ADMIN_PASSWORD` — your real admin signs in
+     through the public RPC and acts. Nothing is minted.
+  2. A Management token — `PAMPA_MANAGEMENT_TOKEN`, or the Supabase CLI's own
+     `supabase/.temp/dev-token` — is the SQL editor's power, used exactly as
+     the bootstrap block uses it: the run registers a throwaway admin through
+     the public register RPC, raises its flag with the same transaction-local
+     mark, and tracks the account so the cleanup deletes it. No standing admin
+     is left behind, and the anon key never gains a power it did not have.
+  3. Neither — the leg is reported SKIPPED, never passed silently.
 
-  With them, the run proves the whole desk path: an admin promoting a mediator
-  over the RPC, that mediator splitting a frozen escrow, both halves landing — a
-  refund on the client's card, a payout row in the professional's wallet — and
-  the decision journalled on the booking. Without them it reports that leg as
-  SKIPPED. It never passes silently.
+  With a way in, the run proves the whole desk path: an admin promoting a
+  mediator over the RPC, that mediator splitting a frozen escrow, both halves
+  landing — a refund on the client's card, a payout row in the professional's
+  wallet — and the decision journalled on the booking.
 - **It cleans up after itself.** Every account is named `Verifier …` and the run
   writes `supabase/.temp/verify-cleanup.sql` naming their exact ids. Note why
   that matters: `pampa_booking_events` refuses every `update` and `delete` by

@@ -16,19 +16,18 @@
  *   node tools/verify-db.mjs                          # reads js/config.js
  *   PAMPA_SUPABASE_URL=... PAMPA_SUPABASE_ANON_KEY=... node tools/verify-db.mjs
  *
- * One leg cannot be driven from here: settling a dispute. The first admin has
- * to be named once by hand in the SQL editor — that is the design, not a gap,
- * since the alternative is a back door anyone could walk through. So the script
- * proves the guard rails around it instead: nobody else can grant the desk,
- * the roster is not readable, and the flag cannot be smuggled in through a
- * profile patch. The settlement leg is reported SKIPPED with the two commands
- * that finish it.
- *
- * Two legs need no database at all — they read the app's own files. The toast
- * guard fails if a shipped file hands a raw Postgres refusal to a person, and
- * its self-test fails if the guard stopped catching what it was written for.
- * Both run before the config check, so a static regression is reported whether
- * or not a project answers today.
+ * One leg used to be impossible to drive from here: settling a dispute needed
+ * a first admin named by hand in the SQL editor — that was the design, since
+ * any other way in would be a back door. It still is the design; what changed
+ * is that the run can now bring its own key to that editor's door. When a
+ * Management token exists (the operator's, or the Supabase CLI's), the run
+ * mints a throwaway admin through the public register RPC, raises its flag
+ * with the same transaction-local mark the bootstrap block uses, exercises the
+ * whole desk path, and deletes the account in the cleanup — no standing admin
+ * is created and the anon key never gains a power it did not have. Explicit
+ * PAMPA_ADMIN_HANDLE/PASSWORD credentials still win, for operators who prefer
+ * their real admin to act; with neither, the leg is skipped, named, never
+ * passed silently.
  * ========================================================= */
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -179,6 +178,38 @@ async function table(name, query, key) {
   return { status: res.status, ok: res.ok, body: parseBody(await res.text()) };
 }
 
+/* The Management API is the SQL editor's door: it carries the same power the
+   bootstrap block in the resolution-desk migration asks for, and no more of
+   it is used than that block uses — one transaction raising one flag. The
+   token is the operator's (PAMPA_MANAGEMENT_TOKEN) or the Supabase CLI's own
+   dev token, never the anon key, and it minted no row by itself. */
+function readMgmtToken() {
+  if (process.env.PAMPA_MANAGEMENT_TOKEN) return process.env.PAMPA_MANAGEMENT_TOKEN;
+  try {
+    return readFileSync(join(root, "supabase", ".temp", "dev-token"), "utf8").trim() || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function projectRefOf(url) {
+  const m = /^https:\/\/([a-z0-9-]+)\.supabase\.co/i.exec(url || "");
+  return m ? m[1] : null;
+}
+
+async function mgmtQuery(sql, token, ref) {
+  const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ query: sql }),
+  });
+  if (!res.ok) {
+    const body = parseBody(await res.text());
+    throw new Error(`Management API refused: HTTP ${res.status} ${(body && body.message) || ""}`.trim());
+  }
+  return res.json();
+}
+
 /* ---------- Small maths, so assertions are relationships not constants ---------- */
 
 function haversineKm(aLat, aLng, bLat, bLng) {
@@ -207,6 +238,7 @@ const clientHandle = `c${stamp}`;   /* >= 7 chars, letters and digits only */
 const proHandle = `p${stamp}`;
 const strangerHandle = `s${stamp}`;
 const deskHandle = `d${stamp}`;
+const deskAdminHandle = `a${stamp}`;
 const PASSWORD = "haircut2026";
 
 const CLIENT = { lat: 6.5, lng: 3.35 };        /* Surulere centre */
@@ -684,33 +716,76 @@ async function main() {
     return "desk/admin/role all ignored by the patch whitelist";
   });
 
-  /* The desk. The first admin has to be named once in the SQL editor — that is
-     the design, not a gap, since any other way in would be a back door. So this
-     leg runs only when an admin's credentials are handed in:
+  /* The desk. The first admin is named by hand in the SQL editor — the design,
+     since any other way in would be a back door. This run, though, can bring
+     its own key to that door. Three ways in, in order:
 
-       PAMPA_ADMIN_HANDLE=… PAMPA_ADMIN_PASSWORD=… node tools/verify-db.mjs
-
-     Handed in, it exercises the whole path: an admin promoting a mediator
-     through the RPC, then that mediator splitting a frozen escrow and both
-     sides being paid. Not handed in, it says so — it never passes silently. */
+       1. PAMPA_ADMIN_HANDLE / PAMPA_ADMIN_PASSWORD — the operator's real admin
+          signs in through the public RPC and acts. Nothing is minted.
+       2. A Management token (PAMPA_MANAGEMENT_TOKEN, or the Supabase CLI's
+          dev token) — the SQL editor's power, used exactly as the bootstrap
+          block uses it: the run registers a throwaway admin through the public
+          register RPC, raises its flag with the same transaction-local mark,
+          and tracks the account so the cleanup deletes it. No standing admin
+          is left, and the anon key never gains a power it did not have.
+       3. Neither — the leg is skipped, named, never passed silently. */
   const adminHandle = process.env.PAMPA_ADMIN_HANDLE;
   const adminPassword = process.env.PAMPA_ADMIN_PASSWORD;
+  let deskActor = null;              /* the token that grants and settles, and how it got here */
 
-  if (!adminHandle || !adminPassword) {
-    await skip(
-      "an admin promotes a mediator, who splits the frozen escrow",
-      "set PAMPA_ADMIN_HANDLE and PAMPA_ADMIN_PASSWORD to run this leg — see the " +
-        "bootstrap block in 20260922162000_resolution_desk.sql"
-    );
+  if (adminHandle && adminPassword) {
+    const admin = await rpc("pampa_login", { p_handle: adminHandle, p_password: adminPassword });
+    assert(admin && admin.token, "the handed-in admin could not sign in");
+    deskActor = { token: admin.token, minted: false };
   } else {
+    const token = readMgmtToken();
+    const ref = projectRefOf(BASE);
+    if (token && ref) {
+      const minted = await check("a throwaway CI admin is minted for the desk leg", async () => {
+        const reg = await rpc("pampa_register", {
+          p_handle: deskAdminHandle,
+          p_password: PASSWORD,
+          p_name: "Verifier Desk Admin",
+          p_role: "client",
+          p_area_id: "ikeja",
+        });
+        track("desk-admin", reg);
+        state.deskAdmin = reg;   /* named, so the desk legs can act as it */
+        /* The same door the bootstrap block names: one transaction-local mark,
+           one flag raised. The account was minted through the public RPC, so
+           this power is spent on a row the anon key created — and the cleanup
+           takes the row away when the run ends. */
+        await mgmtQuery(
+          "begin;\n" +
+          "select set_config('pampa.granting', 'on', true);\n" +
+          `update public.pampa_accounts set admin = true, desk = true where id = '${reg.account.id}';\n` +
+          "commit;",
+          token, ref
+        );
+        const flags = await rpc("pampa_my_flags", {}, reg.token);
+        assert(flags && flags.admin === true, `the mark did not take: ${JSON.stringify(flags)}`);
+        return `account ${reg.account.id} raised through the Management API`;
+      });
+      if (minted) deskActor = { token: state.deskAdmin.token, minted: true };
+    }
+    if (!deskActor) {
+      await skip(
+        "an admin promotes a mediator, who splits the frozen escrow",
+        token && ref
+          ? "the Management API refused to raise the throwaway admin's flag — check PAMPA_MANAGEMENT_TOKEN or the CLI's dev token"
+          : "no PAMPA_ADMIN_HANDLE/PASSWORD and no Management token — see the " +
+            "bootstrap block in 20260922162000_resolution_desk.sql"
+      );
+    }
+  }
+
+  if (deskActor) {
     await check("an admin promotes a mediator, who splits the frozen escrow", async () => {
-      const admin = await rpc("pampa_login", { p_handle: adminHandle, p_password: adminPassword });
-      assert(admin && admin.token, "the admin could not sign in");
 
       const granted = await rpc(
         "pampa_desk_grant",
         { p_handle: deskHandle, p_on: true },
-        admin.token
+        deskActor.token
       );
       assert(granted && granted.desk === true, `the grant did not take: ${JSON.stringify(granted)}`);
 
@@ -750,7 +825,8 @@ async function main() {
       assert(Number(fromDesk.net) === res.toPro, `wallet says ${fromDesk.net}, the resolution says ${res.toPro}`);
       assert(Number(wallet.held) === 0, `${wallet.held} is still frozen after settlement`);
 
-      return `admin promoted ${deskHandle} · split ${res.percent}/${100 - res.percent} · ₦${res.toClient} refunded, ₦${res.toPro} to the barber (fee ₦${res.fee})`;
+      return (deskActor.minted ? "CI admin · " : "") +
+        `admin promoted ${deskHandle} · split ${res.percent}/${100 - res.percent} · ₦${res.toClient} refunded, ₦${res.toPro} to the barber (fee ₦${res.fee})`;
     });
 
     /* And the mediated outcome is in the journal, so the decision is not just a
@@ -785,15 +861,31 @@ async function main() {
 
    Written to supabase/.temp/, which is gitignored: this is run scaffolding,
    not part of the schema. */
+const CLEANUP_NAME = "verify-cleanup.sql";
+function cleanupFile() { return join(root, "supabase", ".temp", CLEANUP_NAME); }
+
 function writeCleanup() {
-  const ids = state.accounts.map((a) => `'${a.id}'`);
-  if (!ids.length) return null;
-  const list = ids.join(", ");
-  const sql = `-- Generated by tools/verify-db.mjs on ${new Date().toISOString()}
+  const pairs = [];
+  const seen = new Set();
+  const add = (label, id) => { if (id && !seen.has(id)) { seen.add(id); pairs.push({ label, id }); } };
+
+  /* Carry forward every id the file already names, so a run whose cleanup was
+   * never executed keeps its named removal even after later runs rewrite the
+   * file — two runs in a row used to strand the first run's accounts with no
+   * record at all. The script stays idempotent: deleting an absent id is a
+   * no-op, so it can be run after every run or only when an operator chooses. */
+  const existing = (() => { try { return readFileSync(cleanupFile(), "utf8"); } catch (e) { return ""; } })();
+  for (const m of existing.matchAll(/^--\s+(\S+)\s+([0-9a-f-]{36})/gim)) add(m[1], m[2]);
+  for (const a of state.accounts) add(a.label, a.id);
+  if (!pairs.length) return null;
+
+  const list = pairs.map((x) => `'${x.id}'`).join(", ");
+  const sql = `-- Generated by tools/verify-db.mjs — carries every run since it was last executed.
 -- Removes exactly these accounts and everything hanging off them:
-${state.accounts.map((a) => `--   ${a.label.padEnd(13)} ${a.id}`).join("\n")}
+${pairs.map((x) => `--   ${x.label.padEnd(13)} ${x.id}`).join("\n")}
 --
--- Safe to re-run: every statement is scoped to those ids.
+-- Safe to re-run: every statement is scoped to these ids, and deleting an
+-- already-deleted id does nothing. After running it you may delete this file.
 
 begin;
 
@@ -829,7 +921,7 @@ commit;
   const dir = join(root, "supabase", ".temp");
   try {
     mkdirSync(dir, { recursive: true });
-    const path = join(dir, "verify-cleanup.sql");
+    const path = cleanupFile();
     writeFileSync(path, sql);
     return path;
   } catch (e) {
@@ -838,9 +930,25 @@ commit;
   }
 }
 
-function finish() {
+
+async function finish() {
   const path = writeCleanup();
-  if (path) {
+  /* Gone when the run ends, not left to an operator: with a Management token
+     the run deletes its own accounts the moment it is done with them — clean
+     run or failed run alike — so a project is never left holding rows nobody
+     asked to keep. Without a token it falls back to writing the script, and
+     says so. */
+  const token = readMgmtToken();
+  const ref = projectRefOf(BASE);
+  if (path && token && ref) {
+    try {
+      await mgmtQuery(readFileSync(path, "utf8"), token, ref);
+      console.log(`\nCleanup executed — the ${state.accounts.length} account(s) this run created are gone.`);
+    } catch (e) {
+      console.log(`\nCleanup could not be executed automatically: ${e.message}`);
+      console.log(`The script is at ${path}; run it in the Supabase SQL editor.`);
+    }
+  } else if (path) {
     console.log(`\nCleanup for this run written to ${path}`);
     console.log("Run it in the Supabase SQL editor to remove the accounts above.");
   }
@@ -860,5 +968,5 @@ main()
   .then(finish)
   .catch((e) => {
     record("FAIL", "the run itself", (e && e.stack) || String(e));
-    finish();
+    return finish();
   });
