@@ -1013,15 +1013,25 @@ h4 .youTag,
    ============================================================================= */
 
 /* The nav badge rides the tab's own ring: top-right of the icon's column, so
-   the icon and the number are one unit when the tab is active. */
-.tabDot {
+   the icon and the number are one unit when the tab is active. Written as
+   `.tab > span.tabDot` deliberately — a plain `.tabDot` loses to any
+   `.tab > span` rule, and losing that fight drops the badge out of its
+   absolute positioning and into the tab's flow, badge and ring both wrecked.
+
+   The rest of the geometry keeps the count inside the ring at both of its
+   sizes. The top clears the ring's 7px inset and 1.5px border, so the badge
+   rides the icon's top-right rather than cutting across the ring's edge; the
+   nudge and the padding are set for the widest this ever gets — the count is
+   capped at `9+`, and at 6px of nudge with 4px of padding that pair reached
+   past the ring on a four-tab bar, where each tab is only 84px wide. */
+.tab > span.tabDot {
   position: absolute;
-  top: 4px;
+  top: 9px;
   left: 50%;
-  transform: translateX(6px);
+  transform: translateX(4px);
   min-width: 16px;
   height: 16px;
-  padding: 0 4px;
+  padding: 0 2px;
   border-radius: 100px;
   background: var(--danger-fill);
   color: #fff;

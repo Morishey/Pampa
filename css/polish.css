@@ -556,8 +556,15 @@ body {
   z-index: 0;
 }
 
+/* The icon and the label ride above the ring. The badge is not part of that
+   pair and must not be caught here: it is absolutely positioned against the
+   icon's column (the nav badge, css/directory.css). As a bare `.tab > span`
+   this rule outranked `.tabDot`, which put the Work and Bookings counts into
+   the flow — nudged 55px right by their own `left: 50%`, half over the
+   neighbouring tab, below the pill's edge, and dragging the active tab's
+   icon-and-label ring out of shape while a notification was showing. */
 .tab .ico,
-.tab > span {
+.tab > span:not(.tabDot) {
   position: relative;
   z-index: 1;
 }
