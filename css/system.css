@@ -464,7 +464,7 @@
    throttled or hidden tab therefore never sits on a half-painted list. */
 html.anim .stylistCard,
 html.anim .serviceCard,
-html.anim .bookingCard,
+html.anim .bookingItem,
 html.anim .proCard,
 html.anim .deskCard,
 html.anim .tradeCard,
@@ -750,7 +750,7 @@ html.anim .methodCard {
 
   html.anim .stylistCard,
   html.anim .serviceCard,
-  html.anim .bookingCard,
+  html.anim .bookingItem,
   html.anim .proCard,
   html.anim .deskCard,
   html.anim .tradeCard,

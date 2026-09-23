@@ -370,7 +370,9 @@ body {
     .provCard,
     .provMap,
     .covMap,
-    .bookingCard,
+    /* `.bookingCard` is not a pane: it is the bare hit area inside
+       `.bookingItem`, which draws the card. As a pane it drew a second
+       hairline inset by the card's own padding. */
     .profileCard,
     .proEntry,
     /* `.nInfo` is not a pane: it is the text block inside a notification row,
@@ -950,7 +952,7 @@ html.anim .heroSlide.isActive .heroImg.isLoaded {
 
   body :is(.card, .serviceCard, .stylistCard, .tradeCard, .pickCard, .methodCard,
       .storyCard, .walletCard, .proCard, .deskCard, .provStat, .provCard,
-      .provMap, .covMap, .bookingCard, .profileCard, .proEntry, .emptyState,
+      .provMap, .covMap, .profileCard, .proEntry, .emptyState,
       .sheet, .sheetCard, .slot, .bellBtn, .locPill, .backbtn, .sheet .close,
       .pvClose, .eviX, .toast, .bottomNav, .homeHead, .sheetOverlay) {
     backdrop-filter: none;

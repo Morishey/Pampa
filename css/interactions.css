@@ -973,12 +973,15 @@ button.bookingCard:focus-visible {
   animation: cardFlash 1.5s ease-out 1;
 }
 
-/* The pro's work card keeps its list-row shape now that it is a button too */
+/* The pro's work card is a list row and a button at once: it keeps its shape
+   and, crucially, its surface — `.card` draws that. Resetting the background
+   here is what left the queue a hollow outline on the page wash, the same
+   over-reset that flattened the booking card's frame. */
 button.workCard {
-  border: 0;
-  background: none;
   font: inherit;
   color: inherit;
+  text-align: left;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 

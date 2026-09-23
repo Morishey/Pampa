@@ -182,8 +182,8 @@ function renderBookings() {
        of the booking they belonged to, and a client's own evidence sat outside
        their own card. Now the wrapper says it outright. */
     return (
-      '<div class="bookingItem">' +
-        '<button class="card bookingCard" data-bookcard="' + esc(b.id) + '">' +
+      '<div class="card bookingItem">' +
+        '<button class="bookingCard" data-bookcard="' + esc(b.id) + '">' +
         '<div class="bookingTop">' +
           '<div class="svc-ico">' + icon(sv.ico) + "</div>" +
           '<div class="b-info"><h4>' + esc(sv.name || b.serviceId) + (b.stylistName ? " · " + esc(b.stylistName) : "") + "</h4>" +
@@ -231,8 +231,8 @@ function proBookingItem(b, sv) {
       ? (b.proMarkedDone ? "You marked it done — waiting on the client to release" : "Accepted · " + esc(b.date) + " at " + esc(b.time))
       : st === "disputed" ? "A problem was reported — the desk holds the money"
         : "";
-  return '<div class="bookingItem">' +
-      '<button class="card bookingCard" data-bookcard="' + esc(b.id) + '">' +
+  return '<div class="card bookingItem">' +
+      '<button class="bookingCard" data-bookcard="' + esc(b.id) + '">' +
       '<div class="bookingTop">' +
         '<div class="svc-ico">' + icon(sv.ico) + "</div>" +
         '<div class="b-info"><h4>' + esc(sv.name || b.serviceId) + " · " + esc(b.clientName || "Client") + "</h4>" +
@@ -243,10 +243,15 @@ function proBookingItem(b, sv) {
       '<p class="bMoney">' + money + "</p>" +
       "</button>" +
       (step ? '<p class="proStep' + (st === "disputed" ? " warn" : st === "confirmed" ? " ok" : "") + '">' + step + "</p>" : "") +
-      '<div class="cardActions"><button class="bookBtn wide" data-gotowork="' + esc(b.id) + '">Open in Work</button></div>' +
+      /* The trail chip is the card's second control, so it rides the row the
+         first one is on instead of claiming a line of its own. */
+      '<div class="cardActions"><button class="bookBtn wide" data-gotowork="' + esc(b.id) + '">Open in Work</button>' +
+        (b.history && b.history.length
+          ? '<button class="journalToggle" data-journal="' + b.id + '">Money trail</button>'
+          : "") +
+      "</div>" +
       (b.history && b.history.length
-        ? '<div class="journalWrap"><button class="journalToggle" data-journal="' + b.id + '">Money trail</button>' +
-          '<div class="journalBody" data-journalbody="' + b.id + '" style="display: none;">' + journalHtml(b, false) + "</div></div>"
+        ? '<div class="journalBody" data-journalbody="' + b.id + '" style="display: none;">' + journalHtml(b, false) + "</div>"
         : "") +
     "</div>";
 }

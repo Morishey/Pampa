@@ -658,12 +658,16 @@ function openBookingDesk(bookingId) {
     const chip = document.querySelector('.chip[data-status="' + other + '"]');
     if (chip) chip.click();
   }
+  /* The hit area and the card it sits in are two elements: the frame is the
+     wrapper, so that is what scrolls and flashes. Flashing the bare button
+     would animate a box with no surface of its own. */
   const card = document.querySelector('[data-bookcard="' + bookingId + '"]');
-  if (card && card.scrollIntoView) {
-    card.scrollIntoView({ block: "center", behavior: "smooth" });
-    card.classList.remove("cardFlash");
-    void card.offsetWidth;
-    card.classList.add("cardFlash");
+  const target = (card && card.closest(".bookingItem")) || card;
+  if (target && target.scrollIntoView) {
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    target.classList.remove("cardFlash");
+    void target.offsetWidth;
+    target.classList.add("cardFlash");
   }
 }
 

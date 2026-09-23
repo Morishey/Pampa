@@ -545,44 +545,100 @@
 
 /* A booking and everything that acts on it: the card itself, the buttons
    (Pay, Release, Report a problem), the evidence panels and the money trail.
-   The card is a <button>, so its controls cannot live inside it — nested
-   buttons are invalid and the parser lifts them out — and this wrapper is what
-   keeps them one booking instead of a card with loose controls trailing it. */
+   The frame is this wrapper, so those controls sit inside the job's own card;
+   the inner <button> is only the hit area (nested buttons are invalid, so the
+   button cannot be the frame), which is why `button.bookingCard` resets its
+   own padding and background — the surface is drawn here, once. */
 .bookingItem {
   display: block;
+  margin-bottom: 12px;
+}
+
+/* the hit area sits bare inside the frame it already has */
+.bookingItem > .bookingCard {
+  margin-bottom: 0;
 }
 
 .bookingCard {
   display: block;
 }
 
+/* Three columns — the icon, the job, its money state — so the status pill can
+   never squeeze the job's name below a readable width. Under 380px the pill
+   drops to its own line under the text, where it gets the full column. */
 .bookingTop {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
+  gap: 4px 12px;
 }
 
 .bookingTop .b-info {
-  flex: 1;
   min-width: 0;
 }
 
 .bookingTop .badge {
-  align-self: flex-start;
-  /* long money states ("In escrow · awaiting stylist") wrap inside the pill
+  align-self: start;
+  /* long money states ("Settled · refunded to client") wrap inside the pill
      rather than spilling past the card edge */
   max-width: 132px;
   white-space: normal;
   text-align: center;
   line-height: 1.35;
-  margin-left: auto;
+  margin-top: 2px;
 }
 
-.bMoney {
+@media (max-width: 380px) {
+  .bookingTop {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .bookingTop .badge {
+    grid-column: 2;
+    justify-self: start;
+    max-width: none;
+    margin-top: 6px;
+  }
+}
+
+/* Evidence filed inside a booking card is a pane inside a pane, so it takes
+   the second step of the glass rather than the card's own fill — at the card's
+   fill it showed nothing but its border, and a dispute read as one long block
+   of text where it should read as two people's accounts. */
+.bookingItem .eviSide {
+  background: var(--card-2);
+}
+
+/* A note about the booking reads as the card's own text, not a centred
+   page-level footnote, and it does not push the card's controls away. */
+.bookingItem > .finePrint {
+  text-align: left;
+  margin-top: 8px;
+}
+
+/* The trail chip is a control: it rides the row of buttons where the card has
+   one, and where it stands alone it sits on the card's own rhythm rather than
+   carrying the page-level 4px nudge it was written with. */
+.bookingItem .journalToggle {
+  margin-top: 0;
+  flex: none;
+}
+
+.bookingItem > .journalWrap {
+  margin-top: 10px;
+}
+
+/* The money line is the card's figure, not one more sentence in it. Named
+   through the card because `.bookingCard p` — the rule that gives every
+   paragraph in a card its small muted text — was quietly taking this line's
+   colour and size too, so the one number the card exists for read as a
+   footnote. Gold, tabular and tight, as money is read everywhere else here. */
+.bookingCard .bMoney {
   font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
+  font-weight: 800;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   margin-top: 10px;
   padding-top: 9px;
   border-top: 1px dashed var(--line);
@@ -599,6 +655,12 @@
   flex: 1;
   padding: 11px 14px;
   font-size: 13px;
+}
+
+/* The trail chip rides the same row as the card's action, so it sits on that
+   button's axis rather than a few pixels under it. */
+.cardActions .bookBtn.wide {
+  margin-top: 0;
 }
 
 .proStep {
