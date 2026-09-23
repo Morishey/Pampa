@@ -103,6 +103,10 @@ function work(btn, promise) {
 
 /* ---------- Toasts ---------- */
 function toast(msg, kind) {
+  /* Nothing to say is not a toast. A caller reporting a refusal the app has
+     already explained hands over null (see dbText in js/db.js), and an empty
+     bubble saying nothing is worse than the silence it was meant to fill. */
+  if (!msg) return;
   const box = $("#toasts");
   const el = document.createElement("div");
   el.className = "toast " + (kind || "");

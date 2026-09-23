@@ -567,7 +567,7 @@ function confirmBooking() {
     }).catch(function (e) {
       setBusy(btn, false);
       endWork();
-      toast(e && e.message ? e.message : "Could not place that booking — try again");
+      toast(dbText(e, "Could not place that booking — try again"));
       renderSheet();
     });
     return;

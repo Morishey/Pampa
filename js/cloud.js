@@ -71,7 +71,7 @@ payBooking = async function (id, method) {
     return { ok: true };
   } catch (e) {
     if (e.code === "no_database") return payBookingLocal(id, method);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -82,7 +82,7 @@ acceptBooking = async function (id) {
     return { ok: true, price: offerOf(b) };
   } catch (e) {
     if (e.code === "no_database") return acceptBookingLocal(id);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -94,7 +94,7 @@ declineBooking = async function (id) {
     return { ok: true, refunded: held };
   } catch (e) {
     if (e.code === "no_database") return declineBookingLocal(id);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -105,7 +105,7 @@ cancelJob = async function (id) {
     return { ok: true, refunded: b.refund ? b.refund.amount : 0 };
   } catch (e) {
     if (e.code === "no_database") return cancelJobLocal(id);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -116,7 +116,7 @@ counterBooking = async function (id, price, note) {
     return { ok: true, price: counterOf(b), booking: b };
   } catch (e) {
     if (e.code === "no_database") return counterBookingLocal(id, price, note);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -134,7 +134,7 @@ acceptCounter = async function (id) {
     return { ok: true, price: b.price, topUp: 0, refunded: 0 };
   } catch (e) {
     if (e.code === "no_database") return acceptCounterLocal(id);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -145,7 +145,7 @@ declineCounter = async function (id) {
     return { ok: true, refunded: b.refund ? b.refund.amount : 0 };
   } catch (e) {
     if (e.code === "no_database") return declineCounterLocal(id);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -157,7 +157,7 @@ completeCounterTopUp = async function (id, method) {
     return { ok: true, price: price, topUp: b.pay && b.pay.topUp ? b.pay.topUp : 0 };
   } catch (e) {
     if (e.code === "no_database") return completeCounterTopUpLocal(id, method);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -168,7 +168,7 @@ markJobDone = async function (id) {
     return { ok: true };
   } catch (e) {
     if (e.code === "no_database") return markJobDoneLocal(id);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -183,7 +183,7 @@ releasePayment = async function (id) {
     return { ok: true, net: b.pay ? b.pay.netToPro : 0, booking: b };
   } catch (e) {
     if (e.code === "no_database") return releasePaymentLocal(id);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -202,7 +202,7 @@ disputeBooking = async function (id, reason, photos, note) {
     return { ok: true, photosDropped: false };
   } catch (e) {
     if (e.code === "no_database") return disputeBookingLocal(id, reason, photos);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -213,7 +213,7 @@ respondToDispute = async function (bookingId, note, photos) {
     return { ok: true, droppedPhotos: false };
   } catch (e) {
     if (e.code === "no_database") return respondToDisputeLocal(bookingId, note, photos);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 
@@ -226,7 +226,7 @@ settleDispute = async function (id, outcome, percent) {
     return { ok: true, resolution: b.resolution };
   } catch (e) {
     if (e.code === "no_database") return settleDisputeLocal(id, outcome, percent);
-    return { ok: false, msg: e.message };
+    return { ok: false, msg: dbText(e) };
   }
 };
 

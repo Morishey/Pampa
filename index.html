@@ -25,7 +25,7 @@
     <!-- The push half of notifications: subscribes the account with the push
          server (tools/push-server.js) so news reaches the phone when Pampa is
          closed. Loaded before the app, which calls into it. -->
-    <script src="pampa-push.js?v=252"></script>
+    <script src="pampa-push.js?v=253"></script>
     <script>
         (function () {
             try {
@@ -40,53 +40,53 @@
          after them is written against those names, and interactions.css comes
          last because it is what a tap feels like. Splitting the sheet changed
          no rule and no order — a plain list of tags, no build step. -->
-    <link rel="stylesheet" href="css/tokens.css?v=252">
-    <link rel="stylesheet" href="css/onboarding.css?v=252">
-    <link rel="stylesheet" href="css/shell.css?v=252">
-    <link rel="stylesheet" href="css/booking.css?v=252">
-    <link rel="stylesheet" href="css/pro.css?v=252">
-    <link rel="stylesheet" href="css/disputes.css?v=252">
-    <link rel="stylesheet" href="css/system.css?v=252">
-    <link rel="stylesheet" href="css/directory.css?v=252">
-    <link rel="stylesheet" href="css/polish.css?v=252">
-    <link rel="stylesheet" href="css/components.css?v=252">
-    <link rel="stylesheet" href="css/interactions.css?v=252">
+    <link rel="stylesheet" href="css/tokens.css?v=253">
+    <link rel="stylesheet" href="css/onboarding.css?v=253">
+    <link rel="stylesheet" href="css/shell.css?v=253">
+    <link rel="stylesheet" href="css/booking.css?v=253">
+    <link rel="stylesheet" href="css/pro.css?v=253">
+    <link rel="stylesheet" href="css/disputes.css?v=253">
+    <link rel="stylesheet" href="css/system.css?v=253">
+    <link rel="stylesheet" href="css/directory.css?v=253">
+    <link rel="stylesheet" href="css/polish.css?v=253">
+    <link rel="stylesheet" href="css/components.css?v=253">
+    <link rel="stylesheet" href="css/interactions.css?v=253">
     <!-- pricing loads last: it re-dresses the discovery card into a row, and
          carries the price ranges, the picker and the negotiation surfaces -->
-    <link rel="stylesheet" href="css/pricing.css?v=252">
-    <link rel="stylesheet" href="css/stories.css?v=252">
+    <link rel="stylesheet" href="css/pricing.css?v=253">
+    <link rel="stylesheet" href="css/stories.css?v=253">
     <!-- The app itself, deferred and in order. Every file shares one global
          scope, exactly as the single script did, so a later module may call
          anything an earlier one declared. js/wiring.js must stay last: it
          installs the listeners and boots. -->
-    <script src="icons.js?v=252" defer></script>
-    <script src="escrow.js?v=252" defer></script>
+    <script src="icons.js?v=253" defer></script>
+    <script src="escrow.js?v=253" defer></script>
     <!-- Where the database is, and the client that talks to it. config first
          (dbConfigured() reads it), db second (every cloud call rides on it);
          both before core, whose boot consults them. -->
-    <script src="js/config.js?v=252" defer></script>
-    <script src="js/db.js?v=252" defer></script>
-    <script src="js/cloud.js?v=252" defer></script>
-    <script src="js/cloud2.js?v=252" defer></script>
-    <script src="js/confirm.js?v=252" defer></script>
-    <script src="js/core.js?v=252" defer></script>
-    <script src="js/directory.js?v=252" defer></script>
-    <script src="js/activity.js?v=252" defer></script>
-    <script src="js/pwa.js?v=252" defer></script>
-    <script src="js/ui.js?v=252" defer></script>
-    <script src="js/social.js?v=252" defer></script>
-    <script src="js/home.js?v=252" defer></script>
-    <script src="js/media.js?v=252" defer></script>
-    <script src="js/provider.js?v=252" defer></script>
-    <script src="js/sheets.js?v=252" defer></script>
-    <script src="js/status.js?v=252" defer></script>
-    <script src="js/clips.js?v=252" defer></script>
-    <script src="js/bookings.js?v=252" defer></script>
-    <script src="js/views.js?v=252" defer></script>
-    <script src="js/auth.js?v=252" defer></script>
-    <script src="js/location.js?v=252" defer></script>
-    <script src="js/booking-sheet.js?v=252" defer></script>
-    <script src="js/wiring.js?v=252" defer></script>
+    <script src="js/config.js?v=253" defer></script>
+    <script src="js/db.js?v=253" defer></script>
+    <script src="js/cloud.js?v=253" defer></script>
+    <script src="js/cloud2.js?v=253" defer></script>
+    <script src="js/confirm.js?v=253" defer></script>
+    <script src="js/core.js?v=253" defer></script>
+    <script src="js/directory.js?v=253" defer></script>
+    <script src="js/activity.js?v=253" defer></script>
+    <script src="js/pwa.js?v=253" defer></script>
+    <script src="js/ui.js?v=253" defer></script>
+    <script src="js/social.js?v=253" defer></script>
+    <script src="js/home.js?v=253" defer></script>
+    <script src="js/media.js?v=253" defer></script>
+    <script src="js/provider.js?v=253" defer></script>
+    <script src="js/sheets.js?v=253" defer></script>
+    <script src="js/status.js?v=253" defer></script>
+    <script src="js/clips.js?v=253" defer></script>
+    <script src="js/bookings.js?v=253" defer></script>
+    <script src="js/views.js?v=253" defer></script>
+    <script src="js/auth.js?v=253" defer></script>
+    <script src="js/location.js?v=253" defer></script>
+    <script src="js/booking-sheet.js?v=253" defer></script>
+    <script src="js/wiring.js?v=253" defer></script>
 </head>
 
 <body>

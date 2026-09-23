@@ -154,12 +154,27 @@ async function dbCall(fn, args) {
       if (carriedToken && fn !== "pampa_logout" && !dbDeadSession) {
         dbDeadSession = true;
         if (typeof pampaSessionEnded === "function") pampaSessionEnded();
+        /* And the refusal itself is marked as said. The sign-in screen explains
+           this one in a line that stays put while the person types; a toast
+           raised by whichever call happened to notice would repeat the same
+           sentence and be gone before the field was filled. Callers ask
+           dbText() below rather than reading .message themselves. */
+        err.silent = true;
       }
     }
     throw err;
   }
 
   return data;
+}
+
+/* What a caller should show for a refused call: the server's own words, or the
+   fallback it was handed. A refusal the app has already explained somewhere the
+   person can still read comes back null — there is nothing to add, so nothing
+   is added. Pair it with toast(), which says nothing when handed nothing. */
+function dbText(e, fallback) {
+  if (e && e.silent) return null;
+  return (e && e.message) ? e.message : (fallback || null);
 }
 
 /* ---------- What the app calls ---------- */

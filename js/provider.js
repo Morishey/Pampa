@@ -303,7 +303,7 @@ function finishRelease(postReview) {
     maybeNudgeInstall();
   }).catch(function (e) {
     setBusy($("#rateSubmit"), false);
-    toast(e && e.message ? e.message : "Could not release that payment — try again");
+    toast(dbText(e, "Could not release that payment — try again"));
   });
 }
 

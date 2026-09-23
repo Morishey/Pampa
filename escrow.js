@@ -935,7 +935,7 @@ function confirmPayment() {
       toast("Top-up paid — booking confirmed at " + naira(res.price));
     }).catch(function (e) {
       setBusy(btn, false);
-      toast(e && e.message ? e.message : "Payment did not go through — try again");
+      toast(dbText(e, "Payment did not go through — try again"));
     });
     return;
   }
@@ -960,7 +960,7 @@ function confirmPayment() {
     toast(naira(b.total || b.price) + " held in escrow");
   }).catch(function (e) {
     setBusy(btn, false);
-    toast(e && e.message ? e.message : "Payment did not go through — try again");
+    toast(dbText(e, "Payment did not go through — try again"));
   });
 }
 
@@ -1082,7 +1082,7 @@ function sendCounter() {
     renderBookings();
   }).catch(function (e) {
     setBusy(btn, false);
-    toast(e && e.message ? e.message : "Could not send that price — try again");
+    toast(dbText(e, "Could not send that price — try again"));
   });
 }
 
@@ -1929,7 +1929,7 @@ function settleFromDesk(id) {
       renderProfile();
     }).catch(function (e) {
       setBusy(document.querySelector('[data-settle="' + id + '"]'), false);
-      toast(e && e.message ? e.message : "Could not settle — try again");
+      toast(dbText(e, "Could not settle — try again"));
     });
   });
 }
