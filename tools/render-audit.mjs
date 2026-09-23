@@ -31,13 +31,14 @@
  *   node tools/render-audit.mjs --list      # the surfaces, and exit
  *   node tools/render-audit.mjs --no-plant  # skip the planted-trap proof
  *   node tools/render-audit.mjs --keep-open # leave Chrome up for poking
+ *   node tools/render-audit.mjs --shots=dir  # also write a PNG per pass
  *
  * It runs as a leg of tools/verify-db.mjs (SKIP'd where no browser exists)
  * and can be driven standalone.
  * ========================================================================== */
 
 import { spawn } from "node:child_process";
-import { readFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createServer } from "node:http";
 import { extname, join, dirname } from "node:path";
@@ -118,30 +119,75 @@ function stageSource() {
   /* One booking in the state that opens the escrow sheets, the rate sheet and
      the work card: paid, confirmed, measured. The local shape is what the
      escrow module itself writes. */
-  const booking = {
-    id: "bRend1", serviceId: "cut", stylistId: "tunde", stylistName: "Tunde",
+  /* The ledger the surfaces stand on. The first booking is the client's, in
+     the state that opens the escrow sheets, the rate sheet and the work card.
+     The rest are here because a card is only audited where it renders: a
+     professional's Bookings tab is empty without a job keyed to their own
+     provider id, and a card with no steps, no trail and no counter is a card
+     whose controls are never in the DOM to be judged. */
+  const now = new Date().toISOString();
+  const day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  const mkBooking = (id, over) => Object.assign({
+    id,
+    serviceId: "cut", stylistId: "tunde", stylistName: "Tunde",
     clientName: "Renda Client", clientPhone: "08000000222",
-    date: new Date(Date.now() + 864e5).toISOString().slice(0, 10), time: "10:00",
+    date: day(1), time: "10:00",
     loc: "home", areaId: "surulere", areaName: "Surulere",
     address: "9 Renda Street, Surulere", studioAddress: "", studioAreaName: "",
     km: 1.2, kmPrecise: true, travelFee: 1200,
     price: 3500, total: 4700,
-    offer: { price: 3500, at: new Date().toISOString(), by: "Renda Client" },
+    offer: { price: 3500, at: now, by: "Renda Client" },
     priceRange: { min: 3000, max: 5000 },
-    negotiation: { status: "open", rounds: [{ by: "client", price: 3500, note: "", at: new Date().toISOString() }] },
     status: "confirmed", proMarkedDone: false,
-    createdAt: new Date().toISOString(),
-    pay: { method: "card", ref: "ESC-rend01", amount: 4700, fee: 470, netToPro: 4230,
-      paidAt: new Date().toISOString() },
-    history: [{ at: new Date().toISOString(), label: "Booking placed" }],
-  };
+    createdAt: now,
+    pay: { method: "card", ref: "ESC-" + id, amount: 4700, fee: 470, netToPro: 4230, paidAt: now },
+    history: [{ at: now, label: "Booking placed" }],
+  }, over);
+  const MINE = "p:08000000111";
+  const booking = mkBooking("bRend1", {
+    negotiation: { status: "open", rounds: [{ by: "client", price: 3500, note: "", at: now }] },
+  });
+  /* A professional's own two sides: what is waiting on them, what the client
+     has released, and a job under dispute — the three cards the desk reads. */
+  const bookings = [
+    booking,
+    mkBooking("bRendWait", {
+      time: "13:00", status: "escrowed",
+      negotiation: { status: "open", rounds: [
+        { by: "client", price: 3500, note: "", at: now },
+        { by: "pro", price: 4200, note: "Long hair, twenty minutes more.", at: now },
+      ] },
+    }),
+    mkBooking("bRendPro1", {
+      stylistId: MINE, time: "09:00", status: "escrowed",
+      history: [{ at: now, label: "Booking placed" }, { at: now, label: "Payment held in escrow" }],
+    }),
+    mkBooking("bRendPro2", {
+      stylistId: MINE, time: "15:00", km: 3.4, proMarkedDone: true,
+      history: [{ at: now, label: "Booking placed" }, { at: now, label: "Payment held in escrow" },
+        { at: now, label: "Marvis accepted the job" }],
+    }),
+    mkBooking("bRendPro3", {
+      stylistId: MINE, time: "17:00", loc: "studio", status: "released",
+      studioAddress: "14 Shop Row, Surulere", studioAreaName: "Surulere", travelFee: 0,
+      rated: { stars: 5, comment: "Sharp fade, kept time." },
+      history: [{ at: now, label: "Booking placed" }, { at: now, label: "Payment held in escrow" },
+        { at: now, label: "Marvis marked the job done" }, { at: now, label: "Marvis released ₦4,230" }],
+    }),
+    mkBooking("bRendPro4", {
+      stylistId: MINE, time: "12:00", status: "disputed",
+      dispute: { reason: "The job wasn't finished", note: "Left a patch at the back.", at: now, photos: [] },
+      history: [{ at: now, label: "Booking placed" }, { at: now, label: "Payment held in escrow" },
+        { at: now, label: "Marvis reported a problem" }],
+    }),
+  ];
   return `
     (function () {
-      var P = ${JSON.stringify({ client, pro, provider, booking })};
+      var P = ${JSON.stringify({ client, pro, provider, bookings })};
       var put = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
       put("pampa.accounts.v1", { accounts: {} });
       put("pampa.directory.v1", { providers: [P.provider] });
-      put("pampa.bookings.v1", { bookings: [P.booking] });
+      put("pampa.bookings.v1", { bookings: P.bookings });
       window.__STAGE = P;
       /* The cloud is refused, not absent: the app's offline roads are the ones
          a device on a bad network takes, and refusing keeps this run hermetic
@@ -429,9 +475,24 @@ export async function runRenderAudit(opts = {}) {
           return { count: found.length, surface: raw && raw.surfaces };
         };
 
+        /* --shots=<dir> is for the work that is judged with the eye rather
+           than the cascade: one PNG per surface per width, named the same way
+           the run names them, so a layout change can be looked at before it
+           is argued about. */
+        const shoot = async (label) => {
+          if (!opts.shots) return;
+          try {
+            const shot = await cdp.send("Page.captureScreenshot", { format: "png" });
+            mkdirSync(opts.shots, { recursive: true });
+            writeFileSync(join(opts.shots, label.replace(/[^\w]+/g, "-").replace(/^-|-$/g, "") + ".png"),
+              Buffer.from(shot.data, "base64"));
+          } catch (e) { /* a missed picture never fails the audit */ }
+        };
+
         const base = await judge(surf.name);
         row.findings = base.count;
         row.surface = base.surface;
+        await shoot(surf.name + " @ window");
 
         /* the same surface at every width, judged where those rules apply */
         for (const [w, h] of WIDTHS) {
@@ -444,6 +505,7 @@ export async function runRenderAudit(opts = {}) {
             const got = await judge(wrow.name);
             wrow.findings = got.count;
             wrow.surface = got.surface;
+            await shoot(wrow.name);
           } catch (e) {
             wrow.ok = false;
             wrow.note = String((e && e.message) || e).slice(0, 200);
@@ -498,6 +560,10 @@ function main() {
     list: args.includes("--list"),
     progress: args.includes("--progress"),
     only: (args.find((a) => a.startsWith("--only=")) || "").slice(7) || null,
+    shots: (() => {
+      const a = args.find((x) => x.startsWith("--shots"));
+      return a ? (a.split("=")[1] || join(root, "supabase/.temp/shots")) : null;
+    })(),
   };
   runRenderAudit(opts).then((r) => {
     if (r.listOnly) { console.log(r.surfaces.map((s) => "  · " + s).join("\n")); return; }
@@ -519,6 +585,7 @@ function main() {
         console.log("      computed:  " + f.prop + " = " + f.computed);
       }
     }
+    if (opts.shots) console.log("\nshots written to " + opts.shots);
     if (opts.keepOpen) console.log("\nkept open: devtools " + r.port + " · profile " + r.profile);
     console.log("");
     process.exit(r.findings.length ? 1 : 0);
