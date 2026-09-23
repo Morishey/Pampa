@@ -479,25 +479,56 @@ function attentionItems() {
   return out;
 }
 
-/* The Home card's rows. Kept to three: a page that lists everything is a page
-   nobody reads, and the rest is a tap away in the bell. */
+/* The Home card: what is waiting on this account, as the page's front door.
+
+The head is a button onto the page that acts on the list — the escrow desk for
+a professional, Bookings for a client — because the job of this card is to say
+*that* something is waiting and then get out of the way. Its rows keep their
+own deep link: the booking's own desk is where a payment, a counter or a
+release actually happens.
+
+Distinct when it carries something: gold hairline, a wash behind the head, the
+count and a slow pulse. Quiet when it does not. A professional sees the quiet
+state too, because an empty desk is worth knowing before a client asks; a
+client's Home opens on the market, so for them silence really is the empty
+state. */
 function renderHomeAttention() {
   const wrap = $("#homeAttention");
   if (!wrap) return;
   const items = attentionItems();
-  wrap.innerHTML = !items.length
-    ? ""
-    : '<div class="sectionHead"><h2>Needs your attention</h2>' +
-        '<span class="headNote">' + items.length + (items.length === 1 ? " thing" : " things") + "</span></div>" +
-      '<div class="attnCard">' + items.slice(0, 3).map(function (a) {
-        return '<button class="attnRow" data-notifygo="' + esc(a.bookingId) + '">' +
-          '<span class="attnIco ' + esc(a.tone) + '">' + icon(a.icon) + "</span>" +
-          '<span class="attnInfo"><b>' + esc(a.title) + "</b><small>" + esc(a.detail) + "</small></span>" +
-          '<span class="chev">' + icon("chevron") + "</span></button>";
-      }).join("") +
-      (items.length > 3
-        ? '<button class="attnMore" data-opennotify="1">' + (items.length - 3) + " more in your activity</button>"
-        : "") + "</div>";
+  const pro = (state.user || {}).role === "pro";
+  if (!items.length && !pro) { wrap.innerHTML = ""; return; }
+
+  const live = items.length > 0;
+  const target = pro ? "work" : "bookings";
+  const where = pro ? "your work" : "your bookings";
+  const note = live
+    ? items.length + (items.length === 1 ? " thing" : " things") + " waiting · open " + where
+    : "Nothing is waiting on you — your desk is clear";
+
+  const head =
+    '<button class="attnHead" data-attnview="' + target + '" aria-label="Open ' + where + '">' +
+      (live
+        ? '<span class="attnPulse on" aria-hidden="true"></span>'
+        : '<span class="attnPulse off" aria-hidden="true">' + icon("check") + "</span>") +
+      '<span class="attnHeadText"><b>Needs your attention</b><small>' + esc(note) + "</small></span>" +
+      (live ? '<span class="attnCount">' + items.length + "</span>" : "") +
+      '<span class="chev">' + icon("chevron") + "</span>" +
+    "</button>";
+
+  /* The rows are kept to three: a page that lists everything is a page nobody
+     reads, and the rest is a tap away in the bell. */
+  const rows = items.slice(0, 3).map(function (a) {
+    return '<button class="attnRow" data-notifygo="' + esc(a.bookingId) + '">' +
+      '<span class="attnIco ' + esc(a.tone) + '">' + icon(a.icon) + "</span>" +
+      '<span class="attnInfo"><b>' + esc(a.title) + "</b><small>" + esc(a.detail) + "</small></span>" +
+      '<span class="chev">' + icon("chevron") + "</span></button>";
+  }).join("");
+
+  wrap.innerHTML = '<div class="attnCard' + (live ? " live" : "") + '">' + head + rows +
+    (items.length > 3
+      ? '<button class="attnMore" data-opennotify="1">' + (items.length - 3) + " more in your activity</button>"
+      : "") + "</div>";
 }
 
 function renderNotifySheet() {

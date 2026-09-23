@@ -574,8 +574,17 @@ function renderWork() {
   /* legacy body container: kept for any residual styles, now empty */
   if (wrap) wrap.innerHTML = "";
 
+  /* The note names the halves of the queue rather than counting it: "needs you"
+     is the Home card's job now, and repeating it here would put two numbers on
+     the same list. What the page cannot say anywhere else is which half a row
+     is in — a request to answer or a job in progress. */
   const count = $("#workCount");
-  if (count) count.textContent = needsMe.length ? needsMe.length + " need" + (needsMe.length === 1 ? "s" : "") + " you" : "";
+  if (count) {
+    const bits = [];
+    if (waiting.length) bits.push(waiting.length + " to accept");
+    if (active.length) bits.push(active.length + " in progress");
+    count.textContent = bits.join(" · ");
+  }
 
   let list = "";
   if (!needsMe.length) {

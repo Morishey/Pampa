@@ -22,7 +22,7 @@
  * network-first, so a deployed change is never hidden behind a stale shell.
  */
 
-const VERSION = "pampa-shell-v40";
+const VERSION = "pampa-shell-v41";
 
 /* The files the app cannot open without. The versioned copies of the CSS and
    JS are added at install time by reading the real page, so a version bump

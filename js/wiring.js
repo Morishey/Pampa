@@ -119,6 +119,11 @@ function wire() {
     if (book) { openSheet(book.dataset.book); return; }
     const gotoWork = t.closest("[data-goto-work]");
     if (gotoWork) { switchView("work"); return; }
+    /* the Home attention card's head: the list is counted on Home and acted on
+       somewhere else, so the card is a door to that page — the escrow desk for
+       a professional, Bookings for a client */
+    const attnView = t.closest("[data-attnview]");
+    if (attnView) { switchView(attnView.dataset.attnview); return; }
     /* a job row in the Bookings tab is the pro's door back to the desk, where
        the money actions and the client's details actually live */
     const proJob = t.closest("[data-gotowork]");

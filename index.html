@@ -25,7 +25,7 @@
     <!-- The push half of notifications: subscribes the account with the push
          server (tools/push-server.js) so news reaches the phone when Pampa is
          closed. Loaded before the app, which calls into it. -->
-    <script src="pampa-push.js?v=254"></script>
+    <script src="pampa-push.js?v=255"></script>
     <script>
         (function () {
             try {
@@ -40,53 +40,53 @@
          after them is written against those names, and interactions.css comes
          last because it is what a tap feels like. Splitting the sheet changed
          no rule and no order — a plain list of tags, no build step. -->
-    <link rel="stylesheet" href="css/tokens.css?v=254">
-    <link rel="stylesheet" href="css/onboarding.css?v=254">
-    <link rel="stylesheet" href="css/shell.css?v=254">
-    <link rel="stylesheet" href="css/booking.css?v=254">
-    <link rel="stylesheet" href="css/pro.css?v=254">
-    <link rel="stylesheet" href="css/disputes.css?v=254">
-    <link rel="stylesheet" href="css/system.css?v=254">
-    <link rel="stylesheet" href="css/directory.css?v=254">
-    <link rel="stylesheet" href="css/polish.css?v=254">
-    <link rel="stylesheet" href="css/components.css?v=254">
-    <link rel="stylesheet" href="css/interactions.css?v=254">
+    <link rel="stylesheet" href="css/tokens.css?v=255">
+    <link rel="stylesheet" href="css/onboarding.css?v=255">
+    <link rel="stylesheet" href="css/shell.css?v=255">
+    <link rel="stylesheet" href="css/booking.css?v=255">
+    <link rel="stylesheet" href="css/pro.css?v=255">
+    <link rel="stylesheet" href="css/disputes.css?v=255">
+    <link rel="stylesheet" href="css/system.css?v=255">
+    <link rel="stylesheet" href="css/directory.css?v=255">
+    <link rel="stylesheet" href="css/polish.css?v=255">
+    <link rel="stylesheet" href="css/components.css?v=255">
+    <link rel="stylesheet" href="css/interactions.css?v=255">
     <!-- pricing loads last: it re-dresses the discovery card into a row, and
          carries the price ranges, the picker and the negotiation surfaces -->
-    <link rel="stylesheet" href="css/pricing.css?v=254">
-    <link rel="stylesheet" href="css/stories.css?v=254">
+    <link rel="stylesheet" href="css/pricing.css?v=255">
+    <link rel="stylesheet" href="css/stories.css?v=255">
     <!-- The app itself, deferred and in order. Every file shares one global
          scope, exactly as the single script did, so a later module may call
          anything an earlier one declared. js/wiring.js must stay last: it
          installs the listeners and boots. -->
-    <script src="icons.js?v=254" defer></script>
-    <script src="escrow.js?v=254" defer></script>
+    <script src="icons.js?v=255" defer></script>
+    <script src="escrow.js?v=255" defer></script>
     <!-- Where the database is, and the client that talks to it. config first
          (dbConfigured() reads it), db second (every cloud call rides on it);
          both before core, whose boot consults them. -->
-    <script src="js/config.js?v=254" defer></script>
-    <script src="js/db.js?v=254" defer></script>
-    <script src="js/cloud.js?v=254" defer></script>
-    <script src="js/cloud2.js?v=254" defer></script>
-    <script src="js/confirm.js?v=254" defer></script>
-    <script src="js/core.js?v=254" defer></script>
-    <script src="js/directory.js?v=254" defer></script>
-    <script src="js/activity.js?v=254" defer></script>
-    <script src="js/pwa.js?v=254" defer></script>
-    <script src="js/ui.js?v=254" defer></script>
-    <script src="js/social.js?v=254" defer></script>
-    <script src="js/home.js?v=254" defer></script>
-    <script src="js/media.js?v=254" defer></script>
-    <script src="js/provider.js?v=254" defer></script>
-    <script src="js/sheets.js?v=254" defer></script>
-    <script src="js/status.js?v=254" defer></script>
-    <script src="js/clips.js?v=254" defer></script>
-    <script src="js/bookings.js?v=254" defer></script>
-    <script src="js/views.js?v=254" defer></script>
-    <script src="js/auth.js?v=254" defer></script>
-    <script src="js/location.js?v=254" defer></script>
-    <script src="js/booking-sheet.js?v=254" defer></script>
-    <script src="js/wiring.js?v=254" defer></script>
+    <script src="js/config.js?v=255" defer></script>
+    <script src="js/db.js?v=255" defer></script>
+    <script src="js/cloud.js?v=255" defer></script>
+    <script src="js/cloud2.js?v=255" defer></script>
+    <script src="js/confirm.js?v=255" defer></script>
+    <script src="js/core.js?v=255" defer></script>
+    <script src="js/directory.js?v=255" defer></script>
+    <script src="js/activity.js?v=255" defer></script>
+    <script src="js/pwa.js?v=255" defer></script>
+    <script src="js/ui.js?v=255" defer></script>
+    <script src="js/social.js?v=255" defer></script>
+    <script src="js/home.js?v=255" defer></script>
+    <script src="js/media.js?v=255" defer></script>
+    <script src="js/provider.js?v=255" defer></script>
+    <script src="js/sheets.js?v=255" defer></script>
+    <script src="js/status.js?v=255" defer></script>
+    <script src="js/clips.js?v=255" defer></script>
+    <script src="js/bookings.js?v=255" defer></script>
+    <script src="js/views.js?v=255" defer></script>
+    <script src="js/auth.js?v=255" defer></script>
+    <script src="js/location.js?v=255" defer></script>
+    <script src="js/booking-sheet.js?v=255" defer></script>
+    <script src="js/wiring.js?v=255" defer></script>
 </head>
 
 <body>
@@ -546,8 +546,13 @@
             </div>
             <div id="workGallery"></div>
 
+            <!-- The queue itself, not a second attention card: what needs this
+                 professional is counted on Home — one headline in one place —
+                 and this page is where it is acted on. The note beside the
+                 heading says what the list holds (to accept, in progress)
+                 rather than repeating the Home card's count. -->
             <div class="sectionHead">
-                <h2>Needs your attention</h2>
+                <h2>On your desk</h2>
                 <span class="headNote" id="workCount"></span>
             </div>
             <div id="workRequests"></div>
