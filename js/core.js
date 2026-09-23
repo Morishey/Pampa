@@ -388,6 +388,12 @@ function providerPoint(st) {
    fix-to-fix when both devices gave a position, otherwise to the best point
    that exists — a centre, not a door. */
 function kmToProvider(st) {
+  /* A directory row from the database arrives with the distance already
+     measured — the server had both stored points, which is more than this
+     device ever gets to see. That number is the honest one, so it wins. */
+  if (st && st.serverKm != null && Number.isFinite(Number(st.serverKm))) {
+    return Number(st.serverKm);
+  }
   const from = clientPoint();
   const to = providerPoint(st);
   if (!from || !to) return null;

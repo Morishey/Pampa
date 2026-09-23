@@ -226,12 +226,43 @@ function saveLocation() {
   save();
   rememberAccount();
   if (locContext === "onboarding") {
-    enterApp();
-    toast(((state.user || {}).role === "pro" ? "Studio set — you're live near " : "You're set — showing pros near ") + clientAreaName());
+    const land = function () {
+      enterApp();
+      toast(((state.user || {}).role === "pro" ? "Studio set — you're live near " : "You're set — showing pros near ") + clientAreaName());
+    };
+    /* The last onboarding screen is where the account reaches the database:
+       role, trade, area and the fix are all known by now, so the server gets
+       one complete registration rather than four half ones. Registration
+       failing is not a wall — the account simply stays device-local, and the
+       toast in dbFinishRegistration says so. */
+    if (dbConfigured() && !dbSignedIn()) {
+      const btn = $("#saveLocation");
+      setBusy(btn, true);
+      beginWork();
+      dbFinishRegistration(placed.areaId, text, usable ? placed.point : null).then(function () {
+        setBusy(btn, false);
+        endWork();
+        land();
+      });
+      return;
+    }
+    land();
   } else {
     $("#location").style.display = "none";
     $("#app").style.removeProperty("display");
     refreshLocationUI();
+    /* The studio and the street just moved, and both are public facts: the
+       server is told, and the directory is re-read so the distances on the
+       cards are measured from where this person now is. */
+    if (typeof dbPushProfile === "function" && dbConfigured() && dbSignedIn()) {
+      dbPushProfile({
+        address: text,
+        area: placed.areaId || null,
+        lat: usable ? placed.point.lat : undefined,
+        lng: usable ? placed.point.lng : undefined,
+      });
+      dbSyncDirectory(usable ? placed.point : null);
+    }
     toast("Location updated");
   }
 }

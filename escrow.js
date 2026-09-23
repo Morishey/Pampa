@@ -124,7 +124,7 @@ function ledgerNote(b, label) {
 }
 
 /* ---------- Transitions (each returns { ok, msg }) ---------- */
-function payBooking(id, method) {
+function payBookingLocal(id, method) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   if (statusOf(b) !== "unpaid") return { ok: false, msg: "This booking is already paid" };
@@ -145,7 +145,7 @@ function payBooking(id, method) {
   return { ok: true, ref: b.pay.ref };
 }
 
-function acceptBooking(id) {
+function acceptBookingLocal(id) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   if (statusOf(b) === "unpaid") return { ok: false, msg: "Payment hasn't reached escrow yet" };
@@ -228,7 +228,7 @@ function counterTotal(b, price) {
 /* The professional's answer: a price of their own, inside the range they
    publish. Outside it is refused rather than silently clamped — the range is
    the promise their card makes. */
-function counterBooking(id, price, note) {
+function counterBookingLocal(id, price, note) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   if (statusOf(b) !== "escrowed") return { ok: false, msg: "This request is already " + statusMeta(b).label.toLowerCase() };
@@ -252,7 +252,7 @@ function counterBooking(id, price, note) {
    difference, and nothing moves until it reaches escrow — so this stops short
    and reports what is owed. A lower one settles immediately and returns the
    difference. */
-function acceptCounter(id) {
+function acceptCounterLocal(id) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   const p = counterOf(b);
@@ -296,7 +296,7 @@ function settleCounter(b, price, refunded, toppedUp) {
 /* The client pays the difference a higher counter created. The escrow keeps
    one reference and one fee, recomputed from the agreed total, so the job is
    never split across two payments. */
-function completeCounterTopUp(id, method) {
+function completeCounterTopUpLocal(id, method) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   const p = counterOf(b);
@@ -311,7 +311,7 @@ function completeCounterTopUp(id, method) {
 
 /* The client says no: the counter dies with the booking. Money that never
    bought anything goes back in full — the professional has done no work. */
-function declineCounter(id) {
+function declineCounterLocal(id) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   const p = counterOf(b);
@@ -337,14 +337,14 @@ function refundBooking(b, reason) {
   return { ok: true, refunded: refunded, fee: fee };
 }
 
-function declineBooking(id) {
+function declineBookingLocal(id) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   if (statusOf(b) !== "escrowed") return { ok: false, msg: "Only a request awaiting you can be declined" };
   return refundBooking(b, "declined");
 }
 
-function cancelJob(id) {
+function cancelJobLocal(id) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   const s = statusOf(b);
@@ -361,7 +361,7 @@ function cancelJob(id) {
   return refundBooking(b, s === "escrowed" ? "cancelled-early" : "cancelled");
 }
 
-function markJobDone(id) {
+function markJobDoneLocal(id) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   if (statusOf(b) !== "confirmed") return { ok: false, msg: "Only a confirmed job can be marked done" };
@@ -461,7 +461,7 @@ function sessionHoldNote(b) {
   return (b.clientName || "a client") + " · " + sessionSinceLabel(b);
 }
 
-function releasePayment(id) {
+function releasePaymentLocal(id) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   const s = statusOf(b);
@@ -498,7 +498,7 @@ function commitEvidence(b, holder, labelFor) {
   return true;
 }
 
-function disputeBooking(id, reason, photos) {
+function disputeBookingLocal(id, reason, photos) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   if (statusOf(b) !== "confirmed") return { ok: false, msg: "Only a confirmed job can be reported" };
@@ -518,7 +518,7 @@ function disputeBooking(id, reason, photos) {
 }
 
 /* ---------- The stylist's side ---------- */
-function respondToDispute(bookingId, note, photos) {
+function respondToDisputeLocal(bookingId, note, photos) {
   const b = findBooking(bookingId);
   if (!b) return { ok: false, msg: "Booking not found" };
   if (statusOf(b) !== "disputed") return { ok: false, msg: "This booking is not under review" };
@@ -550,17 +550,18 @@ function submitDisputeResponse(bookingId) {
   const draft = responseDraftFor(bookingId);
   const el = document.querySelector('[data-responsenote="' + bookingId + '"]');
   const note = el ? el.value.trim() : draft.text;
-  const res = respondToDispute(bookingId, note, draft.photos.slice());
-  if (!res.ok) {
-    toast(res.msg);
-    return;
-  }
-  delete responseDrafts[bookingId];
-  toast(res.droppedPhotos
-    ? "Response filed — photos were too large to save on this device"
-    : "Response filed with the resolution desk");
-  renderPro();
-  if (deskOpen()) renderDesk();
+  respondToDispute(bookingId, note, draft.photos.slice()).then(function (res) {
+    if (!res.ok) {
+      toast(res.msg);
+      return;
+    }
+    delete responseDrafts[bookingId];
+    toast(res.droppedPhotos
+      ? "Response filed — photos were too large to save on this device"
+      : "Response filed with the resolution desk");
+    renderPro();
+    if (deskOpen()) renderDesk();
+  });
 }
 
 function deskOpen() {
@@ -584,7 +585,7 @@ function settleMath(amount, percent) {
   };
 }
 
-function settleDispute(id, outcome, percent) {
+function settleDisputeLocal(id, outcome, percent) {
   const b = findBooking(id);
   if (!b) return { ok: false, msg: "Booking not found" };
   if (statusOf(b) !== "disputed") return { ok: false, msg: "Only a disputed booking can be settled" };
@@ -915,8 +916,36 @@ function confirmPayment() {
     toast("This booking is no longer awaiting payment");
     return;
   }
+  const btn = $("#payNow");
   if (payDraft.mode === "topup") {
-    const res = completeCounterTopUp(b.id, payDraft.method);
+    setBusy(btn, true);
+    completeCounterTopUp(b.id, payDraft.method).then(function (res) {
+      setBusy(btn, false);
+      if (!res.ok) {
+        toast(res.msg);
+        return;
+      }
+      if (state.user) {
+        state.user.payMethod = payDraft.method;
+        save();
+      }
+      payDraft.stage = "done";
+      renderPaySheet();
+      renderBookings();
+      toast("Top-up paid — booking confirmed at " + naira(res.price));
+    }).catch(function (e) {
+      setBusy(btn, false);
+      toast(e && e.message ? e.message : "Payment did not go through — try again");
+    });
+    return;
+  }
+  if (statusOf(b) !== "unpaid") {
+    toast("This booking is no longer awaiting payment");
+    return;
+  }
+  setBusy(btn, true);
+  payBooking(b.id, payDraft.method).then(function (res) {
+    setBusy(btn, false);
     if (!res.ok) {
       toast(res.msg);
       return;
@@ -928,26 +957,11 @@ function confirmPayment() {
     payDraft.stage = "done";
     renderPaySheet();
     renderBookings();
-    toast("Top-up paid — booking confirmed at " + naira(res.price));
-    return;
-  }
-  if (statusOf(b) !== "unpaid") {
-    toast("This booking is no longer awaiting payment");
-    return;
-  }
-  const res = payBooking(b.id, payDraft.method);
-  if (!res.ok) {
-    toast(res.msg);
-    return;
-  }
-  if (state.user) {
-    state.user.payMethod = payDraft.method;
-    save();
-  }
-  payDraft.stage = "done";
-  renderPaySheet();
-  renderBookings();
-  toast(naira(b.total || b.price) + " held in escrow");
+    toast(naira(b.total || b.price) + " held in escrow");
+  }).catch(function (e) {
+    setBusy(btn, false);
+    toast(e && e.message ? e.message : "Payment did not go through — try again");
+  });
 }
 
 /* ---------- Negotiation sheet (the professional's counter) ---------- */
@@ -1054,15 +1068,22 @@ function sendCounter() {
   if (!b) return;
   const priceEl = $("#negoPrice");
   const noteEl = $("#negoNote");
-  const res = counterBooking(b.id, Number(priceEl ? priceEl.value : 0), noteEl ? noteEl.value.trim() : "");
-  if (!res.ok) {
-    toast(res.msg);
-    return;
-  }
-  hideSheetEl("#negoSheet");
-  toast("Price sent — " + naira(res.price) + " is with the client");
-  renderPro();
-  renderBookings();
+  const btn = $("#negoSend");
+  setBusy(btn, true);
+  counterBooking(b.id, Number(priceEl ? priceEl.value : 0), noteEl ? noteEl.value.trim() : "").then(function (res) {
+    setBusy(btn, false);
+    if (!res.ok) {
+      toast(res.msg);
+      return;
+    }
+    hideSheetEl("#negoSheet");
+    toast("Price sent — " + naira(res.price) + " is with the client");
+    renderPro();
+    renderBookings();
+  }).catch(function (e) {
+    setBusy(btn, false);
+    toast(e && e.message ? e.message : "Could not send that price — try again");
+  });
 }
 
 /* ---------- Pro mode ---------- */
@@ -1139,10 +1160,14 @@ function renderPro() {
   const jobs = proJobs(id);
   $("#proWho").textContent = st.name + " · " + st.skill;
   $("#proReqCount").textContent = String(jobs.requests.length);
+  /* The Jobs tab carries every accepted booking — confirmed work in progress
+     plus any dispute on it — so its count says what the tab actually holds,
+     and an accepted job is visible as a number the moment it is accepted. */
   const jobCount = $("#proJobCount");
+  const heldJobs = jobs.accepted.length + jobs.disputes.length;
   if (jobCount) {
-    jobCount.textContent = jobs.disputes.length ? String(jobs.disputes.length) : "";
-    jobCount.style.display = jobs.disputes.length ? "inline-block" : "none";
+    jobCount.textContent = heldJobs ? String(heldJobs) : "";
+    jobCount.style.display = heldJobs ? "inline-block" : "none";
   }
   $$(".proTab").forEach(function (t) {
     t.classList.toggle("active", t.dataset.protab === proTab);
@@ -1161,7 +1186,7 @@ function renderPro() {
 
   let body = "";
   if (proTab === "requests") body = proRequestsHtml(jobs.requests);
-  if (proTab === "jobs") body = proDisputesHtml(jobs.disputes) + proJobsHtml(jobs.accepted);
+  if (proTab === "jobs") body = proJobsHtml(jobs.accepted) + proDisputesHtml(jobs.disputes);
   if (proTab === "wallet") body = proWalletHtml(id, bal, jobs.closed);
 
   $("#proBody").innerHTML = head + body;
@@ -1679,23 +1704,29 @@ function renderDisputeSheet() {
 function submitDispute() {
   const noteEl = $("#disputeNote");
   if (noteEl) disputeDraft.note = noteEl.value.trim();
-  const res = disputeBooking(disputeDraft.bookingId, disputeDraft.reason, disputeDraft.photos.slice());
-  if (!res.ok) {
-    toast(res.msg);
-    return;
-  }
-  const b = findBooking(disputeDraft.bookingId);
-  if (b && disputeDraft.note) {
-    b.dispute.note = disputeDraft.note;
-    ledgerNote(b, "Client added: " + clip(disputeDraft.note, 80));
-    save();
-  }
-  closeAllSheets();
-  disputeDraft.photos = [];
-  renderBookings();
-  renderProfile();
-  const went = res.photosDropped ? " (photos were too large to save on this device)" : "";
-  toast("Reported — funds held while the desk reviews" + went);
+  /* Reporting a problem freezes the money for both sides until the desk
+     settles it — worth one confirmation, since it cannot be undone from
+     here. */
+  pampaConfirm({
+    title: "Report this problem?",
+    body: "The money stays frozen and " + ((findBooking(disputeDraft.bookingId) || {}).stylistName || "the stylist") + " isn't paid until the resolution desk settles it.",
+    confirmLabel: "Report & freeze escrow",
+    danger: true,
+  }).then(function (yes) {
+    if (!yes) return;
+    disputeBooking(disputeDraft.bookingId, disputeDraft.reason, disputeDraft.photos.slice(), disputeDraft.note).then(function (res) {
+      if (!res.ok) {
+        toast(res.msg);
+        return;
+      }
+      closeAllSheets();
+      disputeDraft.photos = [];
+      renderBookings();
+      renderProfile();
+      const went = res.photosDropped ? " (photos were too large to save on this device)" : "";
+      toast("Reported — funds held while the desk reviews" + went);
+    });
+  });
 }
 
 /* ---------- Resolution desk (mediator) ---------- */
@@ -1818,8 +1849,25 @@ function deskSettledHtml(list) {
 }
 
 function renderDesk() {
-  const open = deskDisputes();
-  const done = deskSettled();
+  /* Cloud first: when the database is on, the queue — open disputes and the
+     settled history — is the server's, and the lists here are what the desk
+     RPC answered. It lands async, so the local view paints first and is
+     replaced when the answer arrives. */
+  dbDeskLists().then(function (q) {
+    if (!q || !deskOpen()) return;
+    dbDeskOpenCache = q.open;
+    dbDeskSettledCache = q.settled;
+    if (deskOpen()) paintDesk(q.open, q.settled);
+  });
+  paintDesk(deskDisputes(), deskSettled());
+}
+
+/* The cached server answers, used between syncs. They start null and are only
+   read once a queue call has actually answered. */
+let dbDeskOpenCache = null;
+let dbDeskSettledCache = null;
+
+function paintDesk(open, done) {
   const frozen = deskFrozenTotal(open);
   const waiting = open.filter(function (b) { return !(b.dispute || {}).response; }).length;
   const waitingLine = waiting
@@ -1852,14 +1900,36 @@ function outcomeToast(r) {
 
 function settleFromDesk(id) {
   const p = pickFor(id);
-  const res = settleDispute(id, p.outcome, p.percent);
-  if (!res.ok) {
-    toast(res.msg);
-    return;
-  }
-  delete deskDraft.picks[id];
-  toast(outcomeToast(res.resolution));
-  renderDesk();
-  renderBookings();
-  renderProfile();
+  const b = findBooking(id) || {};
+  const amount = b.pay ? b.pay.amount : 0;
+  const m = p.outcome === "split" ? settleMath(amount, p.percent) : null;
+  const words = p.outcome === "refund"
+    ? "Refund " + naira(amount) + " to " + (b.clientName || "the client") + " in full."
+    : p.outcome === "release"
+      ? "Release " + naira(b.pay ? b.pay.netToPro : 0) + " to " + (b.stylistName || "the stylist") + "."
+      : "Split it " + p.percent + "/" + (100 - p.percent) + " — " + naira(m.toClient) + " to the client, " + naira(m.toPro) + " to " + (b.stylistName || "the stylist") + ".";
+  pampaConfirm({
+    title: "Settle this dispute?",
+    body: words + " The decision is written to the booking's money trail and cannot be undone.",
+    confirmLabel: "Settle it",
+    danger: true,
+  }).then(function (yes) {
+    if (!yes) return;
+    setBusy(document.querySelector('[data-settle="' + id + '"]'), true);
+    settleDispute(id, p.outcome, p.percent).then(function (res) {
+      setBusy(document.querySelector('[data-settle="' + id + '"]'), false);
+      if (!res.ok) {
+        toast(res.msg);
+        return;
+      }
+      delete deskDraft.picks[id];
+      toast(outcomeToast(res.resolution));
+      renderDesk();
+      renderBookings();
+      renderProfile();
+    }).catch(function (e) {
+      setBusy(document.querySelector('[data-settle="' + id + '"]'), false);
+      toast(e && e.message ? e.message : "Could not settle — try again");
+    });
+  });
 }

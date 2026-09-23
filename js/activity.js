@@ -367,7 +367,12 @@ function notifyEvents() {
   const proId = proStore.proId;
   const out = [];
   state.bookings.forEach(function (b) {
-    const isClient = (b.clientPhone || "") === phone;
+    /* A database row carries both ids, so identity is matched on both: the
+       phone string is what a phone account has, the uuid is what every
+       server-issued booking carries. An empty phone matches nobody. */
+    const actorId = (state.user || {}).serverId;
+    const isClient = (!!phone && (b.clientPhone || "") === phone) ||
+      (!!actorId && b.clientId === actorId);
     const isPro = b.stylistId === key || (!!proId && b.stylistId === proId);
     if (!isClient && !isPro) return;
     const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
@@ -404,23 +409,116 @@ function unreadEvents() {
 }
 
 function renderNotify() {
-  const dot = $("#notifyDot");
-  const btn = $("#notifyBtn");
-  if (!dot || !btn) return;
+  /* The bell is in every dashboard head now — Home, Work, Bookings, Profile —
+     so the count is painted on all of them at once. They are the same bell;
+     a reader who has opened one has opened them all. */
+  const dots = $$(".notifyDot");
+  const btns = $$(".notifyBtn");
+  if (!dots.length && !btns.length) return;
   const n = unreadEvents().length;
-  dot.style.display = n ? "flex" : "none";
-  dot.textContent = n > 9 ? "9+" : String(n);
-  btn.classList.toggle("hasUnread", n > 0);
-  btn.setAttribute("aria-label", n ? "Activity, " + n + " unread" : "Activity");
+  dots.forEach(function (dot) {
+    dot.style.display = n ? "flex" : "none";
+    dot.textContent = n > 9 ? "9+" : String(n);
+  });
+  btns.forEach(function (btn) {
+    btn.classList.toggle("hasUnread", n > 0);
+    btn.setAttribute("aria-label", n ? "Activity, " + n + " unread" : "Activity");
+  });
+}
+
+/* ---------- What is waiting on this account ----------
+   The bell is a history; this is a to-do list. One function answers for both
+   the notification sheet and the Home card, so the two can never disagree
+   about what still needs a tap: an unpaid booking to fund, a price to answer,
+   a finished job to release, a request to take or turn down, and a dispute on
+   either side of it. */
+function attentionItems() {
+  const u = state.user || {};
+  const out = [];
+  state.bookings.forEach(function (b) {
+    const side = bookingSide(b);
+    if (!side) return;
+    const st = statusOf(b);
+    const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
+    const who = side === "pro" ? (b.clientName || "A client") : (b.stylistName || "The stylist");
+    const when = esc(b.date) + " at " + esc(b.time);
+    if (side === "client") {
+      if (st === "unpaid") {
+        out.push({ bookingId: b.id, icon: "coin", tone: "warn",
+          title: "Pay to lock in " + (sv.name || "your booking"),
+          detail: naira(b.total || b.price || 0) + " into escrow · " + when });
+      } else if (st === "escrowed" && counterOf(b) != null) {
+        out.push({ bookingId: b.id, icon: "coin", tone: "warn",
+          title: who + " answered with " + naira(counterOf(b)),
+          detail: "Accept it, or decline for a full refund" });
+      } else if (st === "confirmed" && canRelease(b)) {
+        out.push({ bookingId: b.id, icon: "check", tone: "ok",
+          title: "Job done and satisfied?",
+          detail: "Release " + naira(b.pay ? b.pay.netToPro : 0) + " to " + who + " · " + when });
+      } else if (st === "disputed") {
+        out.push({ bookingId: b.id, icon: "alert", tone: "bad",
+          title: "Your report is with the resolution desk",
+          detail: "The money stays frozen until they settle it" });
+      }
+    } else {
+      if (st === "escrowed") {
+        out.push({ bookingId: b.id, icon: "calendar", tone: "warn", pro: true,
+          title: who + " wants " + (sv.name || "a service") + " · offers " + naira(offerOf(b)),
+          detail: when + " · " + (b.loc === "studio" ? "walk-in" : "home visit") });
+      } else if (st === "confirmed" && !b.proMarkedDone) {
+        out.push({ bookingId: b.id, icon: "briefcase", tone: "ok", pro: true,
+          title: who + " is booked for " + (sv.name || "a service"),
+          detail: "Mark it done once you're finished · " + when });
+      } else if (st === "disputed") {
+        out.push({ bookingId: b.id, icon: "alert", tone: "bad", pro: true,
+          title: who + " reported a problem",
+          detail: "File your side — the desk reads both before settling" });
+      }
+    }
+  });
+  return out;
+}
+
+/* The Home card's rows. Kept to three: a page that lists everything is a page
+   nobody reads, and the rest is a tap away in the bell. */
+function renderHomeAttention() {
+  const wrap = $("#homeAttention");
+  if (!wrap) return;
+  const items = attentionItems();
+  wrap.innerHTML = !items.length
+    ? ""
+    : '<div class="sectionHead"><h2>Needs your attention</h2>' +
+        '<span class="headNote">' + items.length + (items.length === 1 ? " thing" : " things") + "</span></div>" +
+      '<div class="attnCard">' + items.slice(0, 3).map(function (a) {
+        return '<button class="attnRow" data-notifygo="' + esc(a.bookingId) + '">' +
+          '<span class="attnIco ' + esc(a.tone) + '">' + icon(a.icon) + "</span>" +
+          '<span class="attnInfo"><b>' + esc(a.title) + "</b><small>" + esc(a.detail) + "</small></span>" +
+          '<span class="chev">' + icon("chevron") + "</span></button>";
+      }).join("") +
+      (items.length > 3
+        ? '<button class="attnMore" data-opennotify="1">' + (items.length - 3) + " more in your activity</button>"
+        : "") + "</div>";
 }
 
 function renderNotifySheet() {
   const all = notifyEvents();
   const seen = notifyStore.seen[accountKey()] || "";
-  $("#notifySub").textContent = all.length
-    ? all.length + " update" + (all.length === 1 ? "" : "s") + " on your bookings, clips and status"
-    : "Everything that moved on your bookings, clips and status";
-  $("#notifyBody").innerHTML = all.length
+  const attn = attentionItems();
+  const attnHtml = attn.length
+    ? '<div class="sectionHead"><h2>Needs your attention</h2><span class="headNote">' + attn.length + "</span></div>" +
+      '<div class="attnCard">' + attn.map(function (a) {
+        return '<button class="attnRow" data-notifygo="' + esc(a.bookingId) + '">' +
+          '<span class="attnIco ' + esc(a.tone) + '">' + icon(a.icon) + "</span>" +
+          '<span class="attnInfo"><b>' + esc(a.title) + "</b><small>" + esc(a.detail) + "</small></span>" +
+          '<span class="chev">' + icon("chevron") + "</span></button>";
+      }).join("") + "</div>"
+    : "";
+  $("#notifySub").textContent = attn.length
+    ? attn.length + " thing" + (attn.length === 1 ? "" : "s") + " need you" + (all.length ? " · " + all.length + " update" + (all.length === 1 ? "" : "s") : "")
+    : all.length
+      ? all.length + " update" + (all.length === 1 ? "" : "s") + " on your bookings, clips and status"
+      : "Everything that moved on your bookings, clips and status";
+  $("#notifyBody").innerHTML = attnHtml + (all.length
     ? '<div class="notifyList">' + all.slice(0, 40).map(function (e) {
         /* a booking event opens the booking; a clip event opens the clip it is
            about, with its comments already up; a status event plays the story */
@@ -461,7 +559,7 @@ function renderNotifySheet() {
         }
         return '<button class="notifyRow' + unread + '"' + go + ">" + inner + "</button>";
       }).join("") + "</div>"
-    : emptyState("requests", "Nothing yet", "Requests, acceptances, escrow events — and reactions or messages on your status — land here as they happen.");
+    : (attn.length ? "" : emptyState("requests", "Nothing yet", "Requests, acceptances, escrow events — and reactions or messages on your status — land here as they happen.")));
   renderNotifyPermit();
   bindNotifyReply();
 }

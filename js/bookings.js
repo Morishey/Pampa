@@ -17,13 +17,40 @@ function bookingIsLive(b) {
   return st === "escrowed" || st === "confirmed" || st === "disputed";
 }
 
+/* Which side of a booking the signed-in account is on. A booking can be both
+   — a professional who books someone else — and the client's reading of it is
+   the fuller one, so a client row stays a client row. */
+function bookingSide(b) {
+  const u = state.user || {};
+  const phone = u.phone || "";
+  /* The empty string is not an identity: a username account has no phone, and
+     comparing "" to "" would hand it every other phoneless account's jobs. */
+  const asClient = (!!phone && (b.clientPhone || "") === phone) ||
+    (!!u.serverId && b.clientId === u.serverId);
+  const asPro = u.role === "pro" &&
+    (b.stylistId === selfKey() || b.stylistId === "p:" + (u.phone || "guest"));
+  if (asPro && !asClient) return "pro";
+  return asClient ? "client" : null;
+}
+
+/* The tab's badge: what is still open on this account's side of the ledger.
+   Lives here because the count and the list have to agree — a badge saying 2
+   over a list showing one job would be a bug with a number on it. */
+function bookingOpenCount() {
+  return state.bookings.filter(function (b) {
+    return bookingSide(b) && bookingIsUpcoming(b);
+  }).length;
+}
+
 function renderBookings() {
   const list = $("#bookingList");
-  /* the ledger holds everyone's bookings on this device — show the signed-in
-     client theirs */
-  const mine = (state.user || {}).phone || "";
+  /* Both sides of the ledger land here now: the client's own bookings, and —
+     for a professional — the jobs they took, because this tab is where either
+     side checks what is happening. A pro's job is drawn with its own card and
+     one door into the desk, where the money actions live. */
+  const u = state.user || {};
   const items = state.bookings
-    .filter(function (b) { return (b.clientPhone || "") === mine; })
+    .filter(function (b) { return !!bookingSide(b); })
     .filter(function (b) {
       return state.statusFilter === "upcoming" ? bookingIsUpcoming(b) : !bookingIsUpcoming(b);
     })
@@ -33,13 +60,17 @@ function renderBookings() {
     });
   if (!items.length) {
     list.innerHTML = state.statusFilter === "upcoming"
-      ? emptyState("bookings_empty", "Nothing booked yet", "Pick a trade on Home and hold a slot with a stylist near you.")
+      ? emptyState("bookings_empty", "Nothing booked yet", u.role === "pro"
+          ? "Jobs clients book with you land here the moment escrow holds the money."
+          : "Pick a trade on Home and hold a slot with a stylist near you.")
       : emptyState("bookings_empty", "No past bookings", "Finished and settled jobs collect here with their money trail.");
+    renderNavCounts();
     return;
   }
   list.innerHTML = items.map(function (b) {
     const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
     const st = statusOf(b);
+    if (bookingSide(b) === "pro") return proBookingItem(b, sv);
     const meta = statusMeta(b);
     const net = b.pay ? b.pay.netToPro : 0;
     /* Which of the two ways this job happens, and where it happens: a walk-in
@@ -170,7 +201,77 @@ function renderBookings() {
       "</div>"
     );
   }).join("");
+  renderNavCounts();
+  /* the Home card reads the same list this page just did, so a job paid for or
+     released here stops being "needing attention" there at the same moment */
+  if (typeof renderHomeAttention === "function") renderHomeAttention();
   /* every booking transition lands in the activity feed */
   renderNotify();
+}
+
+/* The professional's reading of the same row: who is coming, when, and what
+   the money is doing — with one button, because the actions that move money
+   belong on the desk where the client's details and the payout sit beside
+   them, not duplicated in a list. */
+function proBookingItem(b, sv) {
+  const st = statusOf(b);
+  const meta = statusMeta(b);
+  const net = b.pay ? b.pay.netToPro : 0;
+  const where = b.loc === "studio"
+    ? icon("store") + " Walk-in · " + esc(b.studioAddress || b.studioAreaName || "your studio")
+    : icon("house") + " Home visit · " + esc(placeLine(b.address, b.areaName || b.areaId || "their area"));
+  const money = st === "released"
+    ? naira(net) + " paid out"
+    : st === "settled" && b.resolution
+      ? esc(resolutionText(b))
+      : b.pay ? naira(net) + " of " + naira(b.pay.amount) + " in escrow" : "Nothing in escrow yet";
+  const step = st === "escrowed"
+    ? "Waiting on you to accept or counter " + naira(offerOf(b))
+    : st === "confirmed"
+      ? (b.proMarkedDone ? "You marked it done — waiting on the client to release" : "Accepted · " + esc(b.date) + " at " + esc(b.time))
+      : st === "disputed" ? "A problem was reported — the desk holds the money"
+        : "";
+  return '<div class="bookingItem">' +
+      '<button class="card bookingCard" data-bookcard="' + esc(b.id) + '">' +
+      '<div class="bookingTop">' +
+        '<div class="svc-ico">' + icon(sv.ico) + "</div>" +
+        '<div class="b-info"><h4>' + esc(sv.name || b.serviceId) + " · " + esc(b.clientName || "Client") + "</h4>" +
+        "<p>" + esc(b.date) + " · " + esc(b.time) + "</p>" +
+        '<p class="bLoc">' + where + "</p></div>" +
+        '<span class="badge ' + meta.tone + (bookingIsLive(b) ? " live" : "") + '">' + esc(statusLabelFor(b)) + "</span>" +
+      "</div>" +
+      '<p class="bMoney">' + money + "</p>" +
+      "</button>" +
+      (step ? '<p class="proStep' + (st === "disputed" ? " warn" : st === "confirmed" ? " ok" : "") + '">' + step + "</p>" : "") +
+      '<div class="cardActions"><button class="bookBtn wide" data-gotowork="' + esc(b.id) + '">Open in Work</button></div>' +
+      (b.history && b.history.length
+        ? '<div class="journalWrap"><button class="journalToggle" data-journal="' + b.id + '">Money trail</button>' +
+          '<div class="journalBody" data-journalbody="' + b.id + '" style="display: none;">' + journalHtml(b, false) + "</div></div>"
+        : "") +
+    "</div>";
+}
+
+/* The two counts on the bottom nav. Work shows what is waiting on the pro;
+   Bookings shows what is still open on either side. Drawn from the same
+   functions the lists render from, so the badge can never contradict the
+   page behind it. */
+function renderNavCounts() {
+  const u = state.user || {};
+  const open = bookingOpenCount();
+  const bDot = $("#bookingsDot");
+  if (bDot) {
+    bDot.textContent = open > 9 ? "9+" : String(open);
+    bDot.style.display = open ? "flex" : "none";
+  }
+  const wDot = $("#workDot");
+  if (wDot) {
+    let waiting = 0;
+    if (u.role === "pro") {
+      const me = myProviderRecord();
+      waiting = me ? proJobs(me.id).requests.length : 0;
+    }
+    wDot.textContent = waiting > 9 ? "9+" : String(waiting);
+    wDot.style.display = waiting ? "flex" : "none";
+  }
 }
 

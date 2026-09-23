@@ -26,7 +26,19 @@
 .provStat,
 .provCard,
 .provMap,
-.covMap {
+.covMap,
+/* The empty states are panes like the rest — the glass pass gives them the
+   same surface and hairline, so they were drawing the only square box left in
+   the app (visible first in the bell's "Nothing yet", on a 30px-radius sheet). */
+.emptyState,
+.notifyRow,
+.svcRow,
+.review,
+.flowArt,
+.bookingCard,
+.profileCard,
+.proEntry,
+.attnCard {
   border-radius: var(--r-card);
 }
 
@@ -302,9 +314,14 @@ select,
   --shadow-soft: 0 1px 2px rgba(20, 20, 18, 0.04), 0 12px 26px -20px rgba(20, 20, 18, 0.3);
 
   --glow-gold: rgba(214, 162, 44, 0.3);
-  --glow-blue: rgba(88, 120, 255, 0.22);
-  --glow-violet: rgba(172, 130, 255, 0.2);
-  --wash: #eef0f4;
+  /* The wash sits behind the glass, and the glass is warm paper in this theme.
+     A cool blue-grey wash made the desktop frame (and pro mode) read as a
+     different app either side of the phone column — a lavender backdrop around
+     a gold-accented warm pane. The glows keep a little depth, but warmed so the
+     whole page belongs to one palette. */
+  --glow-blue: rgba(120, 126, 210, 0.16);
+  --glow-violet: rgba(178, 148, 224, 0.14);
+  --wash: #ecebe6;
   --grad-gold: linear-gradient(180deg, #9d6b0b, var(--gold));
   /* green is a text colour on tinted glass, so on paper it is deepened */
   --green: #056340;

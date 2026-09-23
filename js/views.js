@@ -83,12 +83,25 @@ function renderProfile() {
       ? waiting + " request" + (waiting === 1 ? "" : "s") + " waiting on you"
       : "Accept jobs, track escrow and withdraw earnings";
   }
+  /* The queue is the server's when there is one: the note counts the cached
+     answer rather than the device's own bookings, which for a mediator are
+     none of the disputes they are being asked to settle. */
   const deskNote = $("#deskEntryNote");
   if (deskNote) {
-    const open = deskDisputes().length;
-    deskNote.textContent = open
-      ? open + " dispute" + (open === 1 ? "" : "s") + " holding " + naira(deskFrozenTotal(deskDisputes())) + " in escrow"
+    const open = dbDeskOpenCache || deskDisputes();
+    deskNote.textContent = open.length
+      ? open.length + " dispute" + (open.length === 1 ? "" : "s") + " holding " + naira(deskFrozenTotal(open)) + " in escrow"
       : "Settle disputes held in escrow";
+  }
+  /* Whether the desk exists for this account is the server's answer. Until it
+     has one — no database, or the flags have not arrived yet — the device's
+     own role answers, which is how this screen behaved before the cloud. */
+  const deskEntry = $("#deskEntry");
+  if (deskEntry) {
+    const cloud = typeof dbConfigured === "function" && dbConfigured() && dbSignedIn();
+    const flagged = state.deskFlags ? !!(state.deskFlags.desk || state.deskFlags.admin) : null;
+    const allowed = cloud && flagged !== null ? flagged : u.role === "pro";
+    deskEntry.style.display = allowed ? "" : "none";
   }
 }
 
@@ -633,6 +646,11 @@ function enterApp() {
   /* a notification tap lands here on a cold start: route the hash before the
      user has scrolled anywhere, then scrub it */
   setTimeout(function () { consumeRoute(); }, 80);
+  /* The world outside this device is read on the way in: bookings, the
+     directory the database holds, and whether this account works the desk.
+     Each lands async and re-paints what it feeds, so the dashboard appears
+     immediately from its cache and is corrected a moment later. */
+  if (typeof dbCloudSync === "function") dbCloudSync();
   if (!hasLocation()) openLocation("app");
 }
 

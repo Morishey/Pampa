@@ -500,10 +500,46 @@ function confirmBooking() {
     history: [{ at: now, label: "Booking placed for " + d.date + " at " + d.time +
       " · client offers " + naira(priced.offer) }],
   };
+  /* The sheet's numbers were a quote; the booking itself is whatever the
+     server stores — the fee, the range and the slot are re-checked there, and
+     the row the desk and the pro both read is the one this returns. The local
+     object stays only for the offline world. */
+  const finish = function (id) {
+    closeSheet();
+    toast("Slot held at " + naira(priced.offer) + " — pay into escrow to lock it in");
+    openPaySheet(id);
+  };
+  /* Only a professional the database knows can take a server booking: the
+     seeded stylists and any record made on this device alone have no uuid to
+     file the job against, so they keep the local road below. */
+  if (dbConfigured() && dbSignedIn() && st.providerAccountId) {
+    const btn = $("#confirmBook");
+    setBusy(btn, true);
+    beginWork();
+    db.createBooking({
+      p_provider: st.providerAccountId || st.id,
+      p_service: sv.id,
+      p_date: d.date,
+      p_time: d.time,
+      p_loc: d.loc,
+      p_address: d.loc === "home" ? (u.address || "") : "",
+      p_offer: priced.offer,
+      p_note: "",
+    }).then(function (row) {
+      setBusy(btn, false);
+      endWork();
+      const stored = dbBookingStore(row);
+      if (stored) finish(stored.id);
+    }).catch(function (e) {
+      setBusy(btn, false);
+      endWork();
+      toast(e && e.message ? e.message : "Could not place that booking — try again");
+      renderSheet();
+    });
+    return;
+  }
   state.bookings.push(booking);
   save();
-  closeSheet();
-  toast("Slot held at " + naira(priced.offer) + " — pay into escrow to lock it in");
-  openPaySheet(booking.id);
+  finish(booking.id);
 }
 

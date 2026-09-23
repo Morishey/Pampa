@@ -174,6 +174,9 @@ function setProviderAvailable(on) {
   if (!me) return false;
   me.available = !!on;
   saveDirectory();
+  /* The switch is public: a client on another device is told "not taking new
+     bookings" by the server, not by a record that only lives here. */
+  if (typeof dbPushAvailability === "function") dbPushAvailability(on);
   refreshBookableSurfaces();
   return true;
 }
@@ -185,7 +188,18 @@ function setProviderAvailable(on) {
    here, and only here — the answer is one function so the four surfaces that
    state it cannot drift apart. */
 function providerInSession(p, now) {
-  return p ? activeSession(p.id, now) : null;
+  if (!p) return null;
+  /* A directory row from the database already carries the answer: the server
+     looked at the bookings this device cannot see. It is shaped like a local
+     session so every caller — the chips, the switch, the booking sheet —
+     reads one thing. */
+  if (p.cloud) {
+    return p.inSessionServer
+      ? { id: "session:" + p.id, clientName: p.busyWith || "a client",
+          date: todayIso(), time: p.since || "", cloud: true }
+      : null;
+  }
+  return activeSession(p.id, now);
 }
 
 function providerBookable(p, now) {
@@ -268,6 +282,10 @@ const GUEST_KEY = "p:guest";
 
 function selfKey() {
   const u = state.user || {};
+  /* Once the database knows this account, the uuid is who they are: bookings
+     arrive from the server keyed by it, so the local stores follow it and the
+     two halves match without a translation table in between. */
+  if (u.serverId) return u.serverId;
   return "p:" + (u.phone || "guest");
 }
 
@@ -287,7 +305,33 @@ function allProviders() {
     seen[p.id] = true;
     return true;
   });
-  return local.concat(STYLISTS.map(function (s) {
+  /* The database's directory sits between the device's own registrations and
+     the seeded stylists: real professionals registered anywhere, keyed by the
+     uuid their bookings carry. A local record holding the same id — the
+     signed-in professional's own — wins, because that is the copy with their
+     portfolio and their switch. The seeds stay under both, so a device that
+     has never reached the database still has a directory to show. */
+  const cloud = (typeof dbCloudRows === "function" ? dbCloudRows() : []).filter(function (p) {
+    /* A local record whose id is the same uuid — the signed-in professional's
+       own, adopted from the server — is the copy with the portfolio and the
+       switch, but it lacks the server-only fields (providerAccountId, the
+       session answer). Those are merged in rather than lost, so a booking
+       opened on their own card still files against the database. */
+    const twin = state.providers.find(function (q) { return q.id === p.id; });
+    if (twin) {
+      if (p.providerAccountId && !twin.providerAccountId) twin.providerAccountId = p.providerAccountId;
+      if (twin.inSessionServer === undefined && p.inSessionServer !== undefined) {
+        twin.inSessionServer = p.inSessionServer;
+        twin.busyWith = p.busyWith;
+        twin.since = p.since;
+      }
+      return false;
+    }
+    if (seen[p.id]) return false;
+    seen[p.id] = true;
+    return true;
+  });
+  return local.concat(cloud).concat(STYLISTS.map(function (s) {
     /* a seed with no portfolio would leave the spotlight strip empty on a
        fresh install; the curated seed works give every pro a public gallery,
        and a curated status gives every pro a ring on the stories rail */
@@ -363,6 +407,21 @@ function registerProviderSelf() {
   if (at === -1) state.providers.push(rec);
   else state.providers[at] = rec;
   saveDirectory();
+  /* The public record is the server's copy of these same facts. Pushed on
+     every rebuild — a trade, a studio, a picture, a bio — so a client on
+     another device reads what this device just saved. Fire and forget: a save
+     never waits on the network, and the next save retries anything missed. */
+  if (typeof dbConfigured === "function" && dbConfigured() && dbSignedIn()) {
+    dbPushProfile({
+      name: rec.name,
+      dp: rec.dp || "",
+      address: rec.address || "",
+      area: u.area || null,
+      bio: rec.bio || "",
+      lat: u.coords ? u.coords.lat : undefined,
+      lng: u.coords ? u.coords.lng : undefined,
+    });
+  }
 }
 
 function coversClient(st) {
@@ -449,6 +508,10 @@ function saveRates() {
   }
   if (!wanted.length) return { ok: false, msg: "Nothing to save yet" };
   wanted.forEach(function (w) { setProviderRange(me, w.id, w.min, w.max); });
+  /* The same ranges, stored against the account the server knows: this is the
+     record a client's directory row is built from, so the bands a client sees
+     are the ones saved here the moment they are saved. */
+  if (typeof dbPushRates === "function") dbPushRates(me.ranges);
   /* the range is what clients pick inside, so every surface that publishes it
      is redrawn now rather than on the next visit */
   refreshBookableSurfaces();

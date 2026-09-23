@@ -209,6 +209,24 @@ button:disabled {
   gap: 10px;
 }
 
+/* The reveal toggle rides at the end of the underline instead of after it.
+   A field with an eye used to cap at its own max-width, so the line stopped
+   short and the button floated past it in dead space — visible on the sign-in
+   screen, where "Your password" drew a line and the eye sat beyond it. Now the
+   input takes the rest of the row and the eye is laid over its right end, so
+   they read as one field. The right padding keeps a long value off the icon. */
+.pwRow .pwInput {
+  flex: 1 1 auto;
+  max-width: none;
+  padding-right: 38px;
+}
+
+.pwRow .pwEye {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+}
+
 .pwRow .pwIco {
   flex: none;
   display: grid;
@@ -1008,4 +1026,21 @@ button.workCard {
 /* Replies work from the bell, so a card can arrive already scrolled */
 @media (prefers-reduced-motion: reduce) {
   .cardFlash { animation: none; }
+}
+
+/* ==================== Swiping between clip feeds ====================
+   The scope tabs tint in the direction the feed would move while a
+   horizontal drag is in progress, then clear when it ends. transform and
+   colour only, so the tint never costs a layout pass mid-gesture. */
+.clipTab.swipeNext,
+.clipTab.swipePrev {
+  color: var(--gold);
+}
+
+.clipTab.swipeNext {
+  transform: translateX(3px);
+}
+
+.clipTab.swipePrev {
+  transform: translateX(-3px);
 }

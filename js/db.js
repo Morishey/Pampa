@@ -160,6 +160,8 @@ const db = {
   },
   me: () => dbCall("pampa_me"),
   updateProfile: (patch) => dbCall("pampa_update_profile", { p_patch: patch }),
+  changePassword: (current, next) =>
+    dbCall("pampa_change_password", { p_current: current || "", p_new: next }),
   setAvailability: (available) =>
     dbCall("pampa_set_availability", { p_available: available }),
   setRates: (rates) => dbCall("pampa_set_rates", { p_rates: rates }),
@@ -200,8 +202,8 @@ const db = {
   deskRoster: () => dbCall("pampa_desk_roster"),
 
   /* Disputes and the desk */
-  disputeBooking: (id, reason, photos) =>
-    dbCall("pampa_booking_dispute", { p_booking: id, p_reason: reason, p_photos: photos || [] }),
+  disputeBooking: (id, reason, photos, note) =>
+    dbCall("pampa_booking_dispute", { p_booking: id, p_reason: reason, p_photos: photos || [], p_note: note || "" }),
   replyToDispute: (id, note, photos) =>
     dbCall("pampa_booking_dispute_reply", { p_booking: id, p_note: note, p_photos: photos || [] }),
   deskQueue: () => dbCall("pampa_desk_queue"),

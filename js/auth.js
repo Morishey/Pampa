@@ -334,6 +334,53 @@ function accountByIdentifier(id) {
 function submitSignin() {
   const id = $("#signinId").value.trim();
   const password = $("#signinPassword").value;
+  if (!id) { toast("Enter your number or username"); return; }
+  if (!password) { toast("Enter your password"); return; }
+
+  /* With a database behind the app, the check is the database's: the password
+     is compared against the hash Postgres holds, not the one this device
+     remembers, and the answer is a session token. The device's own book is
+     only reached when there is no network to ask — it is a cache of who has
+     signed in here, not the authority on who they are. */
+  if (dbConfigured()) {
+    const btn = $("#sendOtp");
+    setBusy(btn, true);
+    beginWork();
+    db.login(id, password).then(function (res) {
+      setBusy(btn, false);
+      endWork();
+      dbSessionSet(res);
+      const acc = dbAdoptAccount(res.account);
+      if (!acc) { toast("That account came back incomplete — try again"); return; }
+      state.draft.phone = acc.phone || id;
+      /* signInReturning lands the session on its dashboard, and entering the
+         app is where the sync runs — bookings, directory and flags in one
+         pass — so nothing is fetched twice here. */
+      signInReturning(acc);
+    }).catch(function (e) {
+      setBusy(btn, false);
+      endWork();
+      if (e && (e.code === "offline" || e.code === "no_database")) {
+        signInFromDevice(id, password);
+        return;
+      }
+      toast(e && e.message ? e.message : "That didn’t go through — try again");
+      const input = $("#signinPassword");
+      if (input) {
+        input.classList.add("shake");
+        setTimeout(function () { input.classList.remove("shake"); }, 500);
+        input.select();
+      }
+    });
+    return;
+  }
+  signInFromDevice(id, password);
+}
+
+/* The device's own door, unchanged: the accounts book this browser has built
+   up, checked against the salted hash it stored. It is what answers when the
+   database is unreachable or was never configured. */
+function signInFromDevice(id, password) {
   const found = accountByIdentifier(id);
   if (found.reason === "empty") { toast("Enter your number or username"); return; }
   if (!password) { toast("Enter your password"); return; }
@@ -467,6 +514,13 @@ function applyPassword(password) {
       return;
     }
     toast("Welcome to Pampa, " + ((state.user || {}).name || "") + " — no code needed to sign in from now on");
+    /* The account is not created in the database yet: role, trade and location
+       are still ahead, and the server wants all of it in one call. The
+       credentials are held in memory until the location screen saves, which
+       is the last step of onboarding. */
+    if (dbConfigured()) {
+      dbArmRegistration(state.draft.phone, password, (state.user || {}).name || "");
+    }
     openRole();
   };
   if (passwordContext === "change") {
@@ -516,18 +570,26 @@ function savePassword() {
    provider lands back in pro mode with their trade intact, and their bookings
    reconnect because they are keyed to the same phone. */
 function signInReturning(acc) {
+  /* Merge, not clobber: the cloud layer (dbAdoptAccount) may already have
+     written fields this call does not receive — above all serverId, the uuid
+     every server booking is keyed by. Rebuilding state.user from the acc
+     alone would silently drop the session's identity and send every booking
+     made afterwards to the local ledger. */
+  const prev = state.user || {};
   state.user = {
     name: acc.name,
-    phone: state.draft.phone,
-    role: acc.role || (acc.trade ? "pro" : "client"),
-    trade: acc.trade || null,
-    area: acc.area || null,
-    coords: acc.coords || null,
-    coordsAccuracy: acc.coordsAccuracy || null,
-    address: acc.address || "",
-    dp: acc.dp || "",
+    phone: acc.phone || state.draft.phone || prev.phone || "",
+    role: acc.role || prev.role || (acc.trade ? "pro" : "client"),
+    trade: acc.trade !== undefined ? acc.trade : (prev.trade || null),
+    area: acc.area || prev.area || null,
+    coords: acc.coords || prev.coords || null,
+    coordsAccuracy: acc.coordsAccuracy || prev.coordsAccuracy || null,
+    address: acc.address || prev.address || "",
+    dp: acc.dp || prev.dp || "",
+    serverId: acc.serverId || prev.serverId || undefined,
     remember: true
   };
+  if (!state.user.serverId) delete state.user.serverId;
   save();
   /* A professional's public record is refreshed from the profile they just
      signed back into — the same refresh saving a trade, a bio or a location
@@ -669,49 +731,63 @@ function bindPushToAccount() {
 }
 
 function logout() {
-  state.user = null;
-  state.view = "home";
-  state.catFilter = "all";
-  state.query = "";
-  /* one account's expanded feed must not greet the next */
-  actExpanded = false;
-  actPullReset();
-  /* nor should one account's news keep chiming over the next one's session,
-     or its session clock keep redrawing the app behind a signed-out screen */
-  stopNewsWatch();
-  stopSessionWatch();
-  clearReplyTarget();
-  /* nor their open surfaces: the clip rail and any sheet on top of it would
-     otherwise still be showing the previous account's clips and comments */
-  if (typeof closeClipFeed === "function") closeClipFeed();
-  /* nor the full-screen account surfaces: the escrow desk, the resolution desk
-     and a provider's page all outlive a session unless they are closed here */
-  if (typeof closeAccountSurfaces === "function") closeAccountSurfaces();
-  const commentSheet = $("#commentSheet");
-  if (commentSheet) { commentSheet.classList.remove("show"); commentSheet.style.display = "none"; }
-  const overlay = $("#sheetOverlay");
-  if (overlay) overlay.style.display = "none";
-  /* nor their face: the nav avatar is cleared with the session that filled it */
-  const nav = $("#homeAvatar");
-  if (nav) {
-    nav.innerHTML = "P";
-    nav.setAttribute("aria-label", "Your profile");
-  }
-  /* the push registration was made for this account — the server must not
-     chime somebody else's phone with this one's news */
-  if (window.PampaPush) window.PampaPush.unsubscribeAll();
-  const searchInput = $("#search");
-  if (searchInput) searchInput.value = "";
-  try { localStorage.removeItem(KEY); } catch (e) {}
-  $("#app").style.display = "none";
-  $("#userName").value = "";
-  $("#telephone").value = "";
-  $("#signinId").value = "";
-  $("#signinPassword").value = "";
-  pendingAccount = null;
-  /* the accounts book survives logout on purpose — it is what lets the next
-     sign-in skip onboarding */
-  showPage("welcomePage");
-  toast("You have been logged out");
+  /* Signing out closes every door on this device — worth one confirmation.
+     The rest of the teardown runs on the promise so the screen doesn't flash
+     while the dialog is up. */
+  pampaConfirm({
+    title: "Sign out?",
+    body: "You'll need to sign in again to reach your bookings and this device's session ends here.",
+    confirmLabel: "Sign out",
+  }).then(function (yes) {
+    if (!yes) return;
+      state.user = null;
+    state.view = "home";
+    state.catFilter = "all";
+    state.query = "";
+    /* one account's expanded feed must not greet the next */
+    actExpanded = false;
+    actPullReset();
+    /* nor should one account's news keep chiming over the next one's session,
+       or its session clock keep redrawing the app behind a signed-out screen */
+    stopNewsWatch();
+    stopSessionWatch();
+    clearReplyTarget();
+    /* nor their open surfaces: the clip rail and any sheet on top of it would
+       otherwise still be showing the previous account's clips and comments */
+    if (typeof closeClipFeed === "function") closeClipFeed();
+    /* nor the full-screen account surfaces: the escrow desk, the resolution desk
+       and a provider's page all outlive a session unless they are closed here */
+    if (typeof closeAccountSurfaces === "function") closeAccountSurfaces();
+    const commentSheet = $("#commentSheet");
+    if (commentSheet) { commentSheet.classList.remove("show"); commentSheet.style.display = "none"; }
+    const overlay = $("#sheetOverlay");
+    if (overlay) overlay.style.display = "none";
+    /* nor their face: the nav avatar is cleared with the session that filled it */
+    const nav = $("#homeAvatar");
+    if (nav) {
+      nav.innerHTML = "P";
+      nav.setAttribute("aria-label", "Your profile");
+    }
+    /* the push registration was made for this account — the server must not
+       chime somebody else's phone with this one's news */
+    if (window.PampaPush) window.PampaPush.unsubscribeAll();
+    /* The device's half of signing out is done below; this is the server's — the
+       token is revoked so it cannot be replayed, and the cloud caches this
+       session filled are emptied with it. */
+    if (typeof dbCloudSignOut === "function") dbCloudSignOut();
+    const searchInput = $("#search");
+    if (searchInput) searchInput.value = "";
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    $("#app").style.display = "none";
+    $("#userName").value = "";
+    $("#telephone").value = "";
+    $("#signinId").value = "";
+    $("#signinPassword").value = "";
+    pendingAccount = null;
+    /* the accounts book survives logout on purpose — it is what lets the next
+       sign-in skip onboarding */
+    showPage("welcomePage");
+    toast("You have been logged out");
+  });
 }
 

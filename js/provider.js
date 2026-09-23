@@ -256,39 +256,54 @@ function finishRelease(postReview) {
   }
   const noteEl = $("#rateNote");
   const comment = noteEl ? noteEl.value.trim() : "";
-  const res = releasePayment(b.id);
-  if (!res.ok) {
-    toast(res.msg);
+  /* Cloud first: when the database is configured the release and the rating
+     are one server call — the payout row and the provider's public rating are
+     written in the same transaction the money moves in. The local rating
+     store still answers for a booking created before the switch. */
+  const rated = postReview
+    ? dbReleaseRated(b.id, rateDraft.stars, comment)
+    : Promise.resolve(releasePayment(b.id));
+  setBusy($("#rateSubmit"), true);
+  rated.then(function (res) {
+    setBusy($("#rateSubmit"), false);
+    if (!res.ok) {
+      toast(res.msg);
+      hideSheetEl("#rateSheet");
+      renderBookings();
+      return;
+    }
+    if (postReview) {
+      const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
+      const stars = rateDraft.stars;
+      const fresh = res.booking || findBooking(b.id);
+      if (!dbConfigured() || !fresh || !fresh.rated) {
+        addRating(b.stylistId, {
+          stars: stars,
+          at: new Date().toISOString(),
+          by: (state.user || {}).name || "Client",
+          comment: comment,
+          serviceId: b.serviceId,
+          serviceName: sv.name || "",
+          bookingId: b.id,
+        });
+      }
+      const cur = fresh || b;
+      cur.rated = { stars: stars, at: new Date().toISOString(), comment: comment };
+      save();
+      toast("Released " + naira(res.net) + " · " + stars + "-star review posted");
+    } else {
+      toast("Released " + naira(res.net) + " to " + (b.stylistName || "your stylist"));
+    }
     hideSheetEl("#rateSheet");
     renderBookings();
-    return;
-  }
-  if (postReview) {
-    const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
-    const stars = rateDraft.stars;
-    addRating(b.stylistId, {
-      stars: stars,
-      at: new Date().toISOString(),
-      by: (state.user || {}).name || "Client",
-      comment: comment,
-      serviceId: b.serviceId,
-      serviceName: sv.name || "",
-      bookingId: b.id,
-    });
-    b.rated = { stars: stars, at: new Date().toISOString(), comment: comment };
-    ledgerNote(b, "Client rated " + stars + " star" + (stars === 1 ? "" : "s") +
-      (comment ? ': "' + clip(comment, 60) + '"' : ""));
-    save();
-    toast("Released " + naira(res.net) + " · " + stars + "-star review posted");
-  } else {
-    toast("Released " + naira(res.net) + " to " + (b.stylistName || "your stylist"));
-  }
-  hideSheetEl("#rateSheet");
-  renderBookings();
-  renderStylists();
-  renderNotify();
-  /* the first money through the door is the moment the app is worth keeping:
-     one quiet offer to be installed, twice at most, never again after that */
-  maybeNudgeInstall();
+    renderStylists();
+    renderNotify();
+    /* the first money through the door is the moment the app is worth keeping:
+       one quiet offer to be installed, twice at most, never again after that */
+    maybeNudgeInstall();
+  }).catch(function (e) {
+    setBusy($("#rateSubmit"), false);
+    toast(e && e.message ? e.message : "Could not release that payment — try again");
+  });
 }
 

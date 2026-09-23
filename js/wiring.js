@@ -119,6 +119,13 @@ function wire() {
     if (book) { openSheet(book.dataset.book); return; }
     const gotoWork = t.closest("[data-goto-work]");
     if (gotoWork) { switchView("work"); return; }
+    /* a job row in the Bookings tab is the pro's door back to the desk, where
+       the money actions and the client's details actually live */
+    const proJob = t.closest("[data-gotowork]");
+    if (proJob) { switchView("work"); return; }
+    /* the Home card's "more" line opens the full activity sheet */
+    const openAttn = t.closest("[data-opennotify]");
+    if (openAttn) { openNotifySheet(); return; }
     const actMore = t.closest("[data-act-more]");
     if (actMore) { actExpanded = !actExpanded; renderProHomeCard(); return; }
     /* a clip event in the activity feed opens the clip itself */
@@ -346,21 +353,31 @@ function wire() {
        one refunds the difference */
     const accCounter = t.closest("[data-acceptcounter]");
     if (accCounter) {
-      const res = acceptCounter(accCounter.dataset.acceptcounter);
-      if (res.ok) {
-        toast("Price agreed at " + naira(res.price) + (res.topUp ? " — pay the " + naira(res.topUp) + " top-up to confirm" : " — booking confirmed"));
-        if (res.topUp) openTopUpSheet(accCounter.dataset.acceptcounter);
-      } else {
-        toast(res.msg);
-      }
-      renderBookings();
+      acceptCounter(accCounter.dataset.acceptcounter).then(function (res) {
+        if (res.ok) {
+          toast("Price agreed at " + naira(res.price) + (res.topUp ? " — pay the " + naira(res.topUp) + " top-up to confirm" : " — booking confirmed"));
+          if (res.topUp) openTopUpSheet(accCounter.dataset.acceptcounter);
+        } else {
+          toast(res.msg);
+        }
+        renderBookings();
+      });
       return;
     }
     const decCounter = t.closest("[data-declinecounter]");
     if (decCounter) {
-      const res = declineCounter(decCounter.dataset.declinecounter);
-      toast(res.ok ? "Counter declined · " + naira(res.refunded) + " refunded" : res.msg);
-      renderBookings();
+      pampaConfirm({
+        title: "Decline " + naira(offerOf(findBooking(decCounter.dataset.declinecounter) || {})) + "?",
+        body: "The booking ends and everything in escrow comes straight back to you.",
+        confirmLabel: "Decline · refund",
+        danger: true,
+      }).then(function (yes) {
+        if (!yes) return;
+        declineCounter(decCounter.dataset.declinecounter).then(function (res) {
+          toast(res.ok ? "Counter declined · " + naira(res.refunded) + " refunded" : res.msg);
+          renderBookings();
+        });
+      });
       return;
     }
     const method = t.closest("[data-paymethod]");
@@ -574,16 +591,29 @@ function wire() {
     if (settle) {
       settleFromDesk(settle.dataset.settle);
       return;
-    }
-    const cancelJobBtn = t.closest("[data-canceljob]");
+    }    const cancelJobBtn = t.closest("[data-canceljob]");
     if (cancelJobBtn) {
-      const res = cancelJob(cancelJobBtn.dataset.canceljob);
-      if (res.ok) {
-        toast(res.refunded > 0 ? "Cancelled · " + naira(res.refunded) + " refunded" : "Booking cancelled");
-      } else {
-        toast(res.msg);
-      }
-      renderBookings();
+      /* Cancelling moves real money and can cost a fee — the tap that asked
+         for it is never the tap that does it. */
+      const id = cancelJobBtn.dataset.canceljob;
+      const b = findBooking(id);
+      const feeNote = b && b.pay ? "A 10% fee applies to cancelling a confirmed job." : "The escrow comes back to you in full.";
+      pampaConfirm({
+        title: "Cancel this booking?",
+        body: (b ? (b.stylistName || "The professional") + " loses the slot, and " + feeNote : feeNote),
+        confirmLabel: "Cancel booking",
+        danger: true,
+      }).then(function (yes) {
+        if (!yes) return;
+        cancelJob(id).then(function (res) {
+          if (res.ok) {
+            toast(res.refunded > 0 ? "Cancelled · " + naira(res.refunded) + " refunded" : "Booking cancelled");
+          } else {
+            toast(res.msg);
+          }
+          renderBookings();
+        });
+      });
       return;
     }
 
@@ -596,10 +626,11 @@ function wire() {
     }
     const acceptBtn = t.closest("[data-acceptjob]");
     if (acceptBtn) {
-      const res = acceptBooking(acceptBtn.dataset.acceptjob);
-      toast(res.ok ? "Job accepted at the client's price — they have been notified" : res.msg);
-      renderPro();
-      renderBookings();
+      acceptBooking(acceptBtn.dataset.acceptjob).then(function (res) {
+        toast(res.ok ? "Job accepted at the client's price — they have been notified" : res.msg);
+        renderPro();
+        renderBookings();
+      });
       return;
     }
     /* negotiating: the pro answers a request with a price of their own */
@@ -616,18 +647,28 @@ function wire() {
     }
     const declineBtn = t.closest("[data-declinejob]");
     if (declineBtn) {
-      const res = declineBooking(declineBtn.dataset.declinejob);
-      toast(res.ok ? "Declined — client refunded " + naira(res.refunded) : res.msg);
-      renderPro();
-      renderBookings();
+      pampaConfirm({
+        title: "Decline this job?",
+        body: "The client's escrow is refunded in full, and the slot goes back on the market.",
+        confirmLabel: "Decline job",
+        danger: true,
+      }).then(function (yes) {
+        if (!yes) return;
+        declineBooking(declineBtn.dataset.declinejob).then(function (res) {
+          toast(res.ok ? "Declined — client refunded " + naira(res.refunded) : res.msg);
+          renderPro();
+          renderBookings();
+        });
+      });
       return;
     }
     const doneBtn = t.closest("[data-jobdone]");
     if (doneBtn) {
-      const res = markJobDone(doneBtn.dataset.jobdone);
-      toast(res.ok ? "Marked done — waiting for the client to release payment" : res.msg);
-      renderPro();
-      renderBookings();
+      markJobDone(doneBtn.dataset.jobdone).then(function (res) {
+        toast(res.ok ? "Marked done — waiting for the client to release payment" : res.msg);
+        renderPro();
+        renderBookings();
+      });
       return;
     }
     const destType = t.closest("[data-desttype]");
@@ -796,7 +837,12 @@ function wire() {
   $("#proEntry").addEventListener("click", enterProMode);
   $("#proExit").addEventListener("click", exitProMode);
   $("#providerExit").addEventListener("click", exitProviderProfile);
-  $("#notifyBtn").addEventListener("click", openNotifySheet);
+  /* One bell per dashboard head — Home, Work, Bookings, Profile — all opening
+     the same sheet, so the news is one tap away wherever the reader is. */
+  $$(".notifyBtn").forEach(function (b) {
+    b.addEventListener("click", openNotifySheet);
+  });
+
   $("#notifyPermitBtn").addEventListener("click", askNotifyPermission);
   $("#notifyEntry").addEventListener("click", function () {
     /* the Profile row asks when it can be asked, and explains when it cannot */
@@ -1095,6 +1141,21 @@ function motionGate() {
 
 function boot() {
   load();
+  /* The keyboard problem, solved once: Android (and iOS in some positions)
+     squeezes the visible space when a keyboard opens, but the fixed auth
+     screens keep their old height — so a button centered in "the viewport"
+     ends up half behind the keyboard on tall phones. The visual viewport's
+     real height is published as a CSS variable, and the auth screens size
+     themselves with it, so what is centered is centered in what a thumb can
+     actually reach. Keyboard closed, the variable equals the full height and
+     nothing changes. */
+  if (window.visualViewport) {
+    const setVvh = function () {
+      document.documentElement.style.setProperty("--vvh", window.visualViewport.height + "px");
+    };
+    setVvh();
+    window.visualViewport.addEventListener("resize", setVvh);
+  }
   loadLedger();
   loadRatings();
   loadNotify();
@@ -1119,14 +1180,24 @@ function boot() {
   renderNotify();
   const intro = $(".intro");
   const welcome = $(".welcomePage");
+  /* A session token outlives the page: the server is asked who it belongs to
+     before the welcome screen is shown, and a live one walks straight back in
+     — including on a device whose local profile was cleared. The ask is
+     async, so the intro plays meanwhile and is replaced the moment it
+     answers. */
+  if (typeof dbCloudRestore === "function") dbCloudRestore();
   if (state.user) {
     intro.style.display = "none";
     enterApp();
     return;
   }
   setTimeout(function () {
+    /* a session restored from the server while the splash played has already
+       opened the app — the welcome screen must not slide back over it */
+    if (dbSessionLanded) return;
     intro.classList.add("slide-up");
     setTimeout(function () {
+      if (dbSessionLanded) return;
       intro.style.display = "none";
       welcome.style.removeProperty("display");
       welcome.style.opacity = "1";

@@ -1529,3 +1529,109 @@ html.anim .hasOverflowX.moreR {
   height: 13px;
 }
 
+
+/* =============================================================================
+   The confirm dialog
+   One glass card for every decision worth a pause. It sits above the sheets
+   (a confirmation can be raised from inside the desk or the booking flow),
+   and the veil carries the same darkness the sheets use, so the stack reads
+   as one depth system rather than two.
+   ============================================================================= */
+.confirmVeil {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(4, 6, 10, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.confirmVeil.show {
+  opacity: 1;
+}
+
+.confirmCard {
+  width: 100%;
+  max-width: 340px;
+  border-radius: 22px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.55);
+  padding: 20px 18px 16px;
+  transform: translateY(14px) scale(0.97);
+  transition: transform 0.22s cubic-bezier(0.22, 0.9, 0.3, 1.25);
+}
+
+.confirmVeil.show .confirmCard {
+  transform: translateY(0) scale(1);
+}
+
+.confirmTitle {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.confirmBody {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.confirmActs {
+  display: flex;
+  gap: 10px;
+}
+
+.confirmBtn {
+  flex: 1;
+  padding: 12px 10px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  color: var(--ink);
+  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.confirmBtn:active {
+  transform: scale(0.97);
+}
+
+.confirmBtn.main {
+  background: var(--grad-gold);
+  border-color: transparent;
+  color: var(--on-gold);
+}
+
+.confirmBtn.main.danger {
+  /* The fill, not the ink: this button carries white text, and --danger is the
+     shade that reads as a colour on the dark card, not as a background for a
+     label. --danger-fill is the pair picked to clear 4.5:1 under white. */
+  background: var(--danger-fill);
+  color: #fff;
+}
+
+.confirmBtn.main:focus-visible,
+.confirmBtn.ghost:focus-visible {
+  outline: 2px solid var(--gold-ring);
+  outline-offset: 2px;
+}
+
+[data-theme="light"] .confirmVeil {
+  background: rgba(16, 22, 32, 0.38);
+}
+
+[data-theme="light"] .confirmCard {
+  box-shadow: 0 24px 60px -22px rgba(16, 22, 32, 0.4);
+}

@@ -377,6 +377,9 @@ function renderStylists() {
   /* the nearest three are rewritten with the list they sit above, so an area
      change or a new registration shows up in the chips too */
   renderNearChips();
+  /* the attention card sits above this list and counts the same ledger, so it
+     is redrawn whenever the ledger changes what this page shows */
+  if (typeof renderHomeAttention === "function") renderHomeAttention();
   /* Everyone, nearest first — the whole point of the list — narrowed by the
      same chips and search that narrow the rest of the page, so "nails" shows
      the nail technicians and nothing else. */

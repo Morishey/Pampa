@@ -120,13 +120,20 @@ function clearDp() {
   const who = dpOwner();
   if (!who || !who.dp) return;
   const isPro = who !== state.user;
-  delete who.dp;
-  if (state.user) delete state.user.dp;
-  if (isPro) saveDirectory();
-  rememberAccount();
-  save();
-  refreshProviderSurfaces();
-  toast("Photo removed — you show as your initial again");
+  pampaConfirm({
+    title: "Remove your photo?",
+    body: "You'll show as your initial until you upload a new one.",
+    confirmLabel: "Remove photo",
+  }).then(function (yes) {
+    if (!yes) return;
+    delete who.dp;
+    if (state.user) delete state.user.dp;
+    if (isPro) saveDirectory();
+    rememberAccount();
+    save();
+    refreshProviderSurfaces();
+    toast("Photo removed — you show as your initial again");
+  });
 }
 
 /* ---------- Portfolio ---------- */
@@ -280,11 +287,18 @@ function addWorkLink() {
 function removeWork(id) {
   const rec = myProviderRecord();
   if (!rec) return;
-  rec.works = worksOf(rec).filter(function (w) { return w.id !== id; });
-  saveDirectory();
-  renderFolioSheet();
-  refreshProviderSurfaces();
-  toast("Removed");
+  pampaConfirm({
+    title: "Remove this work?",
+    body: "Clients will no longer see it on your profile.",
+    confirmLabel: "Remove",
+  }).then(function (yes) {
+    if (!yes) return;
+    rec.works = worksOf(rec).filter(function (w) { return w.id !== id; });
+    saveDirectory();
+    renderFolioSheet();
+    refreshProviderSurfaces();
+    toast("Removed");
+  });
 }
 
 /* ---------- Work viewer ---------- */

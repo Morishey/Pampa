@@ -124,6 +124,93 @@ function renderClipFeed() {
   const start = items[clipFeedState.index] ? clipFeedState.index : 0;
   scroller.scrollTop = start * scroller.clientHeight;
   observeClipSlides();
+  bindClipSwipe(scroller);
+}
+
+/* Pointer events cover touch, pen and mouse alike, so the rail needs exactly
+   one binding per open — and it is guarded against doubling up. */
+function bindClipSwipe(scroller) {
+  if (scroller.dataset.swipeBound) return;
+  scroller.dataset.swipeBound = "1";
+  scroller.addEventListener("pointerdown", function (e) {
+    clipSwipeStart(e.clientX, e.clientY);
+  });
+  scroller.addEventListener("pointermove", function (e) {
+    clipSwipeMove(e.clientX, e.clientY);
+  });
+  scroller.addEventListener("pointerup", function (e) {
+    clipSwipeEnd(e.clientX, e.clientY);
+  });
+  scroller.addEventListener("pointercancel", function () {
+    CLIP_SWIPE.active = false;
+    tintClipScope(0);
+  });
+}
+
+/* ---------- Swiping between the two feeds ----------
+   A horizontal drag on the rail changes the feed the way the tabs do: For you
+   and Near you are one gesture apart, the way the same two rows are one
+   gesture apart everywhere else in the app. The rule that keeps it honest is
+   the angle: a drag is a swipe only when it is clearly sideways — anything
+   nearer to vertical is the scroll the rail exists for, and must never be
+   taken from it. */
+const CLIP_SWIPE = { x0: 0, y0: 0, t: 0, active: false };
+
+function clipSwipeStart(x, y) {
+  CLIP_SWIPE.x0 = x;
+  CLIP_SWIPE.y0 = y;
+  CLIP_SWIPE.t = Date.now();
+  CLIP_SWIPE.active = true;
+}
+
+function clipSwipeMove(x, y) {
+  if (!CLIP_SWIPE.active) return;
+  const dx = x - CLIP_SWIPE.x0;
+  const dy = y - CLIP_SWIPE.y0;
+  /* Only a mostly-horizontal drag drags the scope in; the chips tint as the
+     feed would move, so the gesture says what it is doing while it is
+     doing it. */
+  if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+    const dir = dx < 0 ? 1 : -1;
+    tintClipScope(dir);
+  } else {
+    tintClipScope(0);
+  }
+}
+
+function clipSwipeEnd(x, y) {
+  if (!CLIP_SWIPE.active) return;
+  CLIP_SWIPE.active = false;
+  const dx = x - CLIP_SWIPE.x0;
+  const dy = y - CLIP_SWIPE.y0;
+  const dt = Date.now() - CLIP_SWIPE.t;
+  tintClipScope(0);
+  /* Committed: far enough, mostly sideways, fast enough to be a flick —
+     the three tests a platform swipe usually applies, in one condition. */
+  if (Math.abs(dx) < 64 || Math.abs(dx) < Math.abs(dy) * 1.4 || dt > 900) return;
+  const dir = dx < 0 ? 1 : -1;   /* left goes to the next feed, right the previous */
+  const scopes = ["foryou", "near"];
+  const at = scopes.indexOf(clipFeedState.scope);
+  const next = scopes[Math.min(scopes.length - 1, Math.max(0, at + dir))];
+  if (next !== clipFeedState.scope) {
+    clipFeedState.scope = next;
+    clipFeedState.items = clipItems(next);
+    clipFeedState.index = 0;
+    renderClipFeed();
+  }
+}
+
+/* The tabs tint in the direction the feed would move, then clear. Direction 0
+   is "not a swipe" and restores both. */
+function tintClipScope(dir) {
+  const tabs = [document.querySelector('[data-clipscope="foryou"]'),
+                document.querySelector('[data-clipscope="near"]')];
+  const at = tabs.indexOf(document.querySelector(".clipTab.active"));
+  tabs.forEach(function (t, i) {
+    if (!t) return;
+    t.classList.toggle("swipeNext", dir === 1 && i === at + 1);
+    t.classList.toggle("swipePrev", dir === -1 && i === at - 1);
+  });
 }
 
 /* Only the clip on screen loads and plays; the ones either side are warm. No

@@ -43,6 +43,11 @@ function beginWork() {
   workDepth += 1;
   if (workDepth > 1) return;
   clearTimeout(workHide);
+  /* The bar waits half a second before it shows: anything faster than that is
+     an instant in a reader's hands, and a bar that flashes up and back for it
+     is noise, not news. The things that outrun this delay — a password hash,
+     a price save — simply never show a bar at all, which is the point. The
+     long jobs keep theirs, because a wait with no signal reads as a freeze. */
   workTimer = setTimeout(function () {
     const el = workBar();
     const fill = el.firstChild;
@@ -50,7 +55,7 @@ function beginWork() {
     el.classList.remove("done");
     fill.style.width = "10%";
     requestAnimationFrame(function () { fill.style.width = "72%"; });
-  }, 140);
+  }, 500);
 }
 
 function endWork() {

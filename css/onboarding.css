@@ -105,6 +105,26 @@
    The mark is the name now, so the rule went with the two divs it served. */
 
 /* ===== Welcome / login ===== */
+
+/* ===== Keyboard safety on Android =====
+   The welcome and auth screens are fixed inset-0 with their content centered.
+   When the keyboard opens, Android resizes the layout viewport (the
+   interactive-widget meta makes that so), so "fixed to the viewport" now
+   tracks the space actually visible — which is what keeps the Create account
+   button on screen instead of half behind the keyboard on tall phones.
+   The --vvh pixel height is set from the visual viewport in wiring.js, so
+   "centered" means centered in the space a thumb can actually reach. */
+.welcomePage,
+#number,
+#otp,
+#role,
+#name,
+#trade,
+#location,
+#password {
+  height: var(--vvh, 100vh);
+}
+
 .welcomePage {
   position: fixed;
   inset: 0;
@@ -114,6 +134,9 @@
   justify-content: center;
   align-items: center;
   text-align: center;
+  /* viewport-fit=cover paints under Android's gesture bar; this keeps the
+     centred button stack clear of it */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background-color: var(--bg);
   background-image: radial-gradient(85% 45% at 50% 26%, var(--glow-gold), transparent 70%);
   transition: transform 0.5s ease-in-out, opacity 0.5s ease;
@@ -195,7 +218,12 @@
   inset: 0;
   z-index: 20;
   width: 100%;
-  height: 100vh;
+  /* dvh, not 100vh: Android Chrome's 100vh is the toolbar-hidden height, so a
+     screen centred against it hangs past the real bottom - the welcome page's
+     Sign in / Create account buttons sat half off-screen on large Androids.
+     dvh tracks what is actually visible; --vvh (JS, keyboard-aware) refines
+     it further while a keyboard is open. */
+  height: 100dvh;
   background-color: var(--bg);
   display: flex;
   flex-direction: column;
@@ -247,8 +275,10 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  margin-top: 48px;
-  margin-left: 15px;
+  /* Both gutters, not just the left one: the auth fields used to run to the
+     screen's right edge while the heading started 15px in, which read as a
+     lopsided screen and left the reveal toggle hanging outside the field. */
+  margin: 48px 15px 0;
 }
 
 .t1 {
