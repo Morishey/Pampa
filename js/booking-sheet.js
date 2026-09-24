@@ -514,6 +514,14 @@ function confirmBooking() {
      payment is one tap on the card — and the card is what says the slot is not
      held until that tap, which is the honest order to read them in. */
   const finish = function (id) {
+    /* The whole stack retreats, by itself: the sheet slides back down, and the
+       professional's page it was opened from gets out of the way with it. The
+       handover below is about to show the booking itself — its card, flashed
+       where it landed — and a profile still standing on top of that hid the
+       one thing the booking was made for. The service-row Book button already
+       closes the page before it opens the sheet; this is the same rule at the
+       other end of the same flow. */
+    if (state.providerView) exitProviderProfile();
     closeSheet();
     toast("Booking placed · pay " + naira(priced.offer + travelFee) + " into escrow to lock the slot");
     openBookingDesk(id);
@@ -576,6 +584,14 @@ function confirmBooking() {
         endWork();
         const stored = dbBookingStore(row);
         if (stored) finish(stored.id);
+        /* A booking the server accepted but this device could not read back —
+           a row with no id — is still a booking. The sheet closes either way,
+           because a sheet that stays open over a job that was already filed
+           looks exactly like a booking that failed. */
+        else {
+          closeSheet();
+          toast("Booking placed — open Bookings to see it");
+        }
       }).catch(function (e) {
         setBusy(btn, false);
         endWork();

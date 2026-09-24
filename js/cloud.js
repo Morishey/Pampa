@@ -38,8 +38,21 @@ function dbBookingStore(row) {
   const b = dbBookingIn(row);
   if (!b || !b.id) return null;
   const at = state.bookings.findIndex(function (x) { return x.id === b.id; });
-  if (at === -1) state.bookings.push(b);
-  else state.bookings[at] = Object.assign({}, state.bookings[at], b);
+  /* The row that was just pushed is returned, rather than read back by index.
+     `-1` is not an index: `state.bookings[at]` handed back **undefined** for
+     exactly the bookings this device had never seen — which is every booking
+     the *server* mints, because the id arrives with the row. The callers that
+     test the answer are the ones that matter: the booking sheet's handover is
+     `if (stored) finish(stored.id)`, so a booking placed there was stored and
+     then left the sheet standing over it, with no toast and the new card never
+     shown. Transitions that read the booking back (accepting an offer, for
+     one) were handed nothing on the same rows. */
+  if (at === -1) {
+    state.bookings.push(b);
+    save();
+    return b;
+  }
+  state.bookings[at] = Object.assign({}, state.bookings[at], b);
   save();
   return state.bookings[at];
 }
