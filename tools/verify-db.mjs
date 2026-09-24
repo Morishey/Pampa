@@ -550,6 +550,85 @@ async function main() {
     return `proMarkedDone ${b.proMarkedDone} · status still ${b.status}`;
   });
 
+  /* -- 5b. What a destination may be, and when money may move --------------
+     A payout destination is not a form field: it is the row a payout is written
+     against when escrow releases, so the rules for what may be saved are money
+     rules. Each of these is a hand-written request — the same shape the app
+     sends, without the app's own reading of the rules — because a rule only a
+     form enforces is not a rule. */
+  await refused(
+    "a bank account that is not ten digits is refused",
+    () => rpc("pampa_add_destination", {
+      p_kind: "bank", p_label: "Short one",
+      p_details: { bank: "GTBank", account: "012345678" },
+    }, state.pro.token),
+    "10 digits"
+  );
+
+  await refused(
+    "a wallet address that is not that chain's shape is refused",
+    () => rpc("pampa_add_destination", {
+      p_kind: "crypto", p_label: "Wrong chain",
+      /* an Ethereum address offered as a Tron one: the mistake that is easiest
+         to make and most expensive to make */
+      p_details: { network: "TRC20", address: "0x9f2a4b7c1d6e8f0a3b5c7d9e1f2a4b6c8d0e1f3a" },
+    }, state.pro.token),
+    "34 characters"
+  );
+
+  await refused(
+    "a network Pampa cannot pay over is refused",
+    () => rpc("pampa_add_destination", {
+      p_kind: "crypto", p_label: "Dogecoin",
+      p_details: { network: "DOGE", address: "D5AbC1234567890abcdef" },
+    }, state.pro.token),
+    "Pampa pays over"
+  );
+
+  /* And the money cannot leave escrow to somebody who has nowhere for it to
+     land. The client is the one holding the button, so the refusal has to say
+     whose problem it is and what ends it. */
+  await refused(
+    "a client cannot release to a professional who has nowhere to be paid",
+    () => rpc("pampa_booking_release", { p_booking: state.bookingId, p_rating: 5 }, state.client.token),
+    "has not added a payout account"
+  );
+
+  await check("the refused release moved nothing at all", async () => {
+    const list = await rpc("pampa_bookings", {}, state.client.token);
+    const mine = (list || []).find((b) => b.id === state.bookingId);
+    assert(mine, "the booking vanished");
+    assert(mine.status === "confirmed", `status is ${mine.status}, expected still confirmed`);
+    assert(mine.pay && mine.pay.amount === mine.total, "the escrow moved with a release that was refused");
+    const w = await rpc("pampa_wallet", {}, state.pro.token);
+    assert((w.payouts || []).length === 0, "a payout was written for a release that was refused");
+    return `still ${mine.status} · ₦${mine.pay.amount} still in escrow · no payout written`;
+  });
+
+  await check("a professional saves a bank account, normalised, before any money can move", async () => {
+    const w = await rpc("pampa_add_destination", {
+      p_kind: "bank", p_label: "GTBank ····6789",
+      /* typed the way a person pastes it: spaced, and padded */
+      p_details: { bank: "  GTBank ", account: "0123 456 789" }, p_default: true,
+    }, state.pro.token);
+    const bank = (w.destinations || [])[0];
+    assert(bank && bank.kind === "bank", `the bank account was not saved: ${JSON.stringify(w).slice(0, 160)}`);
+    assert(bank.default === true, "the first destination saved did not become the default");
+    assert(bank.details.account === "0123456789", `the account was stored as ${bank.details.account}`);
+    assert(bank.details.bank === "GTBank", `the bank was stored as "${bank.details.bank}"`);
+    state.destBank = bank.id;
+    return `saved ${bank.details.bank} ${bank.details.account} · default`;
+  });
+
+  await refused(
+    "the same destination cannot be saved twice",
+    () => rpc("pampa_add_destination", {
+      p_kind: "bank", p_label: "The same bank again",
+      p_details: { bank: "GTBank", account: "0123456789" },
+    }, state.pro.token),
+    "already saved"
+  );
+
   await check("the client releases escrow with a rating, and the pro is paid net of fee", async () => {
     const b = await rpc(
       "pampa_booking_release",
@@ -571,7 +650,12 @@ async function main() {
       `net ${p.net} is not the total ${b.total} less the fee ${p.fee}`
     );
     assert(state.expectNet < b.total, "the payout was not net of any fee");
-    return `released ${b.total} · fee ${p.fee} · net to barber ${p.net}`;
+    /* It lands in whichever destination is default at that moment, which is the
+       entire meaning of default — and now the only way it can land at all. */
+    assert(p.destination === state.destBank,
+      `the payout landed at ${p.destination}, not the default ${state.destBank}`);
+    assert(p.status === "sent", `the payout is ${p.status}, expected sent`);
+    return `released ${b.total} · fee ${p.fee} · net to barber ${p.net} → the default destination`;
   });
 
   await check("the barber's wallet shows the payout and nothing still held", async () => {
@@ -583,34 +667,28 @@ async function main() {
     return `paid ${p.net} net of ${p.fee} · held ${w.held} · ref ${p.ref}`;
   });
 
-  /* -- 5b. Where the money lands -----------------------------------------
-     A payout destination is not a form field: it is the row a payout is
-     written against when escrow releases. Three things are worth proving —
-     that an account can keep several, that it decides which one is default,
-     and that taking one back never leaves the list without one. */
+  /* -- 5c. Which destination gets the money -------------------------------
+     Three things worth proving about a list: that an account can keep
+     several, that it decides which one is default, and that taking one back
+     never leaves the list without one while there is one to leave. */
 
-  await check("a professional saves a bank account and a wallet, one of them the default", async () => {
-    const w1 = await rpc("pampa_add_destination", {
-      p_kind: "bank", p_label: "GTBank ····6789",
-      p_details: { bank: "GTBank", account: "0123456789" }, p_default: true,
-    }, state.pro.token);
-    const bank = (w1.destinations || [])[0];
-    assert(bank && bank.kind === "bank", `the bank account was not saved: ${JSON.stringify(w1).slice(0, 160)}`);
-    assert(bank.default === true, "the first destination saved did not become the default");
-
-    const w2 = await rpc("pampa_add_destination", {
+  await check("a professional keeps a second destination without moving the first", async () => {
+    const w = await rpc("pampa_add_destination", {
       p_kind: "crypto", p_label: "TRC20 wallet",
-      p_details: { network: "TRC20", address: "TQ4f9d2Kp7sR1xV8mLq3Zb6Hn0Yc5Wt2Aa" },
+      /* the network arrives lower-case because it was pasted from a wallet, and
+         it is the same network */
+      p_details: { network: "trc20", address: "TQ4f9d2Kp7sR1xV8mLq3Zb6HnpYc5Wt2Aa" },
     }, state.pro.token);
-    const list = w2.destinations || [];
+    const list = w.destinations || [];
     assert(list.length === 2, `${list.length} destination(s) saved, expected 2`);
     assert(list.filter((d) => d.default).length === 1, "the list does not hold exactly one default");
     const crypto = list.find((d) => d.kind === "crypto");
     assert(crypto, "the wallet was not saved");
+    assert(crypto.details.network === "TRC20", `the network was stored as ${crypto.details.network}`);
+    assert(crypto.details.address === "TQ4f9d2Kp7sR1xV8mLq3Zb6HnpYc5Wt2Aa", "the address was stored changed");
     assert(crypto.default === false, "adding a second destination moved the default on its own");
-    state.destBank = bank.id;
     state.destCrypto = crypto.id;
-    return `2 destinations · the bank is default · details ride with the row`;
+    return `2 destinations · the bank is still default · ${crypto.details.network} normalised`;
   });
 
   await check("the professional chooses which destination a payout lands in", async () => {
@@ -645,41 +723,22 @@ async function main() {
     return `1 destination left · promoted · payout ${p.net} intact`;
   });
 
-  /* The release above happened before this professional had saved anywhere for
-     the money to go, so the payout it wrote is waiting: recorded, owed, and
-     pointing at nothing. Saving a destination has to be able to collect it. */
-  await check("money released before a destination existed is sent once there is one", async () => {
-    const w0 = await rpc("pampa_wallet", {}, state.pro.token);
-    const waiting = (w0.payouts || []).filter((p) => p.status === "pending");
-    assert(waiting.length === 1, `${waiting.length} payouts are waiting, expected 1`);
-    assert(!waiting[0].destination, "a waiting payout already points at a destination");
-    state.paidPayout = waiting[0].id;
-
-    const w = await rpc(
-      "pampa_assign_payout",
-      { p_payout: waiting[0].id, p_destination: state.destBank },
-      state.pro.token
-    );
-    const sent = (w.payouts || []).find((p) => p.id === waiting[0].id);
-    assert(sent, "the payout vanished on the way");
-    assert(sent.status === "sent", `status is ${sent.status}, expected sent`);
-    assert(sent.destination === state.destBank, "the payout did not take the destination it was given");
-    assert(Number(sent.net) === Number(waiting[0].net), "the amount changed on the way");
-    assert(Number(w.held) === 0, `${w.held} is somehow still held`);
-    return `${sent.net} routed to the saved bank account · ref ${sent.ref}`;
+  /* The last one goes, and the professional is left with nowhere to be paid.
+     From here the client's release is refused — proved above — and the only
+     door left open is the resolution desk, which is the next section. That is
+     why the wallet has to be able to receive a payout with nowhere to send it,
+     and why the money released that way is covered there rather than here. */
+  await check("taking the last destination back leaves nothing to be paid into", async () => {
+    const w = await rpc("pampa_remove_destination", { p_destination: state.destBank }, state.pro.token);
+    const list = w.destinations || [];
+    assert(list.length === 0, `${list.length} destinations left, expected none`);
+    /* Money already sent keeps its amount, its fee and its reference: what the
+       delete takes away is the option, not the record of a release. */
+    const p = (w.payouts || [])[0];
+    assert(p, "the payout disappeared along with the destination");
+    assert(Number(p.net) === state.expectNet, `payout net changed to ${p.net} from ${state.expectNet}`);
+    return `none left · the payout already sent keeps its amount (${p.net})`;
   });
-
-  await refused(
-    "another account cannot route somebody else's payout",
-    () => rpc("pampa_assign_payout", { p_payout: state.paidPayout, p_destination: state.destBank }, state.client.token),
-    "not yours"
-  );
-
-  await refused(
-    "a payout that has been sent cannot be sent again",
-    () => rpc("pampa_assign_payout", { p_payout: state.paidPayout, p_destination: state.destBank }, state.pro.token),
-    "already sent"
-  );
 
   await check("the rating lands on the professional's public record", async () => {
     const list = await rpc(
@@ -922,6 +981,12 @@ async function main() {
       assert(fromDesk, "no payout row for the settled dispute");
       assert(Number(fromDesk.net) === res.toPro, `wallet says ${fromDesk.net}, the resolution says ${res.toPro}`);
       assert(Number(wallet.held) === 0, `${wallet.held} is still frozen after settlement`);
+      /* The professional has taken every destination back by now, and the desk
+         still settled: a mediator's decision is not something to refuse. So the
+         share is written as waiting for somewhere to land — recorded, owed, and
+         visible in the wallet — rather than sent into nothing. */
+      assert(fromDesk.status === "pending", `the desk's payout is ${fromDesk.status}, expected pending`);
+      assert(!fromDesk.destination, "a payout with nowhere to go already points somewhere");
 
       return (deskActor.minted ? "CI admin · " : "") +
         `admin promoted ${deskHandle} · split ${res.percent}/${100 - res.percent} · ₦${res.toClient} refunded, ₦${res.toPro} to the barber (fee ₦${res.fee})`;
@@ -938,6 +1003,55 @@ async function main() {
       assert(last.role === "desk", `the entry is attributed to ${last.role}, not the desk`);
       return `${last.kind} by ${last.role}: ${last.label}`;
     });
+
+    /* -- The one payout that can still be written with nowhere to go ---------
+       The desk is the only path left that can release money to a professional
+       who cannot be paid, and this is what happens to it: the payout is
+       recorded, it is owed, it counts as available, and saving a destination
+       collects it. Proved here rather than earlier in the file because the
+       desk is what makes the state possible at all. */
+    await check("money released with nowhere to send it is collected once there is one", async () => {
+      const w0 = await rpc("pampa_wallet", {}, state.pro.token);
+      const waiting = (w0.payouts || []).filter((p) => p.status === "pending");
+      assert(waiting.length === 1, `${waiting.length} payouts are waiting, expected 1`);
+      assert(!waiting[0].destination, "a waiting payout already points at a destination");
+      state.paidPayout = waiting[0].id;
+
+      /* Saving a destination is the whole fix, and it is the same save the
+         wallet's own form makes. */
+      const saved = await rpc("pampa_add_destination", {
+        p_kind: "bank", p_label: "Kuda ····3987",
+        p_details: { bank: "Kuda", account: "2000123987" },
+      }, state.pro.token);
+      const dest = (saved.destinations || [])[0];
+      assert(dest && dest.default === true, "the destination saved after the release is not the default");
+      state.destBank = dest.id;
+
+      const w = await rpc(
+        "pampa_assign_payout",
+        { p_payout: waiting[0].id, p_destination: dest.id },
+        state.pro.token
+      );
+      const sent = (w.payouts || []).find((p) => p.id === waiting[0].id);
+      assert(sent, "the payout vanished on the way");
+      assert(sent.status === "sent", `status is ${sent.status}, expected sent`);
+      assert(sent.destination === dest.id, "the payout did not take the destination it was given");
+      assert(Number(sent.net) === Number(waiting[0].net), "the amount changed on the way");
+      assert(Number(w.held) === 0, `${w.held} is somehow still held`);
+      return `${sent.net} waiting since the settlement, routed to the account saved after it · ref ${sent.ref}`;
+    });
+
+    await refused(
+      "another account cannot route somebody else's payout",
+      () => rpc("pampa_assign_payout", { p_payout: state.paidPayout, p_destination: state.destBank }, state.client.token),
+      "not yours"
+    );
+
+    await refused(
+      "a payout that has been sent cannot be sent again",
+      () => rpc("pampa_assign_payout", { p_payout: state.paidPayout, p_destination: state.destBank }, state.pro.token),
+      "already sent"
+    );
   }
 
   await check("the booking journal is append-only and kept the whole story", async () => {

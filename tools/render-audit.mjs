@@ -83,7 +83,15 @@ const SURFACES = [
   { name: "pro · profile", pro: true, open: 'enterProView("profile")' },
   { name: "pro · wallet", pro: true, open: 'enterProView("wallet")' },
   { name: "pro · wallet with destinations", pro: true,
-    open: 'switchView("wallet"); walletFormOpen = true; addDestination(walletOwnerId(), { type: "bank", bank: "GTBank", account: "0123456789" }); addDestination(walletOwnerId(), { type: "crypto", network: "TRC20", address: "TQ4f9d2Kp7sR1xV8mLq3Zb6Hn0Yc5Wt2Aa" }); renderWallet(); renderPro()' },
+    open: 'switchView("wallet"); walletFormOpen = true; addDestination(walletOwnerId(), { type: "bank", bank: "GTBank", account: "0123456789" }); addDestination(walletOwnerId(), { type: "crypto", network: "TRC20", address: "TQ4f9d2Kp7sR1xV8mLq3Zb6HnpYc5Wt2Aa" }); renderWallet(); renderPro()' },
+  /* The refusals, judged where they render: a ring on the offending input and
+     the sentence under it, which is the only place a validation rule becomes
+     something a person can act on. Both halves of the form, because they mark
+     different boxes. */
+  { name: "pro · wallet, account number refused", pro: true,
+    open: 'switchView("wallet"); walletFormOpen = true; destDraft.bank = "GTBank"; destDraft.account = "123456789"; renderWallet(); saveWalletDestination(walletOwnerId())' },
+  { name: "pro · wallet, wallet address refused", pro: true,
+    open: 'switchView("wallet"); walletFormOpen = true; destDraft.type = "crypto"; destDraft.network = "TRC20"; destDraft.address = "0x9f2a4b7c1d6e8f0a3b5c7d9e1f2a4b6c8d0e1f3a"; renderWallet(); saveWalletDestination(walletOwnerId())' },
   { name: "pro · escrow desk wallet", pro: true,
     open: 'enterProMode(); proTab = "wallet"; renderPro()' },
   { name: "pro · status upload", pro: true, open: "openStatusSheet()" },
@@ -152,7 +160,12 @@ function stageSource() {
     history: [{ at: now, label: "Booking placed" }],
   }, over);
   const MINE = "p:08000000111";
+  /* `proMarkedDone` is what makes this booking releasable, and the rate sheet is
+     only reachable through a releasable one: without it the surface named
+     "client · rate sheet" was auditing whatever page it landed on instead of
+     the sheet, because the sheet refused to open. */
   const booking = mkBooking("bRend1", {
+    proMarkedDone: true, doneAt: now,
     negotiation: { status: "open", rounds: [{ by: "client", price: 3500, note: "", at: now }] },
   });
   /* A professional's own two sides: what is waiting on them, what the client

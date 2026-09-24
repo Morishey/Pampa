@@ -648,3 +648,76 @@
     order: 3;
   }
 }
+/* ===== What a destination may be =====
+   Validation is only worth anything if it is visible at the field it is about.
+   A sentence in the corner of the screen about a form with two boxes in it is
+   a puzzle, not a correction — so the box is ringed, the sentence sits under
+   it, and the hint that would have prevented the mistake was already there. */
+.addrInput.isBad {
+  border-color: var(--danger);
+  background: var(--tint-red);
+}
+
+.addrInput.isBad:focus {
+  border-color: var(--danger);
+}
+
+.destBad {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--danger);
+}
+
+.destBad svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 1px;
+}
+
+/* The under-field note: a rule, not a scolding. It is there before anything is
+   wrong, so it can only be read as help. */
+.addrHint {
+  margin: -2px 0 0;
+  padding: 0 4px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
+/* Four networks and no fifth. A text field here is a payout into a chain Pampa
+   cannot send over, and the four are a choice of four — so they are offered as
+   one, next to each other, the way the bank/crypto switch above them is. */
+.netRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.netChip {
+  flex: 1 1 auto;
+  padding: 9px 10px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.netChip.active {
+  border-color: var(--gold-line-strong);
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+@media (max-width: 380px) {
+  .netChip {
+    flex: 1 1 45%;
+  }
+}

@@ -685,13 +685,29 @@ function wire() {
     if (destType) {
       captureDestInputs();
       destDraft.type = destType.dataset.desttype;
+      /* the other half of the form is a different two fields, so the mistake
+         the last save was refused for is no longer on screen to be about */
+      destDraft.problem = null;
       renderWalletSurface();
+      return;
+    }
+    const destNet = t.closest("[data-destnet]");
+    if (destNet) {
+      captureDestInputs();
+      destDraft.network = destNet.dataset.destnet;
+      /* the address stays: the commonest correction is "right wallet, wrong
+         chain", and making somebody retype 34 characters to say so is a trap */
+      destDraft.problem = null;
+      renderWalletSurface();
+      const addr = $("#destAddr");
+      if (addr) addr.focus();
       return;
     }
     if (t.closest("[data-dest-open]")) {
       walletFormOpen = true;
+      destDraft.problem = null;
       renderWalletSurface();
-      const field = $("#destBank") || $("#destNetwork");
+      const field = $("#destBank") || $("#destAddr");
       if (field) field.focus();
       return;
     }
@@ -1219,6 +1235,9 @@ function boot() {
   loadAccounts();
   loadSocial();
   proLoad();
+  /* the shipped professionals are paid by bank transfer, and the demo world is
+     only walkable if releasing to them is possible at all */
+  ensureSeedDestinations();
   migrateBookings();
   migrateProviders();
   wire();

@@ -209,6 +209,16 @@ function openRateSheet(bookingId) {
     toast("Wait until the stylist marks the job done, or the appointment time passes");
     return;
   }
+  /* Where the phone knows the answer — the offline world, where every
+     professional on it is this device's own data — a release with nowhere to
+     go is refused before the sheet opens, rather than after the rating has
+     been given. Online the answer belongs to the server, and it says the same
+     thing when the release is submitted. */
+  const blocked = typeof releaseBlocker === "function" ? releaseBlocker(b) : null;
+  if (blocked) {
+    toast(blocked);
+    return;
+  }
   rateDraft.bookingId = bookingId;
   rateDraft.stars = 5;
   rateDraft.comment = "";

@@ -472,6 +472,10 @@ function releasePaymentLocal(id) {
   if (!canRelease(b)) {
     return { ok: false, msg: "Wait until the stylist marks the job done, or the appointment time passes" };
   }
+  /* The same fence the database holds, for the world where there is no
+     database to hold it. */
+  const blocked = releaseBlocker(b);
+  if (blocked) return { ok: false, msg: blocked };
   b.status = "released";
   b.releasedAt = new Date().toISOString();
   ledgerNote(b, "Client released " + naira(b.pay.netToPro) + " to " + (b.stylistName || "the stylist"));
@@ -725,6 +729,106 @@ function destinationFor(stylistId) {
   return all.filter(function (d) { return d.default; })[0] || all[0] || null;
 }
 
+/* ---------- What a destination may be ----------
+   The same rules the database enforces, written out again here for the two
+   things the server cannot do: answer before a round trip, and answer at all
+   on a device that is offline. The database is still the authority — a save
+   that gets past this and is refused there is refused, and the refusal is
+   shown — so the cost of the duplication is that a change has to be made in
+   two places, and the reason for it is that a form which only tells you your
+   account number is wrong after a network call is a bad form.
+
+   Each rule returns { field, msg }: which input to mark, and the sentence to
+   put under it. The wording is deliberately the database's wording, so the
+   same mistake reads the same however it is caught. */
+const DEST_NETWORKS = [
+  { id: "TRC20", hint: "USDT on Tron · starts with T · 34 characters" },
+  { id: "ERC20", hint: "USDT on Ethereum · starts with 0x · 42 characters" },
+  { id: "BEP20", hint: "USDT on BNB Chain · starts with 0x · 42 characters" },
+  { id: "BTC", hint: "Bitcoin · starts with bc1, 1 or 3" },
+];
+
+const ADDR_PATTERNS = {
+  TRC20: /^T[1-9A-HJ-NP-Za-km-z]{33}$/,
+  ERC20: /^0x[0-9a-fA-F]{40}$/,
+  BEP20: /^0x[0-9a-fA-F]{40}$/,
+  BTC: /^(bc1[a-z0-9]{11,71}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$/,
+};
+
+function destNetworkHint(net) {
+  const row = DEST_NETWORKS.filter(function (n) { return n.id === net; })[0];
+  return row ? row.hint : "";
+}
+
+/* Trimming, uppercasing and stripping, so that what is stored is the canonical
+   form: a pasted account number arrives with spaces in it, and a network typed
+   in lowercase is the same network. */
+function normaliseDestination(kind, d) {
+  if (kind === "bank") {
+    return {
+      bank: String((d && d.bank) || "").trim(),
+      account: String((d && d.account) || "").replace(/\D/g, ""),
+    };
+  }
+  return {
+    network: String((d && d.network) || "").trim().toUpperCase(),
+    address: String((d && d.address) || "").replace(/\s/g, ""),
+  };
+}
+
+/* It normalises what it is given before judging it, exactly as the database's
+   own checker does, so it answers the same thing whoever calls it and however
+   much they remembered to clean up first. A validator that depends on its
+   caller is a trap for the next caller. */
+function destinationProblem(kind, d) {
+  const v = normaliseDestination(kind, d);
+  if (kind === "bank") {
+    const bank = v.bank;
+    const acct = v.account;
+    if (!bank) return { field: "bank", msg: "Enter the name of the bank" };
+    if (bank.length > 60) return { field: "bank", msg: "That bank name is too long" };
+    if (!acct) return { field: "account", msg: "Enter the account number" };
+    if (!/^[0-9]{10}$/.test(acct)) {
+      return { field: "account", msg: "A Nigerian account number is 10 digits — that one is " + acct.length };
+    }
+    if (acct === "0000000000") return { field: "account", msg: "That is not an account number" };
+    return null;
+  }
+  const net = v.network;
+  const addr = v.address;
+  if (!net) return { field: "network", msg: "Say which network the wallet is on" };
+  if (!ADDR_PATTERNS[net]) {
+    return { field: "network", msg: "Pampa pays over " + DEST_NETWORKS.map(function (n) { return n.id; }).join(", ") + " — not " + net };
+  }
+  if (!addr) return { field: "address", msg: "Enter the wallet address" };
+  if (addr.length > 100) return { field: "address", msg: "That wallet address is too long" };
+  if (!ADDR_PATTERNS[net].test(addr)) {
+    return { field: "address", msg: destAddressProblem(net) };
+  }
+  return null;
+}
+
+/* Whether a saved row is the same destination as the normalised details being
+   offered. Rows arrive in both shapes — the device's own `type`/`bank`, and the
+   server's `kind`/`details` — so both are read. */
+function sameDestination(row, kind, details) {
+  const isBank = (row.type || row.kind) === "bank";
+  if (isBank !== (kind === "bank")) return false;
+  const bag = row.details || row;
+  if (isBank) {
+    return String(bag.bank || "").trim() === details.bank
+      && String(bag.account || "").replace(/\D/g, "") === details.account;
+  }
+  return String(bag.network || "").trim().toUpperCase() === details.network
+    && String(bag.address || "").replace(/\s/g, "") === details.address;
+}
+
+function destAddressProblem(net) {
+  if (net === "TRC20") return "A TRC20 address is 34 characters long and starts with T";
+  if (net === "BTC") return "That does not look like a Bitcoin address";
+  return "An " + net + " address is 0x followed by 40 characters";
+}
+
 /* How a destination is read back to its owner: enough to recognise it, never
    the whole number. A wallet page is not the place to publish an account. */
 function destinationLine(d) {
@@ -770,6 +874,41 @@ function removeDestination(stylistId, destId) {
   proStore.destinations[stylistId] = kept;
   proSave();
   return true;
+}
+
+/* ---------- The demo professionals are payable ----------
+   The world that ships on a device is a market with a history: Tunde has 164
+   jobs behind him and a rating from them, so he has somewhere his money goes.
+   Without this the demo world had a professional nobody could release to —
+   which was invisible while a release with no destination was allowed, and is
+   a dead end now that it is not. Seeding is once per device, so a destination
+   the user takes back in the demo stays taken back. */
+const SEED_DESTINATIONS = [
+  { bank: "GTBank", account: "0123456789" },
+  { bank: "Access Bank", account: "0221456781" },
+  { bank: "Zenith Bank", account: "2087654321" },
+  { bank: "Kuda", account: "2000123987" },
+  { bank: "First Bank", account: "3045671230" },
+  { bank: "UBA", account: "1012345678" },
+  { bank: "Sterling", account: "0098765432" },
+];
+
+function ensureSeedDestinations() {
+  if (proStore.seededDestinations) return;
+  const ids = [];
+  if (typeof STYLISTS !== "undefined" && Array.isArray(STYLISTS)) {
+    STYLISTS.forEach(function (s) { ids.push(s.id); });
+  }
+  if (typeof PROVIDER_SEED !== "undefined" && Array.isArray(PROVIDER_SEED)) {
+    PROVIDER_SEED.forEach(function (s) { ids.push(s.id); });
+  }
+  ids.forEach(function (id, i) {
+    if (destinationsFor(id).length) return;
+    const acct = SEED_DESTINATIONS[i % SEED_DESTINATIONS.length];
+    addDestination(id, { type: "bank", bank: acct.bank, account: acct.account });
+  });
+  proStore.seededDestinations = true;
+  proSave();
 }
 
 /* A payout row the server wrote when money left escrow, folded into this
@@ -1215,7 +1354,7 @@ function sendCounter() {
 
 /* ---------- Pro mode ---------- */
 let proTab = "requests";
-const destDraft = { type: "bank", bank: "", account: "", network: "TRC20", address: "" };
+const destDraft = { type: "bank", bank: "", account: "", network: "TRC20", address: "", problem: null };
 
 /* The escrow desk belongs to the signed-in professional and nobody else: a
    client has no record in the directory, so there is nobody for them to accept
@@ -1501,30 +1640,84 @@ function proJobsHtml(list) {
   }).join("");
 }
 
-/* Reading the payout-destination form — see wallet.js for the surfaces it feeds. */
+/* Reading the payout-destination form — see wallet.js for the surfaces it feeds.
+
+   Reading, normalising and checking are three separate steps here on purpose.
+   What the professional typed is read first, then put in the form it will be
+   stored in, then judged — so a rule can never be about whitespace, and what
+   is saved is what was checked. A refusal names the field as well as the
+   mistake, so the form can point at the input instead of leaving somebody to
+   guess which of two boxes to fix. */
 function saveDestination(id) {
-  if (destDraft.type === "bank") {
-    const bankEl = $("#destBank");
-    const acctEl = $("#destAcct");
-    const bank = (bankEl ? bankEl.value.trim() : destDraft.bank) || "";
-    const acct = ((acctEl ? acctEl.value : destDraft.account) || "").replace(/\D/g, "");
-    if (!bank) return { ok: false, msg: "Enter your bank name" };
-    if (acct.length !== 10) return { ok: false, msg: "Account number must be 10 digits" };
-    const row = addDestination(id, { type: "bank", bank: bank, account: acct });
-    destDraft.bank = "";
-    destDraft.account = "";
-    return { ok: true, dest: row, kind: "bank", label: bank + " ••••" + acct.slice(-4), details: { bank: bank, account: acct } };
-  }
+  const bankEl = $("#destBank");
+  const acctEl = $("#destAcct");
   const netEl = $("#destNetwork");
   const addrEl = $("#destAddr");
-  const network = (netEl ? netEl.value.trim() : destDraft.network) || "";
-  const address = (addrEl ? addrEl.value.trim() : destDraft.address) || "";
-  if (!network) return { ok: false, msg: "Enter the network" };
-  if (address.length < 8) return { ok: false, msg: "That wallet address looks too short" };
-  const row = addDestination(id, { type: "crypto", network: network, address: address });
-  destDraft.network = "";
+  if (bankEl) destDraft.bank = bankEl.value;
+  if (acctEl) destDraft.account = acctEl.value;
+  if (netEl) destDraft.network = netEl.value;
+  if (addrEl) destDraft.address = addrEl.value;
+
+  const kind = destDraft.type === "bank" ? "bank" : "crypto";
+  const details = normaliseDestination(kind, destDraft);
+  const problem = destinationProblem(kind, details);
+  if (problem) {
+    destDraft.problem = problem;
+    return { ok: false, msg: problem.msg, field: problem.field };
+  }
+
+  /* The same row twice is not two destinations, it is one destination and a
+     duplicate the professional has to tell apart — and the server refuses it,
+     so a device that accepted it would be showing a list the account does not
+     have. */
+  const twice = destinationsFor(id).some(function (d) { return sameDestination(d, kind, details); });
+  if (twice) {
+    destDraft.problem = { field: kind === "bank" ? "account" : "address", msg: "That payout destination is already saved" };
+    return { ok: false, msg: "That payout destination is already saved", field: destDraft.problem.field };
+  }
+
+  const row = addDestination(id, kind === "bank"
+    ? { type: "bank", bank: details.bank, account: details.account }
+    : { type: "crypto", network: details.network, address: details.address });
+
+  destDraft.problem = null;
+  /* The fields are cleared on the way out: the next destination is a different
+     one. The network stays, because it is a choice about the person rather than
+     about this row, and the second wallet they save is usually on the same
+     chain as the first. */
+  destDraft.bank = "";
+  destDraft.account = "";
   destDraft.address = "";
-  return { ok: true, dest: row, kind: "crypto", label: network + " wallet", details: { network: network, address: address } };
+  if (!ADDR_PATTERNS[destDraft.network]) destDraft.network = "TRC20";
+
+  return {
+    ok: true, dest: row, kind: kind, details: details,
+    label: kind === "bank"
+      ? details.bank + " ••••" + details.account.slice(-4)
+      : details.network + " wallet",
+  };
+}
+
+/* ---------- Nowhere to be paid ----------
+   A release moves money out of escrow to a professional, so a release with no
+   destination is money handed to somebody who cannot receive it. The database
+   refuses it outright; this is the same refusal on the device, so the offline
+   world and the demo walk the same road, and so the client is told before the
+   money moves rather than after.
+
+   In the cloud world the answer is not known here — another account's bank
+   details are not this device's business — so the question is left to the
+   server, which is the one that can answer it. */
+function releaseBlocker(b) {
+  if (!b) return null;
+  if (typeof dbConfigured === "function" && dbConfigured()) return null;
+  if (destinationsFor(b.stylistId).length) return null;
+  return noDestinationMessage(b.stylistName);
+}
+
+function noDestinationMessage(name) {
+  return (name || "This professional") + " has not added a payout account yet, so there is nowhere to send this money."
+    + " Nothing has been released — ask them to add one in their Wallet, then release again.";
 }
 
 /* ---------- Journal (every money event, newest last) ---------- */

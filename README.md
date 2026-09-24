@@ -763,10 +763,47 @@ leaving the list with nowhere to send money. Rows are read back masked
 (`GTBank ••••6789`, `TRC20 · TQ4f9d…t2Aa`), and the whole list lives on the
 server, so the same account saved on another phone shows up here.
 
-**Money that was released before there was a destination** is not lost in a
-corner: the payout row is written `pending`, the wallet counts it as available
-and says where it came from, and *Withdraw* routes it to the destination the
-professional has now saved (`pampa_assign_payout`). Withdrawing is one action
+**What a destination may be is checked, in the database, before it is stored.**
+A destination is where money goes, so a rule about its shape is a money rule:
+`pampa_destination_problem` is the one place that decides, and
+`pampa_add_destination` refuses with its sentence. A Nigerian account number is
+ten digits (spaces and stray characters are stripped first, so a pasted number
+is not a mistake); a wallet address has to match the network it claims — 34
+characters starting with `T` on TRC20, `0x` and 40 hex characters on ERC20 and
+BEP20, bech32 or legacy on BTC — with the base58 alphabet enforced, so the `0`
+that is really an `O` is caught at save time instead of at payout time. The
+network is a choice of those four and not a text field, because a fifth is a
+payment into a chain Pampa cannot send over. Saving the same destination twice
+is refused rather than stacked, and what is stored is the normalised form
+(upper-cased network, digits-only account), so two rows that differ only in
+case are one row.
+
+The display rules are mirrored in the app (`destinationProblem` in
+`escrow.js`) for the two things a server cannot do: answer before a round trip,
+and answer at all on a device with no network. The database remains the
+authority — a save that gets past the mirror and is refused there is refused,
+and the refusal is shown. The cost of the duplication is that the rules live in
+two places; the reason is that a form which tells you your account number is
+wrong only after a network call is a bad form. The mirror marks the offending
+field, so what a person gets is a ringed input and the sentence underneath it,
+not a toast about a two-field form.
+
+**Nothing can be released to somebody with nowhere to be paid.** A release is
+the moment money leaves escrow, so `pampa_booking_release` refuses it while the
+professional has no destination saved — and the refusal is written for the
+person holding the button, naming the professional and saying what ends it
+("*…has not added a payout account yet, so there is nowhere to send this money.
+Nothing has been released — ask them to add one in their Wallet, then release
+again.*"). The money stays in escrow, and the job stays releasable. The
+device's own world enforces the same rule in `releaseBlocker`, so a phone
+without a network takes the same road, and the shipped demo professionals ship
+with a bank account saved for exactly this reason.
+
+The one door left open is the **resolution desk**: a mediator's decision is not
+something to refuse, so a settlement in the professional's favour is written
+even when there is nowhere to send it. That is what a `pending` payout is for:
+recorded, owed, counted by the wallet as available, and routed to the
+destination saved afterwards (`pampa_assign_payout`). Withdrawing is one action
 for both halves — payouts waiting for a destination, and credit this device has
 not sent — and the wallet is re-read from the server afterwards rather than
 guessed at. Minimum ₦1,000.

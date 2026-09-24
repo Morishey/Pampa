@@ -135,7 +135,20 @@ function walletDefaultDestination(id) {
 function saveWalletDestination(id) {
   const owner = id || walletOwnerId();
   const res = saveDestination(owner);
-  if (!res.ok) return res;
+  if (!res.ok) {
+    /* Redrawn rather than only toasted, so the sentence lands against the box
+       it is about and the cursor is already in it. */
+    renderWalletSurface();
+    /* The network is a choice of four chips and cannot be wrong from this form,
+       so a network problem leaves the cursor where the person was already
+       typing rather than moving it somewhere arbitrary. */
+    const at = res.field === "bank" ? $("#destBank")
+      : res.field === "account" ? $("#destAcct")
+      : res.field === "address" ? $("#destAddr")
+      : null;
+    if (at) at.focus();
+    return res;
+  }
   res.pushed = false;
   if (typeof dbConfigured === "function" && dbConfigured() && dbSignedIn() && typeof db.addDestination === "function") {
     db.addDestination(res.kind, res.label, res.details, true).then(function (w) {
@@ -310,17 +323,32 @@ function destinationRowHtml(d, i) {
     "</div>";
 }
 
+/* `destDraft.problem` is the mistake the last save was refused for — which
+   input it belongs to and what to say about it. It is drawn where a form's
+   mistakes belong: on the field, under the field, in the sentence the database
+   would have used. */
 function destinationFormHtml() {
+  const bad = destDraft.problem || {};
+  const cls = function (field) { return "addrInput" + (bad.field === field ? " isBad" : ""); };
   return '<div class="destForm" id="destForm">' +
       '<div class="whereRow">' +
         '<button class="where' + (destDraft.type === "bank" ? " active" : "") + '" data-desttype="bank">' + icon("bank") + " Bank account</button>" +
         '<button class="where' + (destDraft.type === "crypto" ? " active" : "") + '" data-desttype="crypto">' + icon("coin") + " Crypto wallet</button>" +
       "</div>" +
       (destDraft.type === "bank"
-        ? '<input id="destBank" class="addrInput" placeholder="Bank name (e.g. GTBank)" value="' + esc(destDraft.bank) + '">' +
-          '<input id="destAcct" class="addrInput" inputmode="numeric" maxlength="10" placeholder="10-digit account number" value="' + esc(destDraft.account) + '">'
-        : '<input id="destNetwork" class="addrInput" placeholder="Network (TRC20, ERC20, BTC)" value="' + esc(destDraft.network) + '">' +
-          '<input id="destAddr" class="addrInput" placeholder="Wallet address" value="' + esc(destDraft.address) + '">') +
+        ? '<input id="destBank" class="' + cls("bank") + '" placeholder="Bank name (e.g. GTBank)" value="' + esc(destDraft.bank) + '">' +
+          '<input id="destAcct" class="' + cls("account") + '" inputmode="numeric" maxlength="10" placeholder="10-digit account number" value="' + esc(destDraft.account) + '">' +
+          '<p class="addrHint">Ten digits, and nothing but the last four is ever shown back to you.</p>'
+        /* The network is a choice of four and not a text field, because the
+           four are the networks Pampa can actually pay over — a fifth typed by
+           hand is a payout into nothing, and there is no reason to let somebody
+           find that out by losing money. */
+        : '<div class="netRow">' + DEST_NETWORKS.map(function (n) {
+            return '<button class="netChip' + (destDraft.network === n.id ? " active" : "") + '" data-destnet="' + n.id + '">' + n.id + "</button>";
+          }).join("") + "</div>" +
+          '<input id="destAddr" class="' + cls("address") + '" placeholder="Wallet address" value="' + esc(destDraft.address) + '">' +
+          '<p class="addrHint">' + esc(destNetworkHint(destDraft.network)) + "</p>") +
+      (bad.msg ? '<p class="destBad">' + icon("alert") + " " + esc(bad.msg) + "</p>" : "") +
       '<button class="nextbtn tight" id="saveDest">Save destination</button>' +
     "</div>";
 }
