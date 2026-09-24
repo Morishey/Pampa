@@ -95,6 +95,11 @@ function rememberAccount() {
      place for ever, so "Remove photo" showed the initial until the next sign-in
      and then handed the deleted face straight back. */
   acc.dp = u.dp || "";
+  /* The email is a way in, so the device's book keeps it too — otherwise the
+     fallback door would have nothing to match an address against and the
+     promise that a username or an email signs you in would hold only while
+     the network did. */
+  acc.email = u.email || "";
   accounts[u.phone] = acc;
   saveAccounts();
   return acc;

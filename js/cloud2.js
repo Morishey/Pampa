@@ -75,6 +75,11 @@ function dbAdoptAccount(acct) {
   u.address = acct.address || u.address || "";
   if (acct.coords) u.coords = { lat: Number(acct.coords.lat), lng: Number(acct.coords.lng) };
   u.dp = acct.dp || "";
+  /* An email is a way in as well as a contact detail now, so the account's
+     copy is adopted like the name and the picture. An email this device has
+     and the server has not been told about yet is kept rather than dropped —
+     signing in must not be the thing that forgets it. */
+  u.email = acct.email || u.email || "";
   u.serverId = acct.id;
 
   /* Re-key the device's record of this account onto the uuid. A professional
@@ -104,6 +109,7 @@ function dbAdoptAccount(acct) {
     coordsAccuracy: u.coordsAccuracy || null,
     address: u.address || "",
     dp: u.dp || "",
+    email: u.email || null,
   };
 }
 
@@ -348,6 +354,28 @@ function dbPushAccountDetails() {
     socials: { ig: s.ig || null, tt: s.tt || null, x: s.x || null },
   }).catch(function (e) {
     console.warn("Pampa: account push failed", e);
+  });
+}
+
+/* The email, saved to the account for real. Unlike the push above this one is
+   not fire-and-forget: an address that the server refused — somebody else
+   already signs in with it — would otherwise look saved here and work
+   nowhere, and the person would only find out at the next sign-in. The name
+   and the picture are decorations; this is a way in. */
+function dbSetEmail(email) {
+  if (!dbSignedIn()) return;
+  db.setEmail(email || "").then(function (acct) {
+    /* The server normalises (it trims and lowercases), so its copy is the one
+       kept — a sign-in has to match what is actually stored, not what was
+       typed. */
+    if (acct && acct.email && state.user) {
+      state.user.email = acct.email;
+      rememberAccount();
+      save();
+    }
+  }).catch(function (e) {
+    toast(dbText(e, "That email could not be saved — try again",
+      "Pampa couldn't save that email: "));
   });
 }
 

@@ -214,6 +214,11 @@ const db = {
   updateProfile: (patch) => dbCall("pampa_update_profile", { p_patch: patch }),
   changePassword: (current, next) =>
     dbCall("pampa_change_password", { p_current: current || "", p_new: next }),
+  /* The email is a way in, so it has a door of its own rather than riding the
+     profile patch. A name and a picture are pushed fire-and-forget; an address
+     is a credential, and the server's refusal — somebody else already signs in
+     with it — has to be able to reach the screen. */
+  setEmail: (email) => dbCall("pampa_set_email", { p_email: email || "" }),
   setAvailability: (available) =>
     dbCall("pampa_set_availability", { p_available: available }),
   setRates: (rates) => dbCall("pampa_set_rates", { p_rates: rates }),

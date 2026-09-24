@@ -55,7 +55,7 @@ const AUTH_COPY = {
   signin: {
     number: {
       title: 'Welcome back,<br>sign in',
-      sub: 'Your number or username, and your password.<br>No code needed.'
+      sub: 'Your username or email, and your password.<br>No code needed.'
     },
     otp: { title: 'Enter the code<br>we sent you', lead: 'Sent to' },
     password: {
@@ -313,17 +313,32 @@ function localDigits(raw) {
   return d;
 }
 
-/* A phone number or the name the account was created under. Names are not
-   unique, so a shared one is reported rather than guessed at. */
+/* What the account was created with, typed one way: a username or an email,
+   and — because every account that already exists was made with one — a phone
+   number too. Names are not unique, so a shared one is reported rather than
+   guessed at. */
 function accountByIdentifier(id) {
   const raw = String(id || "").trim();
   if (!raw) return { acc: null, reason: "empty" };
+  const key = raw.toLowerCase();
+
+  /* An @ settles what was typed before the digits get a say. Without this an
+     email with enough digits in it — chidi1234567@mail.com — has them pulled
+     out, is read as a phone number, and lands on whoever owns those digits.
+     An email is never a number: the database's own normaliser reads it the
+     same way, so the two halves agree on what the same string means. */
+  if (key.indexOf("@") !== -1) {
+    const hits = Object.keys(accounts).filter(function (p) {
+      return (accounts[p].email || "").toLowerCase() === key;
+    });
+    return hits.length ? { acc: accounts[hits[0]], phone: hits[0] } : { acc: null, reason: "none" };
+  }
+
   const digits = localDigits(raw);
   if (digits.length >= 7) {
     const acc = accountByPhone("+234 " + digits);
     return acc ? { acc: acc, phone: "+234 " + digits } : { acc: null, reason: "none" };
   }
-  const key = raw.toLowerCase();
   const hits = Object.keys(accounts).filter(function (p) {
     return (accounts[p].name || "").toLowerCase() === key;
   });
@@ -332,12 +347,31 @@ function accountByIdentifier(id) {
   return { acc: accounts[hits[0]], phone: hits[0] };
 }
 
-/* The password door: one screen, two fields, and no code anywhere in it. */
+/* The shape an email has to have. Kept beside the door that asks for one:
+   the same check runs on the server, and this is the half that answers before
+   a round trip. */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function looksLikeEmail(v) {
+  return String(v || "").indexOf("@") !== -1;
+}
+
+/* The password door: one screen, two fields, and no code anywhere in it. The
+   one identifier field takes a username or an email — one of the two, not
+   both, and never two fields to fill in. */
 function submitSignin() {
   hideSessionNote();
   const id = $("#signinId").value.trim();
   const password = $("#signinPassword").value;
-  if (!id) { toast("Enter your number or username"); return; }
+  if (!id) { toast("Enter your username or email"); return; }
+  /* An address that could not be one is said now: sending it to the server
+     would only come back as "no such account", which blames the wrong thing. */
+  if (looksLikeEmail(id) && !EMAIL_SHAPE.test(id)) {
+    toast("That email doesn’t look right");
+    const field = $("#signinId");
+    if (field) field.select();
+    return;
+  }
   if (!password) { toast("Enter your password"); return; }
 
   /* With a database behind the app, the check is the database's: the password
@@ -388,16 +422,18 @@ function submitSignin() {
    database is unreachable or was never configured. */
 function signInFromDevice(id, password) {
   const found = accountByIdentifier(id);
-  if (found.reason === "empty") { toast("Enter your number or username"); return; }
+  if (found.reason === "empty") { toast("Enter your username or email"); return; }
   if (!password) { toast("Enter your password"); return; }
   if (found.reason === "ambiguous") {
-    toast("Two accounts use that name — sign in with your number");
+    toast("Two accounts share that name — sign in with your email or number");
     return;
   }
   if (!found.acc) {
-    toast("No account on that number or name yet — let’s set one up");
+    toast("No account on that username or email yet — let’s set one up");
+    /* A number they can start from; an email cannot send them to a screen that
+       wants a phone, so nothing is carried across for one. */
     const digits = localDigits(id);
-    if (digits.length >= 7) $("#telephone").value = digits;
+    if (!looksLikeEmail(id) && digits.length >= 7) $("#telephone").value = digits;
     setAuthMode("signup");
     return;
   }
@@ -592,6 +628,10 @@ function signInReturning(acc) {
     coordsAccuracy: acc.coordsAccuracy || prev.coordsAccuracy || null,
     address: acc.address || prev.address || "",
     dp: acc.dp || prev.dp || "",
+    /* The email is a way in, so a sign-in has to leave the account holding it:
+       rebuilding the session without it would forget the address the person
+       just used to get here. */
+    email: acc.email || prev.email || "",
     serverId: acc.serverId || prev.serverId || undefined,
     remember: true
   };

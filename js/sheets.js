@@ -46,6 +46,11 @@ function saveContact() {
      never left the phone — and the name on a booking card is read from the
      account. */
   if (typeof dbPushAccountDetails === "function") dbPushAccountDetails();
+  /* The email is the one field here that is also a way in, so it is saved
+     through the door that can say no in words — an address somebody else
+     already signs in with is refused, and the person is told, rather than
+     believing they can sign in with an address that was never stored. */
+  if (typeof dbSetEmail === "function") dbSetEmail(u.email || "");
   hideSheetEl("#contactSheet");
   renderProfile();
   renderWork();
