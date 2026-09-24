@@ -304,6 +304,14 @@ h4 .youTag,
   margin-bottom: 0;
 }
 
+/* A card closes the row for free, because a card's own padding is 14px. The
+   hero's foot is 2px, so there the rule above left the Book button 2px off
+   the first stat card. Inside the hero the row keeps its margin, at the same
+   measure the card was already getting. */
+.provHero .provCtas:last-child {
+  margin-bottom: 14px;
+}
+
 .provStats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
