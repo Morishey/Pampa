@@ -113,7 +113,7 @@ leaves escrow.
 
 | | |
 |---|---|
-| ✅ | accounts, sessions, phone/username sign-in with lockout |
+| ✅ | accounts, sessions, username/email sign-in (a phone number too, for accounts made before either) with lockout |
 | ✅ | trades, services, areas, provider profiles, rates as bands |
 | ✅ | bookings, negotiation rounds, escrow, payouts, disputes, desk settlement |
 | ✅ | discovery with server-side distance and "can they take a job right now" |
@@ -174,6 +174,22 @@ project never hears of it — and where no Chrome or Edge exists the leg is
 reported SKIP with the reason rather than pretended to have run.
 `node tools/render-audit.mjs` runs it standalone, with `--list`, `--no-plant`
 and `--keep-open` for poking.
+
+The fourth is the booking handover (`tools/booking-handover.test.mjs`), and it
+is driven rather than looked at: a client standing on a professional's page that
+lives on the server, a slot chosen, the confirm dialog answered — and then the
+things a person would see, asserted one by one. The sheet slid back down and is
+really gone, the overlay went with it, the professional's page is out of the
+way, the app has landed on the bookings list and the new booking's card is in
+it — and, watched at the exact moment the handover does it, the card was found
+and flashed. Where the render audit walks a *surface*, this walks a *flow*: the
+bug it fences in was invisible to every read of the source, because the booking
+was filed perfectly and only the handover that follows it was skipped — on the
+one kind of row the server mints, when reading a value back by index after
+pushing it returned nothing at all. Like the audit, it carries a planted trap:
+the same drive runs again with the old store put back, and the leg fails if that
+trap stops being caught (`node tools/booking-handover.test.mjs` runs it alone,
+and prints every assertion it made).
 
 It registers a client and a barber ~180 m apart, sets the barber's price bands,
 checks the directory returns the precise distance and the ceiling, then runs the

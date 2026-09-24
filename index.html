@@ -25,7 +25,7 @@
     <!-- The push half of notifications: subscribes the account with the push
          server (tools/push-server.js) so news reaches the phone when Pampa is
          closed. Loaded before the app, which calls into it. -->
-    <script src="pampa-push.js?v=267"></script>
+    <script src="pampa-push.js?v=270"></script>
     <script>
         (function () {
             try {
@@ -40,56 +40,56 @@
          after them is written against those names, and interactions.css comes
          last because it is what a tap feels like. Splitting the sheet changed
          no rule and no order — a plain list of tags, no build step. -->
-    <link rel="stylesheet" href="css/tokens.css?v=267">
-    <link rel="stylesheet" href="css/onboarding.css?v=267">
-    <link rel="stylesheet" href="css/shell.css?v=267">
-    <link rel="stylesheet" href="css/booking.css?v=267">
-    <link rel="stylesheet" href="css/pro.css?v=267">
-    <link rel="stylesheet" href="css/disputes.css?v=267">
-    <link rel="stylesheet" href="css/system.css?v=267">
-    <link rel="stylesheet" href="css/directory.css?v=267">
-    <link rel="stylesheet" href="css/polish.css?v=267">
-    <link rel="stylesheet" href="css/components.css?v=267">
-    <link rel="stylesheet" href="css/interactions.css?v=267">
+    <link rel="stylesheet" href="css/tokens.css?v=270">
+    <link rel="stylesheet" href="css/onboarding.css?v=270">
+    <link rel="stylesheet" href="css/shell.css?v=270">
+    <link rel="stylesheet" href="css/booking.css?v=270">
+    <link rel="stylesheet" href="css/pro.css?v=270">
+    <link rel="stylesheet" href="css/disputes.css?v=270">
+    <link rel="stylesheet" href="css/system.css?v=270">
+    <link rel="stylesheet" href="css/directory.css?v=270">
+    <link rel="stylesheet" href="css/polish.css?v=270">
+    <link rel="stylesheet" href="css/components.css?v=270">
+    <link rel="stylesheet" href="css/interactions.css?v=270">
     <!-- pricing loads last: it re-dresses the discovery card into a row, and
          carries the price ranges, the picker and the negotiation surfaces -->
-    <link rel="stylesheet" href="css/pricing.css?v=267">
-    <link rel="stylesheet" href="css/stories.css?v=267">
+    <link rel="stylesheet" href="css/pricing.css?v=270">
+    <link rel="stylesheet" href="css/stories.css?v=270">
     <!-- The app itself, deferred and in order. Every file shares one global
          scope, exactly as the single script did, so a later module may call
          anything an earlier one declared. js/wiring.js must stay last: it
          installs the listeners and boots. -->
-    <script src="icons.js?v=267" defer></script>
-    <script src="escrow.js?v=267" defer></script>
+    <script src="icons.js?v=270" defer></script>
+    <script src="escrow.js?v=270" defer></script>
     <!-- Where the database is, and the client that talks to it. config first
          (dbConfigured() reads it), db second (every cloud call rides on it);
          both before core, whose boot consults them. -->
-    <script src="js/config.js?v=267" defer></script>
-    <script src="js/db.js?v=267" defer></script>
-    <script src="js/cloud.js?v=267" defer></script>
-    <script src="js/cloud2.js?v=267" defer></script>
-    <script src="js/confirm.js?v=267" defer></script>
-    <script src="js/core.js?v=267" defer></script>
-    <script src="js/directory.js?v=267" defer></script>
-    <script src="js/activity.js?v=267" defer></script>
-    <script src="js/pwa.js?v=267" defer></script>
-    <script src="js/ui.js?v=267" defer></script>
-    <script src="js/social.js?v=267" defer></script>
-    <script src="js/home.js?v=267" defer></script>
-    <script src="js/media.js?v=267" defer></script>
-    <script src="js/provider.js?v=267" defer></script>
-    <script src="js/sheets.js?v=267" defer></script>
-    <script src="js/status.js?v=267" defer></script>
-    <script src="js/clips.js?v=267" defer></script>
-    <script src="js/bookings.js?v=267" defer></script>
+    <script src="js/config.js?v=270" defer></script>
+    <script src="js/db.js?v=270" defer></script>
+    <script src="js/cloud.js?v=270" defer></script>
+    <script src="js/cloud2.js?v=270" defer></script>
+    <script src="js/confirm.js?v=270" defer></script>
+    <script src="js/core.js?v=270" defer></script>
+    <script src="js/directory.js?v=270" defer></script>
+    <script src="js/activity.js?v=270" defer></script>
+    <script src="js/pwa.js?v=270" defer></script>
+    <script src="js/ui.js?v=270" defer></script>
+    <script src="js/social.js?v=270" defer></script>
+    <script src="js/home.js?v=270" defer></script>
+    <script src="js/media.js?v=270" defer></script>
+    <script src="js/provider.js?v=270" defer></script>
+    <script src="js/sheets.js?v=270" defer></script>
+    <script src="js/status.js?v=270" defer></script>
+    <script src="js/clips.js?v=270" defer></script>
+    <script src="js/bookings.js?v=270" defer></script>
     <!-- the money view: balances, escrow, payouts and destinations, for both
          roles. After escrow.js, whose ledger and destination store it reads. -->
-    <script src="js/wallet.js?v=267" defer></script>
-    <script src="js/views.js?v=267" defer></script>
-    <script src="js/auth.js?v=267" defer></script>
-    <script src="js/location.js?v=267" defer></script>
-    <script src="js/booking-sheet.js?v=267" defer></script>
-    <script src="js/wiring.js?v=267" defer></script>
+    <script src="js/wallet.js?v=270" defer></script>
+    <script src="js/views.js?v=270" defer></script>
+    <script src="js/auth.js?v=270" defer></script>
+    <script src="js/location.js?v=270" defer></script>
+    <script src="js/booking-sheet.js?v=270" defer></script>
+    <script src="js/wiring.js?v=270" defer></script>
 </head>
 
 <body>
@@ -140,8 +140,9 @@
             <p class="t1" id="numberTitle">Can we get <br>your number ?</p>
 
             <!-- One screen, two doors, and the fields follow the door. Signing
-                 up needs a number and a code; signing in needs an identifier
-                 and a password, and never a code. -->
+                 up needs a number and a code; signing in needs one identifier
+                 — a username or an email, one of the two, never both — and a
+                 password, and never a code. -->
             <div class="grp1 pwRow" id="signupPhoneRow">
                 <span class="pwIco" data-icon="phone"></span>
                 <input id="dailCode" type="text" class="num1" placeholder="NG +234" value="+234">
@@ -151,7 +152,7 @@
             <div class="grp1 pwRow" id="signinIdRow" style="display: none;">
                 <span class="pwIco" data-icon="user"></span>
                 <input id="signinId" type="text" class="num2 wide pwInput"
-                    placeholder="Number or username" autocomplete="username" maxlength="40">
+                    placeholder="Username or email" autocomplete="username" maxlength="80">
             </div>
 
             <!-- Sign-in only: the password, with its own reveal toggle. -->

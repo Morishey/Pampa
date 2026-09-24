@@ -292,6 +292,19 @@ const SWEEP = `
     }
   })()`;
 
+/* The app is live when its own navigation works. */
+const APP_LIVE = `(function () {
+  var t0 = Date.now();
+  return new Promise(function (resolve) {
+    (function poll() {
+      var ok = false;
+      try { ok = typeof switchView === "function" && !!document.querySelector(".view"); } catch (e) {}
+      if (ok || Date.now() - t0 > 15000) return resolve(ok);
+      setTimeout(poll, 120);
+    })();
+  });
+})()`;
+
 /* ---------- The local server ---------------------------------------------- */
 function startServer() {
   const MIME = {
@@ -417,6 +430,51 @@ async function pageTarget(wsBase) {
   throw new Error("no page target appeared");
 }
 
+/* ---------- Booting the app ------------------------------------------------
+
+   A real Chromium, the app served from disk, a used device staged before its
+   own scripts run, and the cloud refused. Exported because more than one
+   guard needs exactly this — the render audit walks it, and the behaviour
+   guards drive it — and a harness fix that lands in one of them and stays
+   broken in the other is the kind of thing this repo keeps finding. */
+export async function bootApp(opts = {}) {
+  const exe = findBrowser();
+  if (!exe) return { skipped: true, why: "no Chrome or Edge found — set PAMPA_BROWSER to a chromium binary" };
+
+  const srv = await startServer();
+  const port = srv.address().port;
+  const profile = mkdtempSync(join(tmpdir(), "pampa-render-"));
+  const { proc, wsBase } = await launchBrowser(exe, profile);
+  let cdp = null;
+
+  const close = async () => {
+    if (cdp) { try { cdp.close(); } catch (e) {} }
+    if (opts.keepOpen) return;
+    try { proc.kill(); } catch (e) {}
+    await sleep(250);
+    try { spawn("taskkill", ["/PID", String(proc.pid), "/T", "/F"], { stdio: "ignore" }); } catch (e) {}
+    try { rmSync(profile, { recursive: true, force: true }); } catch (e) {}
+    try { srv.close(); } catch (e) {}
+  };
+
+  try {
+    cdp = await Cdp.connect(await pageTarget(wsBase));
+    await cdp.send("Page.enable");
+    await cdp.send("Runtime.enable");
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: stageSource() + "\n" + PAGE_HELPERS });
+    await cdp.send("Page.navigate", { url: "http://127.0.0.1:" + port + "/index.html" });
+    /* then the intro is given its 1.8 s to finish, so the welcome screen is
+       standing before anything is opened on top of it */
+    await cdp.evaluate(APP_LIVE);
+    await sleep(2600);
+  } catch (e) {
+    await close();
+    throw e;
+  }
+
+  return { skipped: false, browser: exe, cdp, port, profile, close };
+}
+
 /* ---------- The run ------------------------------------------------------- */
 export async function runRenderAudit(opts = {}) {
   const exe = findBrowser();
@@ -429,36 +487,13 @@ export async function runRenderAudit(opts = {}) {
   const picks = opts.only ? SURFACES.filter((s) => s.name.indexOf(opts.only) !== -1) : SURFACES;
   if (opts.only && !picks.length) return { skipped: false, surfaces: [], findings: [], planted: -1, noMatch: opts.only };
 
-  const srv = await startServer();
-  const port = srv.address().port;
-  const profile = mkdtempSync(join(tmpdir(), "pampa-render-"));
-  const { proc, wsBase } = await launchBrowser(exe, profile);
-  let cdp;
+  const app = await bootApp(opts);
+  const { cdp, port, profile } = app;
   const surfaceResults = [];
   const findings = [];
   let planted = -1;
   let plantError = null;
   try {
-    cdp = await Cdp.connect(await pageTarget(wsBase));
-    await cdp.send("Page.enable");
-    await cdp.send("Runtime.enable");
-    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: stageSource() + "\n" + PAGE_HELPERS });
-    await cdp.send("Page.navigate", { url: "http://127.0.0.1:" + port + "/index.html" });
-
-    /* the app is live when its own navigation works; then the intro is given
-       its 1.8 s to finish so the welcome screen is standing when audited */
-    await cdp.evaluate(`(function () {
-      var t0 = Date.now();
-      return new Promise(function (resolve) {
-        (function poll() {
-          var ok = false;
-          try { ok = typeof switchView === "function" && !!document.querySelector(".view"); } catch (e) {}
-          if (ok || Date.now() - t0 > 15000) return resolve(ok);
-          setTimeout(poll, 120);
-        })();
-      });
-    })()`);
-    await sleep(2600);
 
     for (const surf of picks) {
       const row = { name: surf.name, ok: true, findings: 0, note: "" };
@@ -556,14 +591,7 @@ export async function runRenderAudit(opts = {}) {
       surfaceResults.push(row);
     }
   } finally {
-    if (cdp && !opts.keepOpen) cdp.close();
-    if (!opts.keepOpen) {
-      try { proc.kill(); } catch (e) {}
-      await sleep(250);
-      try { spawn("taskkill", ["/PID", String(proc.pid), "/T", "/F"], { stdio: "ignore" }); } catch (e) {}
-      try { rmSync(profile, { recursive: true, force: true }); } catch (e) {}
-      try { srv.close(); } catch (e) {}
-    }
+    await app.close();
   }
 
   /* a silent self-proof is worse than none: if the planted trap ever stops

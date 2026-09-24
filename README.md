@@ -15,9 +15,12 @@ npx serve .
 **Live:** **[getpampa.vercel.app](https://getpampa.vercel.app)** — the Vercel
 project `pampa` builds the repo root as a static site, and the GitHub repo is
 connected to it, so **a push to `master` deploys to production on its own**.
-`tools/` and `.freebuff/` are kept out of the upload by `.vercelignore`. There
-is no server behind the site: escrow, the directory and every account live in
-the browser's own storage, as the sections below describe.
+`tools/` and `.freebuff/` are kept out of the upload by `.vercelignore`. The
+site is static, but the app is not device-only any more: **accounts, sessions,
+bookings, escrow, payouts and the directory live in Postgres** (Supabase), and
+the browser keeps a copy of them so a session survives a reload and a dead
+network. What is still the device's own is the media and social half — the
+portfolio, clips, statuses and the bell — as the sections below describe.
 
 ## What works
 
@@ -26,13 +29,24 @@ the browser's own storage, as the sections below describe.
   which one you are on (kicker + step chips: sign-in has nothing to count down
   and says so, creating an account is 6 steps for a client and 7 for a
   professional), with its own titles and button labels
-- **Sign in** — your **number or your username, and your password**, each in a
-  field with its own icon, on one screen. No code anywhere in that door: the
-  code is the price of a *new* account and nothing else.
-  The name, role, trade, area and picture are restored from the account book and
-  the app opens on the right dashboard with no onboarding. An unknown number or
-  name falls through into onboarding and re-labels itself as a sign-up; a
-  password that does not match is refused on the spot
+- **Sign in** — **one identifier and one password**, and the identifier is a
+  **username or an email: one of the two, never both**, and never two fields to
+  fill in. Each field carries its own icon and the whole door is one screen. No
+  code anywhere in it: the code is the price of a *new* account and nothing
+  else. A **number** still signs in when that is what the account was made
+  with, so nobody who already has an account is locked out by the change — the
+  field simply stops asking for one. The name, role, trade, area and picture
+  are restored from the account book and the app opens on the right dashboard
+  with no onboarding. An unknown username or email falls through into
+  onboarding and re-labels itself as a sign-up; a password that does not match
+  is refused on the spot
+- **The email is a way in, not just a contact line** — **My details** saves it
+  to the account itself (`pampa_set_email`), so it signs you in on any device,
+  and an address somebody else already signs in with is refused **in words**
+  rather than looking saved and working nowhere. It is stored lowercased and
+  unique, and because a username and an email go through one normaliser, an
+  `@` decides which was typed: `chidi1234567@mail.com` is an address, never the
+  account whose number happens to end in those digits
 - **Create account** → phone → OTP verification (demo code: **1234**) → name →
   **password** → **role** → trade (professionals only) → location
 - **The one account that needs a way through** is one made before passwords
@@ -40,13 +54,14 @@ the browser's own storage, as the sections below describe.
   sign-in says exactly that and offers the only honest door left on a device
   with no server: **set a password now, once**. It is a migration, and the
   screen calls it one rather than dressing it up as verification
-- **Passwords are never stored as text** — each account keeps a random
-  **salt** and a **SHA-256 hash** of salt + password (`crypto.subtle`), and the
-  top nav's face, the display picture and the credential all live on the same
-  account record, which is merged on every save rather than overwritten. This is
-  still a device-local demo — a hash in `localStorage` is not a security
-  boundary — but the accounts book never holds the password itself, and nothing
-  in it would have to be unlearned to move the check server-side
+- **Passwords are never stored as text** — the account's password is a
+  **bcrypt** hash in Postgres (`pampa_accounts.password_hash`), the credential
+  that travels afterwards is a 60-day session **token** in `pampa_sessions`,
+  sign-out **revokes** it server-side instead of merely forgetting it here, and
+  eight wrong attempts lock the account for fifteen minutes. The device-local
+  book behind that door keeps a random **salt** and a **SHA-256 hash**
+  (`crypto.subtle`) of its own, so no password is in the clear there either —
+  but that one is a cache and not a boundary, and it says so
 - **Change your password** — Profile → *Change my password*, which asks for the
   current one first (it reads *Create my password* for an account that has none
   yet)
@@ -457,7 +472,11 @@ with a green tick, the amount, the escrow reference and a line about release —
 and then sit there over the booking list until somebody dismissed it. The
 payment is the moment its work is done, so it now closes and the app shows the
 booking itself, flashed where it landed, which is the same handover the booking
-sheet makes when a booking is placed. Nothing is lost in the move: the escrow
+sheet makes when a booking is placed. The sheet's half of that handover had
+never once run — it read the wrong thing back for a booking this device had not
+seen before, which is **every** booking the server mints (row 23) — and now it
+does: the sheet slides back down by itself, the professional's page it was
+opened from goes with it, and the card is flashed in Bookings. Nothing is lost in the move: the escrow
 reference is on the booking's own money line (`₦4,700 in escrow · ₦4,230 to
 stylist · ESC-9F2CFC14`) on both sides of it, which is where somebody looks for
 it a week later rather than for the five seconds a receipt is on screen. The
@@ -1192,6 +1211,12 @@ found three more of the same family:
   card and the gallery card were **29px deep at the foot against 15px at the
   head**. `.provCtas:last-child` drops it; both cards are 15/15 now, and 14px
   shorter.
+  The same rule then reached somewhere it was never meant to: on the public
+  profile the row ends the **hero**, whose foot is 2px of padding and not a
+  card's 14 — so the *Book* button was left **2px above the Average / Jobs done
+  / Distance / Home visits grid**, welded to it. `.provHero .provCtas:last-child`
+  gives the margin back for that one case; measured in the browser, the button
+  now clears the first tile by 16px while the chips above it keep their 18px.
 - **The rates row drew the name over the ₦ field.** `.rateName` was `flex: 1`
   with `min-width: 0` and `overflow: visible`: on a 360px phone the box shrank to
   54px while *Maintenance* needs 82, so the word was painted 28px past its own
@@ -1495,6 +1520,8 @@ booking, escrow, then a second professional registered from scratch and paid out
 | 19 | The availability card could read **Not taking bookings** beside a visibly-on switch while a session held the chair | the professional's Work dashboard | a third state, *With a client right now*, with copy that agrees with the switch — the switch is on and stays on; only new bookings wait |
 | 20 | `rememberAccount` wrote the picture to the account book only `if (u.dp)` — so **removing** a photo could never reach it. The picture vanished, and came back at the next sign-in | Profile → Remove photo | the field is assigned (`acc.dp = u.dp || ""`), so a deletion propagates; proven out-and-back — a removed photo stays removed |
 | 21 | A professional signing in saw an **initial in the Work header while their picture sat in the account**, because `enterApp` set `#workAvatar.textContent = initials(...)` right after `renderNavAvatar()` had drawn the picture | the Work header, every sign-in | the clobbering line is gone — both header faces come from the one call that knows a picture from a fallback |
+| 22 | The sign-in field invited *"Number or username"* and an email could not be one — the address on the contact sheet never left the device, so it could not sign anybody in. Behind the label it was worse: `pampa_norm_handle` stripped an address down to its digits, so `chidi1234567@mail.com` normalised to the phone number `1234567` and pointed the sign-in at whichever account owned those digits | the sign-in door, on both sides of the wire | **one field, a username or an email** — one of the two, never both. The email is a column on the account (`pampa_accounts.email`), lowercased and unique, saved through its own door (`pampa_set_email`) that refuses an address somebody else already signs in with **in words**; an `@` decides what was typed before the digits do, in the client and in Postgres alike, and a trigger keeps an email and a username from becoming two accounts. Numbers still sign in — every account that exists was made with one |
+| 23 | A booking confirmed from the booking sheet **left the sheet standing**: the booking was filed, the money line was waiting on the card behind it, and no toast said anything — because `dbBookingStore` pushed the row at `at === -1` and then returned `state.bookings[at]`, so the answer was `undefined` and `if (stored) finish(stored.id)` skipped the whole handover. It could only ever miss a booking this device had never seen, which is **every booking the server mints** (the id comes back with the row), so the one path that always hit it was the one that matters. The professional's page it was booked from also stayed on top of the handover | the booking sheet, on the server road | the row that was pushed is returned, so confirming closes the sheet, slides it down, takes the professional's page with it and lands on the card in Bookings, flashed. The hidden path — a server row with no id — closes the sheet and says so rather than sitting there looking like a failure. `tools/booking-handover.test.mjs` now drives the whole flow in a real browser and fails if the handover ever stops happening — and runs the same drive again with the old store planted back in, so the check is proven to still bite |
 
 Four things the audit looked at and cleared rather than "fixed": the client's chip/search filtering (a suspected broken search was my probe reading a selector absent from the card markup — the row renders); the pay sheet after payment (its footer *is* hidden in the done state — I was reading `textContent`, which survives `display: none`); the client's evidence upload (it needs the *Add a photo* button to arm the picker, which is correct — driven that way, the photo attaches and journals); and the empty *Upcoming* list, where the finished jobs were correctly sitting under *Past*.
 
@@ -1581,17 +1608,30 @@ provider's page and two sheets, logging out, and reading all of it back as
 
 ## The database
 
-Pampa runs on the device: accounts, the directory, bookings and the escrow
-ledger all live in localStorage, and that is why two people still cannot book
-*each other* — a professional registered on one phone is invisible to the client
-on another. Postgres is the fix, and `supabase/` is that backend, written and
-waiting for a project to be pointed at.
+Postgres is not a plan any more: it is where the app's accounts live. Sessions,
+the directory with its distances measured server-side, bookings and every escrow
+transition, payout destinations and payouts, the append-only journal and the
+resolution desk are all rows in Supabase, and nine migrations in
+`supabase/migrations/` build them. Two people on two phones reach each other
+through it, which is what the device-local version could never do.
 
-Two migrations hold the whole thing: `accounts_and_directory` (the twelve
+The browser still keeps its own copy of what it has seen — `pampa.data.v1` for
+the session, `pampa.accounts.v1` for who has signed in on this phone — so a
+reload is instant and a dead network is survivable, and `js/auth.js` has a
+device-local door behind the server one. That door is a fallback, not the
+authority: the password is checked against the bcrypt hash in `pampa_accounts`,
+and the credential is the session token in `pampa_sessions`.
+
+Two migrations hold the transactional heart of it: `accounts_and_directory` (the twelve
 reference areas, four trades and nine services the app already knows; accounts;
 sessions; provider profiles with rates as bands) and `bookings_and_escrow`
 (bookings, the append-only journal, payouts, and every transition — accept,
-counter, agree, mark done, release, cancel, dispute, reply, settle).
+counter, agree, mark done, release, cancel, dispute, reply, settle). Seven more
+have landed on top: the wallet and its destinations, payout routing, the checks
+that a destination is really an account, the desk's own history and passwords,
+and the **email as a second way in** — an address on the account, unique and
+lowercased, matched by the same lookup as a username, with an `@` deciding what
+was typed before the digits get a say.
 
 The reason it is Postgres functions rather than table access is the escrow.
 `escrow.js` decides the state machine in whichever browser has the page open,
@@ -1604,12 +1644,13 @@ and harmless and why RLS is used the blunt way here (every table shut, the
 `security definer` functions the only way in) when there is no JWT to identify
 anyone with.
 
-`js/config.js` holds the Project URL and anon key and is empty today, on
-purpose: with nothing configured the app keeps running exactly as it does now,
-so the database can be built underneath a working site. `js/db.js` is its client
-half — one `fetch` to PostgREST and the named calls the app will make — and
-neither is in `index.html` yet, because nothing is wired to them until there is a
-database to wire to.
+`js/config.js` holds the Project URL and the anon key, and both are in
+`index.html`. The anon key is public on purpose: every table is shut to it, and
+the `security definer` functions are the only way in — which is why it can sit
+in a static site. `js/db.js` is its client half: one `fetch` to PostgREST, and
+the named calls the app makes. With `config.js` empty the app still runs
+exactly as the device-local version did, which is what let the backend be
+built underneath a working site.
 
 ## Files
 

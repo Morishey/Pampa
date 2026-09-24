@@ -35,6 +35,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { selfTest, scanToasts } from "./toast-guard.mjs";
 import * as renderAudit from "./render-audit.mjs";
+import { runHandoverGuard } from "./booking-handover.test.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -309,6 +310,24 @@ async function main() {
       const widths = (r.surfaces[0] && r.surfaces[0].name.indexOf(" @ ") === -1) ? " + 360/412/800" : "";
       return `${r.surfaces.length} surface passes rendered in ${r.browser.split(/[\\/]/).pop()}${widths}${caught}`;
     });
+
+    /* The booking handover, driven rather than looked at: a booking confirmed
+       from the sheet has to close the sheet, clear the page it came from and
+       flash the new card. The bug this fences in was invisible to every read
+       of the source — the booking was filed correctly, and only the handover
+       that follows it was skipped, on the one kind of row the server mints.
+       It carries its own planted trap and fails if the trap stops being
+       caught, like the audit above. */
+    await check("a booking confirmed from the sheet hands over to the booking", async () => {
+      const r = await runHandoverGuard();
+      if (r.skipped) throw new Error(r.why);
+      const bad = r.checks.filter((c) => !c.ok);
+      if (bad.length) {
+        throw new Error(bad.map((c) =>
+          `[${c.section}] ${c.name}: got ${JSON.stringify(c.got)}, want ${JSON.stringify(c.want)}`).join(" · "));
+      }
+      return `${r.checks.length} assertions driven in ${r.browser.split(/[\\/]/).pop()} · planted bug caught`;
+    });
   }
 
   if (!BASE || !ANON) {
@@ -395,6 +414,96 @@ async function main() {
         p_role: "client",
       }),
     "already has an account"
+  );
+
+  /* -- The email: the second way in, and never a phone number --------------
+
+     The sign-in field takes a username or an email, and both are looked up
+     through one normaliser — so what the string *is* has to be decided by
+     something better than guesswork. An @ decides. The digits inside an
+     address are not a national significant number, and reading them as one
+     points the sign-in at whichever account happens to own those digits, which
+     is what this block proves is not happening any more. */
+
+  const mail = `verifier.${stamp}@example.com`;
+
+  /* A handle made only of digits, so there is a phone number for an email to
+     be mistaken for. Ten digits and no leading zero, so it normalises to
+     exactly itself and the test does not have to re-implement the rule. */
+  const digitsHandle = `9${String(Date.now()).slice(-9)}`;
+
+  await check("a phone-shaped handle is a phone number", async () => {
+    const r = await rpc("pampa_register", {
+      p_handle: digitsHandle,
+      p_password: PASSWORD,
+      p_name: "Verifier Digits",
+    });
+    track("digits handle", r);
+    assert(r.account.phone !== "", "the account came back without its number");
+    return `handle ${digitsHandle}`;
+  });
+
+  await check("an account can carry an email, trimmed and lowercased", async () => {
+    const r = await rpc(
+      "pampa_set_email",
+      { p_email: `  ${mail.toUpperCase()} ` },
+      state.client.token
+    );
+    assert(r.email === mail, `came back as ${r.email}`);
+    return r.email;
+  });
+
+  await check("the email signs in on its own", async () => {
+    const r = await rpc("pampa_login", { p_handle: mail, p_password: PASSWORD });
+    assert(r.account.id === state.client.account.id, "the email signed into another account");
+    assert(r.account.email === mail, "the session did not carry the email");
+    return "same account as the handle";
+  });
+
+  await check("the handle still signs in", async () => {
+    const r = await rpc("pampa_login", { p_handle: clientHandle, p_password: PASSWORD });
+    assert(r.account.id === state.client.account.id, "the handle stopped working");
+    return "one account, two spellings of it";
+  });
+
+  await refused(
+    "an email whose digits are somebody's number is not that account",
+    () =>
+      rpc("pampa_login", {
+        p_handle: `digits.${digitsHandle}@example.com`,
+        p_password: PASSWORD,
+      }),
+    "do not match"
+  );
+
+  await refused(
+    "an email that is not one is refused",
+    () => rpc("pampa_set_email", { p_email: "not-an-address" }, state.pro.token),
+    "look like an email"
+  );
+
+  await refused(
+    "no two accounts share an email",
+    () => rpc("pampa_set_email", { p_email: mail }, state.pro.token),
+    "already has a Pampa account"
+  );
+
+  await refused(
+    "a new registration cannot take an email as its username",
+    () => rpc("pampa_register", { p_handle: mail, p_password: PASSWORD, p_name: "Impostor" }),
+    "already"
+  );
+
+  await check("an email can be taken back off an account", async () => {
+    const r = await rpc("pampa_set_email", { p_email: "" }, state.client.token);
+    assert(!r.email, `still there: ${r.email}`);
+    return "cleared";
+  });
+
+  await refused(
+    "and then it is not a way in any more",
+    () => rpc("pampa_login", { p_handle: mail, p_password: PASSWORD }),
+    "do not match"
   );
 
   await check("a registered professional gets a default price band per service", async () => {
