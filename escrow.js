@@ -680,6 +680,13 @@ function proJobs(stylistId) {
   const mine = state.bookings.filter(function (b) { return b.stylistId === stylistId; });
   return {
     requests: mine.filter(function (b) { return statusOf(b) === "escrowed"; }).sort(byWhen),
+    /* Placed, not funded. Kept apart from `requests` because the two ask for
+       different things: a request is a decision, an unfunded booking is only
+       news. Nothing here is accept-or-counter — the money is not in escrow, so
+       there is nothing to answer — but it is the professional's desk and the
+       client has named them, which is why it is counted and drawn rather than
+       filtered away. */
+    unfunded: mine.filter(function (b) { return statusOf(b) === "unpaid"; }).sort(byWhen),
     accepted: mine.filter(function (b) { return statusOf(b) === "confirmed"; }).sort(byWhen),
     disputes: mine.filter(function (b) { return statusOf(b) === "disputed"; }).sort(byWhen),
     closed: mine.filter(function (b) {
@@ -1159,7 +1166,9 @@ function renderPro() {
   const bal = proBalances(id);
   const jobs = proJobs(id);
   $("#proWho").textContent = st.name + " · " + st.skill;
-  $("#proReqCount").textContent = String(jobs.requests.length);
+  /* the tab's badge counts what the tab holds: the requests to answer and the
+     bookings that are only news so far */
+  $("#proReqCount").textContent = String(jobs.requests.length + jobs.unfunded.length);
   /* The Jobs tab carries every accepted booking — confirmed work in progress
      plus any dispute on it — so its count says what the tab actually holds,
      and an accepted job is visible as a number the moment it is accepted. */
@@ -1185,7 +1194,10 @@ function renderPro() {
     "</div>";
 
   let body = "";
-  if (proTab === "requests") body = proRequestsHtml(jobs.requests);
+  /* the unfunded ones lead: nothing can be done about them yet, and putting
+     them under the requests the pro can actually answer would bury the one
+     thing on the page that has a button on it */
+  if (proTab === "requests") body = proRequestsHtml(jobs.unfunded.concat(jobs.requests));
   if (proTab === "jobs") body = proJobsHtml(jobs.accepted) + proDisputesHtml(jobs.disputes);
   if (proTab === "wallet") body = proWalletHtml(id, bal, jobs.closed);
 
@@ -1240,10 +1252,15 @@ function whereTextNeutral(b) {
 
 function proRequestsHtml(list) {
   if (!list.length) {
-    return emptyState("requests", "No paid requests right now", "A booking appears here the moment the client's payment reaches escrow.");
+    return emptyState("requests", "No requests right now", "A booking appears here the moment a client places one — funded or not.");
   }
   return list.map(function (b, i) {
     const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
+    /* Two kinds of row share this list: a request the money has reached, and a
+       booking that exists but has not been paid for. They are not the same
+       thing and must not read as one — an unfunded booking has no Accept on
+       it, because accepting a promise is how a professional works for free. */
+    const funded = statusOf(b) === "escrowed";
     const net = b.pay ? b.pay.netToPro : 0;
     const paid = b.pay ? b.pay.amount : 0;
     /* The price this request is sitting at, and the range this professional
@@ -1253,32 +1270,46 @@ function proRequestsHtml(list) {
     const range = rangeFor(myProviderRecord() || {}, b.serviceId);
     const offer = offerOf(b);
     const inRange = offer >= range.min && offer <= range.max;
-    const priceLine = counter != null
-      ? '<p class="proOffer countered">' + icon("coin") + " You countered <b>" + naira(counter) +
-        "</b> · waiting on the client's answer</p>"
-      : '<p class="proOffer' + (inRange ? "" : " low") + '">' + icon("coin") + " Client offers <b>" + naira(offer) + "</b>" +
-        " · your range " + esc(rangeText(range)) + "</p>";
-    /* With a counter outstanding there is nothing left to decide: the client
-       holds the answer, and the only thing the pro can still do is walk away. */
-    const actions = counter != null
-      ? '<div class="proActions stacked">' +
-          '<button class="cancelBtn" data-declinejob="' + b.id + '">Decline · refund the client</button>' +
-        "</div>"
-      : '<div class="proActions stacked">' +
-          '<button class="bookBtn wide" data-acceptjob="' + b.id + '">Accept ' + naira(offer) + "</button>" +
-          '<button class="ghostBtn wide" data-negotiate="' + b.id + '">' + icon("sliders") + " Negotiate price</button>" +
-          '<button class="cancelBtn" data-declinejob="' + b.id + '">Decline</button>' +
-        "</div>";
+    const priceLine = !funded
+      ? '<p class="proOffer">' + icon("clock") + " Client offers <b>" + naira(offer) +
+        "</b> · your range " + esc(rangeText(range)) + "</p>"
+      : counter != null
+        ? '<p class="proOffer countered">' + icon("coin") + " You countered <b>" + naira(counter) +
+          "</b> · waiting on the client's answer</p>"
+        : '<p class="proOffer' + (inRange ? "" : " low") + '">' + icon("coin") + " Client offers <b>" + naira(offer) + "</b>" +
+          " · your range " + esc(rangeText(range)) + "</p>";
+    /* What can be done about it right now. An unfunded booking is one line and
+       no controls: the only thing standing between this client and an answer is
+       their own payment, and a Decline button here would be a way to turn down a
+       job that was never actually offered. */
+    const actions = !funded
+      ? '<p class="proStep">' + icon("clock") + " Waiting on " + esc(b.clientName || "the client") +
+        " to pay " + naira(b.total || b.price || 0) + " into escrow — accept or counter the moment it lands.</p>"
+      : counter != null
+        ? '<div class="proActions stacked">' +
+            '<button class="cancelBtn" data-declinejob="' + b.id + '">Decline · refund the client</button>' +
+          "</div>"
+        : '<div class="proActions stacked">' +
+            '<button class="bookBtn wide" data-acceptjob="' + b.id + '">Accept ' + naira(offer) + "</button>" +
+            '<button class="ghostBtn wide" data-negotiate="' + b.id + '">' + icon("sliders") + " Negotiate price</button>" +
+            '<button class="cancelBtn" data-declinejob="' + b.id + '">Decline</button>' +
+          "</div>";
     return '<div class="card proCard" style="--i:' + i + '">' +
       '<div class="proTop"><h4>' + esc(sv.name || "Service") + '</h4>' +
-        '<span class="badge info">' + naira(paid) + " in escrow</span></div>" +
+        (funded
+          ? '<span class="badge info">' + naira(paid) + " in escrow</span>"
+          : '<span class="badge">Not funded yet</span>') + "</div>" +
       '<p class="proMeta">' + esc(b.clientName || "Client") + " · " + esc(b.date) + " at " + esc(b.time) + "</p>" +
       '<p class="proMeta">' + tripTextFor(b) + "</p>" +
       priceLine +
       /* With a counter on the table these are the numbers the client would be
-         accepting, not the ones in escrow \u2014 so the label says which. */
-      '<p class="proEarn">' + (counter != null ? "You'd receive" : "You receive") +
-        " <b>" + naira(counter != null ? escrowNet(counterTotal(b, counter)) : net) + "</b>" +
+         accepting, not the ones in escrow \u2014 so the label says which. An
+         unfunded booking is a conditional too: the number is what the job pays
+         once the money arrives. */
+      '<p class="proEarn">' + (counter != null || !funded ? "You'd receive" : "You receive") +
+        " <b>" + naira(funded
+          ? (counter != null ? escrowNet(counterTotal(b, counter)) : net)
+          : escrowNet(b.total || b.price || 0)) + "</b>" +
         (b.pay ? ' <small>(after ' + naira(b.pay.fee) + " platform fee)</small>" : "") + "</p>" +
       actions + "</div>";
   }).join("");

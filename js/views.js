@@ -78,7 +78,10 @@ function renderProfile() {
   const note = $("#proEntryNote");
   if (note) {
     const pro = myProviderRecord();
-    const waiting = pro ? proJobs(pro.id).requests.length : 0;
+    const jobs = pro ? proJobs(pro.id) : null;
+    /* funded and unfunded together, because both are on the desk the line is
+       the door to — the desk itself is where the two are told apart */
+    const waiting = jobs ? jobs.requests.length + jobs.unfunded.length : 0;
     note.textContent = waiting
       ? waiting + " request" + (waiting === 1 ? "" : "s") + " waiting on you"
       : "Accept jobs, track escrow and withdraw earnings";
@@ -372,6 +375,12 @@ function switchView(name) {
     const market = $("#homeMarket");
     if (u.role === "pro" && u.trade) {
       renderProHomeCard();
+      /* The attention card is the pro's front door on this page, and this is
+         the one branch that never reached the function that draws it: a
+         professional's Home hid the market, so the strip renderer that calls
+         it — and the Bookings list that also calls it — were both away. The
+         ledger is right here, so the card is drawn from it directly. */
+      if (typeof renderHomeAttention === "function") renderHomeAttention();
       if (market) market.style.display = "none";
       if (proStats) proStats.style.display = "";
       /* the stories rail is for people looking to book: a professional's Home
@@ -413,6 +422,13 @@ function switchView(name) {
     }
     bindHomeChips();
   }
+  /* A dashboard that has been sitting open is a dashboard that is out of date:
+     what is on it was read when the app last asked. Entering a view is therefore
+     the moment to ask again. The page above is already drawn from the cache, so
+     the answer only ever corrects it — and dbCloudSyncSoon throttles and never
+     awaits, so tapping between tabs costs one round trip at most every few
+     seconds and nothing on screen ever waits on the network. */
+  if (typeof dbCloudSyncSoon === "function") dbCloudSyncSoon();
 }
 
 /* ---------- Pro dashboard ---------- */
@@ -433,10 +449,19 @@ function renderWork() {
 
   const mine = state.bookings.filter(function (b) { return b.stylistId === earnId; });
   /* the money states the escrow lifecycle actually uses: escrowed = waiting on
-     the pro, everything between escrowed and released is in progress */
+     the pro, everything between escrowed and released is in progress.
+
+     `unfunded` is the third kind of row and the newest: a booking that exists
+     but has not been paid into escrow yet. It cannot be accepted — accepting a
+     promise is how a professional ends up working for nothing — but it is
+     still somebody asking for their time by name, so it belongs on the desk
+     where they will see it, said plainly as not funded. Before this, a client
+     could book a professional and the professional's own dashboard had no idea
+     anything had happened. */
+  const unfunded = mine.filter(function (b) { return statusOf(b) === "unpaid"; });
   const waiting = mine.filter(function (b) { return statusOf(b) === "escrowed"; });
-  const active = mine.filter(function (b) { const s = statusOf(b); return s === "confirmed"; });
-  const needsMe = waiting.concat(active);
+  const active = mine.filter(function (b) { return statusOf(b) === "confirmed"; });
+  const needsMe = unfunded.concat(waiting).concat(active);
 
   const bal = proBalances(earnId);
 
@@ -577,28 +602,42 @@ function renderWork() {
   /* The note names the halves of the queue rather than counting it: "needs you"
      is the Home card's job now, and repeating it here would put two numbers on
      the same list. What the page cannot say anywhere else is which half a row
-     is in — a request to answer or a job in progress. */
+     is in — a request to answer, a job in progress, or a booking nobody has
+     paid for yet. */
   const count = $("#workCount");
   if (count) {
     const bits = [];
     if (waiting.length) bits.push(waiting.length + " to accept");
+    if (unfunded.length) bits.push(unfunded.length + " to be funded");
     if (active.length) bits.push(active.length + " in progress");
     count.textContent = bits.join(" · ");
   }
-  /* The queue leads the page, and it says so out loud only when somebody is
-     actually waiting: the gold hairline and the live dot are the same
-     language the Home card speaks, so the two surfaces read as one app. */
+  /* The queue leads the page, and it says so out loud whenever anything is on
+     it: the gold hairline and the live dot are the same language the Home card
+     speaks, so the two surfaces read as one app. An unfunded request lights it
+     too — it is something on the desk, which is what the line means — and the
+     row itself is what says nothing has been paid. */
   const desk = $("#deskQueue");
-  if (desk) desk.classList.toggle("live", waiting.length > 0);
+  if (desk) desk.classList.toggle("live", unfunded.length + waiting.length + active.length > 0);
 
   let list = "";
   if (!needsMe.length) {
-    list = emptyState("bookings_empty", "No requests yet", "Paid bookings for " + (t ? t.name.toLowerCase() : "your trade") + " land here the moment escrow holds them.");
+    list = emptyState("bookings_empty", "No requests yet", "Bookings for " + (t ? t.name.toLowerCase() : "your trade") + " land here the moment a client places one — funded or not.");
   } else {
-    list = needsMe.sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); }).map(function (b) {
+    /* Oldest appointment first: the desk is a diary, and the next thing that
+       happens is the first thing to read. The three halves sort together now
+       that they share a list — an unfunded request for Saturday morning sits
+       above a paid one for Saturday afternoon, because that is the order the
+       two actually happen in. */
+    list = needsMe.slice().sort(function (a, b) { return (a.date + a.time).localeCompare(b.date + b.time); }).map(function (b) {
       const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
+      const st = statusOf(b);
       const net = b.pay ? b.pay.netToPro : (b.total || b.price || 0);
-      return '<button class="card workCard" data-bookcard="' + esc(b.id) + '">' +
+      /* The money column is the client's offer either way; what changes is the
+         sentence under it. "you keep" is only true once escrow holds something
+         — before that the honest word is that nobody has paid. */
+      const moneyNote = st === "unpaid" ? " · not funded yet" : " · you keep " + naira(net || 0);
+      return '<button class="card workCard' + (st === "unpaid" ? " unfunded" : "") + '" data-bookcard="' + esc(b.id) + '">' +
         '<span class="rowInfo"><b>' + esc(sv.name || "Booking") + " · " + esc(b.clientName || "Client") + "</b>" +
         "<small>" + esc(b.date) + " · " + esc(b.time) + " · " +
           (b.loc === "home"
@@ -607,13 +646,19 @@ function renderWork() {
                 (b.km >= PRECISE_EPS ? " · ~" + driveMins(b.km) + " min" : "") +
                 (b.travelFee ? " · " + naira(b.travelFee) + " travel" : "")
               : "")
-            : "Walk-in at your studio") + " · you keep " + naira(net || 0) + "</small></span>" +
+            : "Walk-in at your studio") + moneyNote + "</small></span>" +
         '<span class="money">' + naira(b.total || b.price || 0) + "</span></button>";
     }).join("");
   }
 
   const reqs = $("#workRequests");
   if (reqs) reqs.innerHTML = list;
+  /* The badge on the tab counts the rows this function has just drawn, so it is
+     painted here as well as from the client's booking list. Without this the
+     dot was only ever right after the Bookings tab had rendered — a
+     professional landing on their own dashboard saw an empty desk and a silent
+     tab over a queue with something in it. */
+  renderNavCounts();
 }
 
 function enterApp() {

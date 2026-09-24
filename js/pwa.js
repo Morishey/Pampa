@@ -209,7 +209,13 @@ window.addEventListener("appinstalled", function () {
   toast("Pampa installed");
 });
 document.addEventListener("visibilitychange", function () {
-  if (!document.hidden && state.user) announceNews();
+  if (document.hidden || !state.user) return;
+  announceNews();
+  /* Coming back to the front is the other moment the world outside has to be
+     asked again: a phone put down with the desk open is a phone whose desk is
+     as old as the hour it was put down. Shorter than the view-tap throttle —
+     returning to the app is a stronger reason to ask than tapping a tab. */
+  if (typeof dbCloudSyncSoon === "function") dbCloudSyncSoon(3000);
 });
 registerServiceWorker();
 

@@ -461,7 +461,17 @@ function attentionItems() {
           detail: "The money stays frozen until they settle it" });
       }
     } else {
-      if (st === "escrowed") {
+      /* A booking that has been placed but not funded is news to the
+         professional the moment it exists, not the moment it is paid: somebody
+         has asked for their Saturday morning by name, and a desk that stays
+         silent until money lands leaves them competing for a slot they never
+         knew was wanted. It reads as a request, says the money is not there
+         yet, and asks for nothing — accepting it is what paying unlocks. */
+      if (st === "unpaid") {
+        out.push({ bookingId: b.id, icon: "clock", tone: "gold", pro: true,
+          title: who + " asked for " + (sv.name || "a service") + " · " + naira(offerOf(b)),
+          detail: "Not funded yet · " + when + " · " + (b.loc === "studio" ? "walk-in" : "home visit") });
+      } else if (st === "escrowed") {
         out.push({ bookingId: b.id, icon: "calendar", tone: "warn", pro: true,
           title: who + " wants " + (sv.name || "a service") + " · offers " + naira(offerOf(b)),
           detail: when + " · " + (b.loc === "studio" ? "walk-in" : "home visit") });

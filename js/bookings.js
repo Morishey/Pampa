@@ -273,7 +273,10 @@ function renderNavCounts() {
     let waiting = 0;
     if (u.role === "pro") {
       const me = myProviderRecord();
-      waiting = me ? proJobs(me.id).requests.length : 0;
+      /* the badge counts what the desk lists, or it contradicts the page behind
+         it: requests to answer, plus the bookings placed but not yet funded */
+      const jobs = me ? proJobs(me.id) : null;
+      waiting = jobs ? jobs.requests.length + jobs.unfunded.length : 0;
     }
     wDot.textContent = waiting > 9 ? "9+" : String(waiting);
     wDot.style.display = waiting ? "flex" : "none";

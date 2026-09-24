@@ -165,6 +165,7 @@ async function dbCloudRestore() {
    an error screen on a dashboard that still has its cache. */
 async function dbCloudSync() {
   if (!dbSignedIn()) return;
+  lastCloudSync = Date.now();
   const fix = (state.user || {}).coords || null;
   await Promise.all([
     dbSyncBookings(),
@@ -175,6 +176,24 @@ async function dbCloudSync() {
   renderBookings();
   renderProfile();
   renderNotify();
+}
+
+/* Whether the device's copy is old enough to be worth asking about again, and
+   the two moments that ask: entering a view, and the app coming back to the
+   front. A professional staring at their own desk while a client books them is
+   the case this exists for — the request is on the server the moment it is
+   placed, and the dashboard they are already looking at should say so without
+   being reloaded. Throttled, and never awaited: a tab tap is not a reason to
+   hit three endpoints, and nothing on screen waits on the answer. */
+const CLOUD_SYNC_GAP_MS = 15000;
+let lastCloudSync = 0;
+
+function dbCloudSyncSoon(gapMs) {
+  if (!dbConfigured() || !dbSignedIn()) return false;
+  if (Date.now() - lastCloudSync < (gapMs || CLOUD_SYNC_GAP_MS)) return false;
+  lastCloudSync = Date.now();
+  dbCloudSync();
+  return true;
 }
 
 /* The directory. The client's position rides the call: the server measures

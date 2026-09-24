@@ -158,6 +158,12 @@ function stageSource() {
         { by: "pro", price: 4200, note: "Long hair, twenty minutes more.", at: now },
       ] },
     }),
+    /* Placed, never funded: the row the desk used to be missing entirely, so
+       the queue's own "not funded yet" shape is judged where it renders. */
+    mkBooking("bRendPro0", {
+      stylistId: MINE, time: "08:00", status: "unpaid", pay: null,
+      history: [{ at: now, label: "Booking placed" }],
+    }),
     mkBooking("bRendPro1", {
       stylistId: MINE, time: "09:00", status: "escrowed",
       history: [{ at: now, label: "Booking placed" }, { at: now, label: "Payment held in escrow" }],
