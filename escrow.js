@@ -696,19 +696,138 @@ function proJobs(stylistId) {
   };
 }
 
-/* ---------- Payouts ---------- */
-function destinationFor(stylistId) {
-  return proStore.destinations[stylistId] || null;
-}
+/* ---------- Where the money lands ----------
+   A professional keeps more than one place to be paid: a bank account for most
+   of it, a wallet for the rest. One of them is the default — the destination a
+   payout is written to unless they say otherwise — and the others stay saved
+   for the day that changes.
 
-function setDestination(stylistId, dest) {
-  proStore.destinations[stylistId] = dest;
+   The store used to hold a single object per account. That shape is still read,
+   and adopted into the list the first time it is looked at, so a device that
+   saved one destination keeps it rather than appearing to have none. */
+function destinationsFor(stylistId) {
+  const bag = proStore.destinations[stylistId];
+  if (!bag) return [];
+  if (Array.isArray(bag)) return bag;
+  const list = bag.type
+    ? [Object.assign({ id: bag.id || "d" + Date.now().toString(36), default: true }, bag)]
+    : [];
+  proStore.destinations[stylistId] = list;
   proSave();
+  return list;
 }
 
-function requestPayout(stylistId) {
+/* The one a payout is written to. `default` is the pro's own choice; the first
+   destination saved takes the job until they change it, so there is an answer
+   whenever there is at least one row. */
+function destinationFor(stylistId) {
+  const all = destinationsFor(stylistId);
+  return all.filter(function (d) { return d.default; })[0] || all[0] || null;
+}
+
+/* How a destination is read back to its owner: enough to recognise it, never
+   the whole number. A wallet page is not the place to publish an account. */
+function destinationLine(d) {
+  if (!d) return "";
+  if (d.type === "bank" || d.kind === "bank") {
+    const acct = String(d.account || (d.details || {}).account || "");
+    return (d.bank || (d.details || {}).bank || d.label || "Bank account") +
+      (acct.length > 4 ? " ••••" + acct.slice(-4) : "");
+  }
+  const addr = String(d.address || (d.details || {}).address || "");
+  const net = d.network || (d.details || {}).network || d.label || "Crypto";
+  return net + (addr.length > 10 ? " · " + addr.slice(0, 6) + "…" + addr.slice(-4) : addr ? " · " + addr : "");
+}
+
+function addDestination(stylistId, dest) {
+  const all = destinationsFor(stylistId).slice();
+  const row = Object.assign({ id: "d" + Date.now().toString(36), savedAt: new Date().toISOString() }, dest);
+  /* the first row saved is the default: a destination list with no default is a
+     list where the next payout has nowhere to go */
+  if (!all.some(function (d) { return d.default; })) row.default = true;
+  all.push(row);
+  proStore.destinations[stylistId] = all;
+  proSave();
+  return row;
+}
+
+function setDefaultDestination(stylistId, destId) {
+  const all = destinationsFor(stylistId);
+  if (!all.some(function (d) { return d.id === destId; })) return false;
+  all.forEach(function (d) { d.default = d.id === destId; });
+  proSave();
+  return true;
+}
+
+function removeDestination(stylistId, destId) {
+  const all = destinationsFor(stylistId);
+  const gone = all.filter(function (d) { return d.id === destId; })[0];
+  if (!gone) return false;
+  const kept = all.filter(function (d) { return d.id !== destId; });
+  /* the list is never left without a default while it has rows: the next in
+     line takes the job, which is what the server does with the same decision */
+  if (gone.default && kept.length && !kept.some(function (d) { return d.default; })) kept[0].default = true;
+  proStore.destinations[stylistId] = kept;
+  proSave();
+  return true;
+}
+
+/* A payout row the server wrote when money left escrow, folded into this
+   device's ledger of the same fact (deduplicated by id). Without this the
+   wallet would offer to withdraw money the server has already sent — the
+   balance is `credited − paidOut`, and paidOut has to know about both the
+   withdrawals made here and the payouts recorded there. */
+function recordServerPayouts(stylistId, rows) {
+  if (!Array.isArray(rows) || !rows.length) return false;
+  const mine = proStore.payouts[stylistId] || (proStore.payouts[stylistId] = []);
+  const at = {};
+  mine.forEach(function (p, i) { at[p.id] = i; });
+  let changed = false;
+  rows.forEach(function (r) {
+    if (!r || !r.id) return;
+    const row = {
+      id: r.id,
+      amount: Number(r.net) || 0,
+      gross: Number(r.gross) || 0,
+      fee: Number(r.fee) || 0,
+      method: "escrow",
+      to: r.to || "Saved destination",
+      destinationId: r.destinationId || null,
+      bookingId: r.bookingId || null,
+      ref: r.ref || "",
+      status: r.status || "sent",
+      at: r.at || "",
+      cloud: true,
+    };
+    /* A payout this device already knows is *updated*, not skipped: the server
+       is where its status and its destination live, and money that was waiting
+       for a destination yesterday is sent today. Skipping known ids is what
+       left a routed payout reading "awaiting destination" forever. */
+    if (at[r.id] === undefined) {
+      mine.push(row);
+      at[r.id] = mine.length - 1;
+      changed = true;
+      return;
+    }
+    const before = mine[at[r.id]];
+    if (before.status !== row.status || before.to !== row.to ||
+        before.destinationId !== row.destinationId) {
+      mine[at[r.id]] = Object.assign({}, before, row);
+      changed = true;
+    }
+  });
+  if (changed) proSave();
+  return changed;
+}
+
+/* The withdrawal itself. `destId` picks which saved destination it lands in —
+   the wallet lets a pro withdraw to any of them, not only the default. */
+function requestPayout(stylistId, destId) {
   const bal = proBalances(stylistId);
-  const dest = destinationFor(stylistId);
+  const all = destinationsFor(stylistId);
+  const dest = destId
+    ? all.filter(function (d) { return d.id === destId; })[0]
+    : destinationFor(stylistId);
   if (!dest) return { ok: false, msg: "Add a payout destination first" };
   if (bal.available < 1000) {
     return { ok: false, msg: "Minimum withdrawal is ₦1,000 — you have " + naira(bal.available) };
@@ -716,8 +835,9 @@ function requestPayout(stylistId) {
   const payout = {
     id: "p" + Date.now(),
     amount: bal.available,
-    method: dest.type,
-    to: dest.type === "bank" ? dest.bank + " · " + dest.account : dest.network + " · " + dest.address,
+    method: dest.type || dest.kind || "bank",
+    to: destinationLine(dest),
+    destinationId: dest.id,
     at: new Date().toISOString(),
     status: "Sent",
   };
@@ -1158,8 +1278,6 @@ function renderPro() {
       emptyState("briefcase", "Your work profile is not ready",
         u.trade ? "Set your area on the Profile tab so clients can find you."
                 : "Finish your trade step so clients can book you.");
-    const dest = destinationFor(selfKey());
-    if (dest) Object.assign(destDraft, dest);
     return;
   }
 
@@ -1199,7 +1317,9 @@ function renderPro() {
      thing on the page that has a button on it */
   if (proTab === "requests") body = proRequestsHtml(jobs.unfunded.concat(jobs.requests));
   if (proTab === "jobs") body = proJobsHtml(jobs.accepted) + proDisputesHtml(jobs.disputes);
-  if (proTab === "wallet") body = proWalletHtml(id, bal, jobs.closed);
+  /* The desk already leads with the balance, so the wallet's own hero is left
+     off here — it is drawn in full on the Wallet tab (wallet.js). */
+  if (proTab === "wallet") body = proWalletHtml(id, bal, jobs.closed, { hero: false });
 
   $("#proBody").innerHTML = head + body;
 }
@@ -1381,59 +1501,7 @@ function proJobsHtml(list) {
   }).join("");
 }
 
-function proWalletHtml(id, bal, closed) {
-  const dest = destinationFor(id);
-  const payouts = proStore.payouts[id] || [];
-  const held = state.bookings.filter(function (b) { return b.stylistId === id && isHeld(b); });
-  const destText = dest
-    ? (dest.type === "bank" ? icon("bank") + " " + esc(dest.bank) + " · " + esc(dest.account) : icon("coin") + " " + esc(dest.network))
-    : "Not set";
-
-  const form = '<div class="destForm">' +
-    '<div class="whereRow">' +
-      '<button class="where' + (destDraft.type === "bank" ? " active" : "") + '" data-desttype="bank">Bank account</button>' +
-      '<button class="where' + (destDraft.type === "crypto" ? " active" : "") + '" data-desttype="crypto">Crypto wallet</button>' +
-    "</div>" +
-    (destDraft.type === "bank"
-      ? '<input id="destBank" class="addrInput" placeholder="Bank name (e.g. GTBank)" value="' + esc(destDraft.bank) + '">' +
-        '<input id="destAcct" class="addrInput" inputmode="numeric" maxlength="10" placeholder="10-digit account number" value="' + esc(destDraft.account) + '">'
-      : '<input id="destNetwork" class="addrInput" placeholder="Network (TRC20, ERC20, BTC)" value="' + esc(destDraft.network) + '">' +
-        '<input id="destAddr" class="addrInput" placeholder="Wallet address" value="' + esc(destDraft.address) + '">') +
-    '<button class="nextbtn tight" id="saveDest">Save destination</button></div>';
-
-  return '<div class="card proCard"><div class="proTop"><h4>Payout destination</h4>' +
-      '<span class="badge past">' + destText + "</span></div>" + form + "</div>" +
-    '<div class="card proCard"><div class="proTop"><h4>Withdraw earnings</h4>' +
-      '<span class="badge ok">' + naira(bal.available) + " ready</span></div>" +
-      '<p class="proMeta">' + naira(bal.inEscrow) + " still held in escrow across " + held.length +
-        " active job" + (held.length === 1 ? "" : "s") + "</p>" +
-      '<div class="proActions"><button class="bookBtn wide" id="withdrawBtn">Withdraw ' + naira(bal.available) + "</button></div>" +
-      '<p class="finePrint">Minimum ₦1,000 · payouts are simulated in this demo</p></div>' +
-    (held.length
-      ? '<div class="sectionHead"><h2>Held in escrow</h2></div>' + held.map(function (b) {
-          return '<div class="card proRow"><span>' + esc(b.clientName || "Client") + " · " + esc(b.date) +
-            '</span><b>' + naira(b.pay ? b.pay.netToPro : 0) + "</b></div>";
-        }).join("")
-      : "") +
-    (payouts.length
-      ? '<div class="sectionHead"><h2>Payouts</h2></div>' + payouts.slice().reverse().map(function (p) {
-          return '<div class="card proRow"><span>' + esc(p.to) + " · " + esc(String(p.at).slice(0, 10)) +
-            '</span><b>' + naira(p.amount) + "</b></div>";
-        }).join("")
-      : "") +
-    '<div class="sectionHead"><h2>Activity</h2></div>' +
-    (closed.length
-      ? closed.map(function (b) {
-          const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
-          const held = statusOf(b) === "disputed";
-          const got = creditedTo(b, id) || (b.pay ? b.pay.netToPro : 0);
-          return '<div class="card proRow"><span>' + esc(sv.name || "Job") + " · " + esc(statusLabelFor(b)) +
-            '</span><b>' + (held ? naira(got) + " held" : naira(got)) + "</b></div>";
-        }).join("")
-      : '<p class="empty">Nothing settled yet.</p>') +
-    '<p class="finePrint">Pampa has taken ' + naira(bal.fees) + " in platform fees from your payouts so far.</p>";
-}
-
+/* Reading the payout-destination form — see wallet.js for the surfaces it feeds. */
 function saveDestination(id) {
   if (destDraft.type === "bank") {
     const bankEl = $("#destBank");
@@ -1442,18 +1510,21 @@ function saveDestination(id) {
     const acct = ((acctEl ? acctEl.value : destDraft.account) || "").replace(/\D/g, "");
     if (!bank) return { ok: false, msg: "Enter your bank name" };
     if (acct.length !== 10) return { ok: false, msg: "Account number must be 10 digits" };
-    setDestination(id, { type: "bank", bank: bank, account: acct });
-  } else {
-    const netEl = $("#destNetwork");
-    const addrEl = $("#destAddr");
-    const network = (netEl ? netEl.value.trim() : destDraft.network) || "";
-    const address = (addrEl ? addrEl.value.trim() : destDraft.address) || "";
-    if (!network) return { ok: false, msg: "Enter the network" };
-    if (address.length < 8) return { ok: false, msg: "That wallet address looks too short" };
-    setDestination(id, { type: "crypto", network: network, address: address });
+    const row = addDestination(id, { type: "bank", bank: bank, account: acct });
+    destDraft.bank = "";
+    destDraft.account = "";
+    return { ok: true, dest: row, kind: "bank", label: bank + " ••••" + acct.slice(-4), details: { bank: bank, account: acct } };
   }
-  Object.assign(destDraft, destinationFor(id));
-  return { ok: true };
+  const netEl = $("#destNetwork");
+  const addrEl = $("#destAddr");
+  const network = (netEl ? netEl.value.trim() : destDraft.network) || "";
+  const address = (addrEl ? addrEl.value.trim() : destDraft.address) || "";
+  if (!network) return { ok: false, msg: "Enter the network" };
+  if (address.length < 8) return { ok: false, msg: "That wallet address looks too short" };
+  const row = addDestination(id, { type: "crypto", network: network, address: address });
+  destDraft.network = "";
+  destDraft.address = "";
+  return { ok: true, dest: row, kind: "crypto", label: network + " wallet", details: { network: network, address: address } };
 }
 
 /* ---------- Journal (every money event, newest last) ---------- */

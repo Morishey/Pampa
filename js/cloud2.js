@@ -167,15 +167,22 @@ async function dbCloudSync() {
   if (!dbSignedIn()) return;
   lastCloudSync = Date.now();
   const fix = (state.user || {}).coords || null;
+  /* The wallet is read alongside the rest for a professional only: a payout
+     destination and a payout are theirs, and a client's money view is drawn
+     from the same bookings this call has just synced. */
+  const wantsWallet = (state.user || {}).role === "pro" && typeof dbWalletSync === "function";
   await Promise.all([
     dbSyncBookings(),
     dbSyncDirectory(fix),
     dbSyncFlags(),
+    wantsWallet ? dbWalletSync() : null,
   ]);
   refreshBookableSurfaces();
   renderBookings();
   renderProfile();
   renderNotify();
+  /* the money view reads the ledger this call has just corrected */
+  if (typeof renderWallet === "function") renderWallet();
 }
 
 /* Whether the device's copy is old enough to be worth asking about again, and

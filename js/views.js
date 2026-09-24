@@ -366,6 +366,7 @@ function switchView(name) {
   if (name === "bookings") renderBookings();
   if (name === "profile") renderProfile();
   if (name === "work") renderWork();
+  if (name === "wallet") renderWallet();
   if (name === "home") {
     /* A professional's Home is their profession, not the market: their trade
        and their ratings. No service grid, no professionals strip, no slider —

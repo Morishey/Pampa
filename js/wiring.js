@@ -676,23 +676,72 @@ function wire() {
       });
       return;
     }
+    /* ---- the wallet ----
+       One set of handlers for both surfaces the wallet is drawn on — the
+       Wallet tab and the escrow desk's own Wallet tab — because they are the
+       same controls over the same list, and a second set would be a second
+       place for the two to disagree. */
     const destType = t.closest("[data-desttype]");
     if (destType) {
       captureDestInputs();
       destDraft.type = destType.dataset.desttype;
-      renderPro();
+      renderWalletSurface();
+      return;
+    }
+    if (t.closest("[data-dest-open]")) {
+      walletFormOpen = true;
+      renderWalletSurface();
+      const field = $("#destBank") || $("#destNetwork");
+      if (field) field.focus();
+      return;
+    }
+    const makeDefault = t.closest("[data-dest-default]");
+    if (makeDefault) {
+      const res = pickDefaultDestination(walletOwnerId(), makeDefault.dataset.destDefault);
+      if (res.msg) toast(res.msg);
+      return;
+    }
+    const dropDest = t.closest("[data-dest-remove]");
+    if (dropDest) {
+      const id = dropDest.dataset.destRemove;
+      /* Removing where money lands is not a slip anybody should be able to
+         make: payouts already sent keep their record, but the next one has
+         nowhere to go. */
+      pampaConfirm({
+        title: "Remove this destination?",
+        body: "Payouts already sent keep their record. The next one will land in whichever destination is left.",
+        confirmLabel: "Remove it",
+        danger: true,
+      }).then(function (yes) {
+        if (!yes) return;
+        const res = dropDestination(walletOwnerId(), id);
+        if (res.msg) toast(res.msg);
+      });
       return;
     }
     if (t.closest("#saveDest")) {
-      const res = saveDestination(proStore.proId);
-      toast(res.ok ? "Payout destination saved" : res.msg);
-      renderPro();
+      const res = saveWalletDestination(walletOwnerId());
+      if (!res.ok) { toast(res.msg); return; }
+      walletFormOpen = false;
+      renderWalletSurface();
+      toast("Payout destination saved — payouts can land there");
       return;
     }
     if (t.closest("#withdrawBtn")) {
-      const res = requestPayout(proStore.proId);
-      toast(res.ok ? naira(res.payout.amount) + " sent to " + res.payout.to : res.msg);
-      renderPro();
+      work(t.closest("#withdrawBtn"), withdrawAll(walletOwnerId())).then(function (res) {
+        toast(res.ok ? naira(res.amount) + " on its way to " + res.to : res.msg);
+        renderWalletSurface();
+      }).catch(function () { toast("Could not send that — try again"); });
+      return;
+    }
+    /* How a client pays: the method the pay sheet opens on. */
+    const payPick = t.closest("[data-wallet-pay]");
+    if (payPick) {
+      if (!state.user) { toast("Sign in first"); return; }
+      state.user.payMethod = payPick.dataset.walletPay;
+      save();
+      renderWallet();
+      toast("Saved — the pay sheet will open on that");
       return;
     }
     const slot = t.closest(".slot");

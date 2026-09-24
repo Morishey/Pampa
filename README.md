@@ -738,9 +738,43 @@ the same ledger as a normal release. Settling is guarded: only disputed
 bookings can be settled, only once, and a settled booking can't then be
 cancelled, released or declined.
 
-**Payouts** — released money lands in the stylist's wallet. They set a payout
-destination (bank account with a 10-digit number, or a crypto wallet with a
-network and address) and withdraw; the minimum is ₦1,000.
+### The wallet
+
+Escrow is where money rests; the wallet is where it is read, and it has its own
+tab in the bottom nav for both roles. It used to be a tab inside the escrow
+desk — two taps behind *Open the escrow desk* — which is a strange place to keep
+the money somebody works for, and a strange place for a client's escrow too.
+The desk's own Wallet tab is still there and now renders through the same
+function as the tab, so the two cannot disagree about a balance.
+
+**For a professional** it opens on what is available to withdraw, then what is
+held in escrow across jobs that have not settled, then lifetime earnings and
+jobs paid, then the platform fees already taken. Under that: the destinations a
+payout can land in, the payouts already made with their references, and the
+money trail of settled jobs.
+
+**Destinations are a list, not a field.** A bank account (bank name plus a
+10-digit number) and a crypto wallet (network plus address) can both be saved,
+and one of them is the default — the row a payout is written against the moment
+escrow releases. Which one is default is the professional's choice
+(`pampa_set_default_destination`), and taking one back
+(`pampa_remove_destination`) promotes the oldest that is left rather than
+leaving the list with nowhere to send money. Rows are read back masked
+(`GTBank ••••6789`, `TRC20 · TQ4f9d…t2Aa`), and the whole list lives on the
+server, so the same account saved on another phone shows up here.
+
+**Money that was released before there was a destination** is not lost in a
+corner: the payout row is written `pending`, the wallet counts it as available
+and says where it came from, and *Withdraw* routes it to the destination the
+professional has now saved (`pampa_assign_payout`). Withdrawing is one action
+for both halves — payouts waiting for a destination, and credit this device has
+not sent — and the wallet is re-read from the server afterwards rather than
+guessed at. Minimum ₦1,000.
+
+**For a client** the same tab is the other end of the same ledger: what is held
+in escrow for them right now, what has been paid in all time, what came back as
+a refund, what has gone to their professionals, the bookings behind each figure,
+and the method the pay sheet opens on.
 
 **Pro mode** — open *Profile → Open the escrow desk*, or the door at the foot of
 the Work dashboard. It opens as **you**: a professional account works as itself,

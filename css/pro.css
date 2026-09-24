@@ -483,3 +483,168 @@
 @media (prefers-reduced-motion: reduce) {
   .deskQueue.live .sectionHead h2::after { animation: none; }
 }
+/* ---------- The wallet -------------------------------------------------
+   Money, read the way a statement reads: what is available, then where it
+   can land, then what is still being held. The destinations are rows rather
+   than a form because there can be several of them now — a bank account, a
+   crypto wallet — and the one a payout lands in has to be visible at a
+   glance rather than implied by which fields are filled. */
+.walletCta {
+  border-top: 1px solid var(--hero-line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+/* the foot of the hero: where the money goes, under the button that moves it.
+   Wraps rather than shrinks, so a long bank line never squeezes the amount
+   above it. */
+.walletLand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 9px 0 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.walletLand .icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+.walletCard .finePrint {
+  margin-top: 8px;
+  opacity: 0.6;
+}
+
+.walletEmpty {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 10px;
+  padding: 13px 14px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.walletEmpty .icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  color: var(--ink-faint);
+}
+
+.destList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* One saved destination. Wraps on a narrow phone so the amount of controls
+   never eats the name: the identity of the account is the row, and it is the
+   one thing that must stay readable. */
+.destCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 13px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.destCard.isDefault {
+  border-color: var(--gold-line);
+}
+
+.destIco {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.destIco .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.destInfo {
+  flex: 1 1 120px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.destInfo b {
+  font-size: 13.5px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destInfo small {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+/* taking a destination back: a small, quiet target in the corner of its own
+   row, never a second big button fighting the "Make default" beside it */
+.destX {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: none;
+  color: var(--ink-faint);
+}
+
+.destX .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.destX:active {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* a saved destination and where its payouts went: the row is three facts, so
+   the third one is allowed to wrap under the other two on a narrow phone */
+.proRow .badge {
+  flex: none;
+}
+
+@media (max-width: 380px) {
+  .destInfo {
+    flex: 1 1 100%;
+    order: 2;
+  }
+
+  .destCard .destIco {
+    order: 1;
+  }
+
+  .destCard .badge,
+  .destCard .linkBtn,
+  .destCard .destX {
+    order: 3;
+  }
+}

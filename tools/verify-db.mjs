@@ -583,6 +583,104 @@ async function main() {
     return `paid ${p.net} net of ${p.fee} · held ${w.held} · ref ${p.ref}`;
   });
 
+  /* -- 5b. Where the money lands -----------------------------------------
+     A payout destination is not a form field: it is the row a payout is
+     written against when escrow releases. Three things are worth proving —
+     that an account can keep several, that it decides which one is default,
+     and that taking one back never leaves the list without one. */
+
+  await check("a professional saves a bank account and a wallet, one of them the default", async () => {
+    const w1 = await rpc("pampa_add_destination", {
+      p_kind: "bank", p_label: "GTBank ····6789",
+      p_details: { bank: "GTBank", account: "0123456789" }, p_default: true,
+    }, state.pro.token);
+    const bank = (w1.destinations || [])[0];
+    assert(bank && bank.kind === "bank", `the bank account was not saved: ${JSON.stringify(w1).slice(0, 160)}`);
+    assert(bank.default === true, "the first destination saved did not become the default");
+
+    const w2 = await rpc("pampa_add_destination", {
+      p_kind: "crypto", p_label: "TRC20 wallet",
+      p_details: { network: "TRC20", address: "TQ4f9d2Kp7sR1xV8mLq3Zb6Hn0Yc5Wt2Aa" },
+    }, state.pro.token);
+    const list = w2.destinations || [];
+    assert(list.length === 2, `${list.length} destination(s) saved, expected 2`);
+    assert(list.filter((d) => d.default).length === 1, "the list does not hold exactly one default");
+    const crypto = list.find((d) => d.kind === "crypto");
+    assert(crypto, "the wallet was not saved");
+    assert(crypto.default === false, "adding a second destination moved the default on its own");
+    state.destBank = bank.id;
+    state.destCrypto = crypto.id;
+    return `2 destinations · the bank is default · details ride with the row`;
+  });
+
+  await check("the professional chooses which destination a payout lands in", async () => {
+    const w = await rpc("pampa_set_default_destination", { p_destination: state.destCrypto }, state.pro.token);
+    const list = w.destinations || [];
+    const dflt = list.filter((d) => d.default);
+    assert(dflt.length === 1, `${dflt.length} defaults, expected exactly one`);
+    assert(dflt[0].id === state.destCrypto, "the chosen destination is not the default");
+    const bank = list.find((d) => d.id === state.destBank);
+    assert(bank && bank.default === false, "the previous default was left set");
+    return `default moved to the ${dflt[0].kind} destination`;
+  });
+
+  await refused(
+    "another account cannot change somebody else's payout destination",
+    () => rpc("pampa_set_default_destination", { p_destination: state.destBank }, state.client.token),
+    "not yours"
+  );
+
+  await check("taking a destination back promotes the one that is left", async () => {
+    const w = await rpc("pampa_remove_destination", { p_destination: state.destCrypto }, state.pro.token);
+    const list = w.destinations || [];
+    assert(list.length === 1, `${list.length} destinations left, expected 1`);
+    assert(list[0].id === state.destBank, "the wrong destination survived");
+    assert(list[0].default === true, "the survivor was not promoted to default");
+    /* Money already paid out keeps its amount, its fee and its reference. A
+       destination that no longer exists cannot change the record of what was
+       sent. */
+    const p = (w.payouts || [])[0];
+    assert(p, "the payout disappeared along with the destination");
+    assert(Number(p.net) === state.expectNet, `payout net changed to ${p.net} from ${state.expectNet}`);
+    return `1 destination left · promoted · payout ${p.net} intact`;
+  });
+
+  /* The release above happened before this professional had saved anywhere for
+     the money to go, so the payout it wrote is waiting: recorded, owed, and
+     pointing at nothing. Saving a destination has to be able to collect it. */
+  await check("money released before a destination existed is sent once there is one", async () => {
+    const w0 = await rpc("pampa_wallet", {}, state.pro.token);
+    const waiting = (w0.payouts || []).filter((p) => p.status === "pending");
+    assert(waiting.length === 1, `${waiting.length} payouts are waiting, expected 1`);
+    assert(!waiting[0].destination, "a waiting payout already points at a destination");
+    state.paidPayout = waiting[0].id;
+
+    const w = await rpc(
+      "pampa_assign_payout",
+      { p_payout: waiting[0].id, p_destination: state.destBank },
+      state.pro.token
+    );
+    const sent = (w.payouts || []).find((p) => p.id === waiting[0].id);
+    assert(sent, "the payout vanished on the way");
+    assert(sent.status === "sent", `status is ${sent.status}, expected sent`);
+    assert(sent.destination === state.destBank, "the payout did not take the destination it was given");
+    assert(Number(sent.net) === Number(waiting[0].net), "the amount changed on the way");
+    assert(Number(w.held) === 0, `${w.held} is somehow still held`);
+    return `${sent.net} routed to the saved bank account · ref ${sent.ref}`;
+  });
+
+  await refused(
+    "another account cannot route somebody else's payout",
+    () => rpc("pampa_assign_payout", { p_payout: state.paidPayout, p_destination: state.destBank }, state.client.token),
+    "not yours"
+  );
+
+  await refused(
+    "a payout that has been sent cannot be sent again",
+    () => rpc("pampa_assign_payout", { p_payout: state.paidPayout, p_destination: state.destBank }, state.pro.token),
+    "already sent"
+  );
+
   await check("the rating lands on the professional's public record", async () => {
     const list = await rpc(
       "pampa_directory",

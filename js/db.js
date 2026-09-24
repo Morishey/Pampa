@@ -262,10 +262,21 @@ const db = {
   settleDispute: (id, outcome, percent) =>
     dbCall("pampa_desk_settle", { p_booking: id, p_outcome: outcome, p_percent: percent }),
 
-  /* Money */
+  /* Money. The wallet is the account's own money view: the destinations a
+     payout can land in, the payouts already made, and what escrow still holds.
+     Every one of these answers with the same JSON, so a caller re-renders from
+     the server's word rather than reassembling it locally. */
   wallet: () => dbCall("pampa_wallet"),
   addDestination: (kind, label, details, isDefault) =>
     dbCall("pampa_add_destination", {
       p_kind: kind, p_label: label, p_details: details, p_default: isDefault,
     }),
+  setDefaultDestination: (id) =>
+    dbCall("pampa_set_default_destination", { p_destination: id }),
+  removeDestination: (id) =>
+    dbCall("pampa_remove_destination", { p_destination: id }),
+  /* Money released before a destination existed: it is already recorded as a
+     payout, waiting; this is what finally tells it where to go. */
+  assignPayout: (payout, destination) =>
+    dbCall("pampa_assign_payout", { p_payout: payout, p_destination: destination }),
 };

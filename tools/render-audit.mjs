@@ -66,6 +66,9 @@ const SURFACES = [
   { name: "client · home", open: 'switchView("home")' },
   { name: "client · bookings", open: 'switchView("bookings")' },
   { name: "client · profile", open: 'switchView("profile")' },
+  /* the money view, both ways round: a client's escrow, refunds and how they
+     pay, and a professional's balance, saved destinations and payouts */
+  { name: "client · wallet", open: 'switchView("wallet")' },
   { name: "client · booking sheet", open: 'openSheet("cut")' },
   { name: "client · pay (escrow) sheet", open: 'openPaySheet("bRend1")' },
   { name: "client · dispute sheet", open: 'openDisputeSheet("bRend1")' },
@@ -78,6 +81,11 @@ const SURFACES = [
   { name: "pro · work", pro: true, open: 'enterProView("work")' },
   { name: "pro · bookings", pro: true, open: 'enterProView("bookings")' },
   { name: "pro · profile", pro: true, open: 'enterProView("profile")' },
+  { name: "pro · wallet", pro: true, open: 'enterProView("wallet")' },
+  { name: "pro · wallet with destinations", pro: true,
+    open: 'switchView("wallet"); walletFormOpen = true; addDestination(walletOwnerId(), { type: "bank", bank: "GTBank", account: "0123456789" }); addDestination(walletOwnerId(), { type: "crypto", network: "TRC20", address: "TQ4f9d2Kp7sR1xV8mLq3Zb6Hn0Yc5Wt2Aa" }); renderWallet(); renderPro()' },
+  { name: "pro · escrow desk wallet", pro: true,
+    open: 'enterProMode(); proTab = "wallet"; renderPro()' },
   { name: "pro · status upload", pro: true, open: "openStatusSheet()" },
   { name: "pro · folio sheet", pro: true, open: "openFolioSheet()" },
   { name: "pro · bio sheet", pro: true, open: "openBioSheet()" },
@@ -185,6 +193,13 @@ function stageSource() {
       dispute: { reason: "The job wasn't finished", note: "Left a patch at the back.", at: now, photos: [] },
       history: [{ at: now, label: "Booking placed" }, { at: now, label: "Payment held in escrow" },
         { at: now, label: "Marvis reported a problem" }],
+    }),
+    /* money that came back to the client: the refunds half of their wallet is
+       only in the DOM when there is one to show */
+    mkBooking("bRendRefund", {
+      time: "11:00", status: "cancelled", pay: null,
+      refund: { amount: 4700, fee: 0, at: now, reason: "cancelled" },
+      history: [{ at: now, label: "Booking placed" }, { at: now, label: "Refunded ₦4,700 in full" }],
     }),
   ];
   return `
