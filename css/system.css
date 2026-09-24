@@ -330,11 +330,8 @@
   opacity: 0.85;
 }
 
-.artVault {
-  max-width: 132px;
-  margin-bottom: 12px;
-}
-
+/* .artVault and .tickBig dressed the vault illustration the paid receipt was
+   built around; the receipt is gone and nothing else drew either of them. */
 .illus .float {
   animation: artFloat 4.4s ease-in-out infinite;
 }
@@ -725,17 +722,6 @@ html.anim .methodCard {
 .nearBadge .icon {
   width: 10px;
   height: 10px;
-}
-
-.tickBig {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tickBig .icon {
-  width: 26px;
-  height: 26px;
 }
 
 /* Motion is decoration: strip it for anyone who asked for stillness. */

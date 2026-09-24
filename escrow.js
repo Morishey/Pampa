@@ -1054,7 +1054,7 @@ function closeAllSheets() {
    Two ways in, one sheet. "pay" is the first payment on a booking; "topup" is
    the difference a counter created when the client accepted a higher price —
    the same escrow, repriced, never a second one. */
-const payDraft = { bookingId: null, method: "card", stage: "choose", mode: "pay" };
+const payDraft = { bookingId: null, method: "card", mode: "pay" };
 
 function openPaySheet(bookingId) {
   const b = findBooking(bookingId);
@@ -1065,7 +1065,6 @@ function openPaySheet(bookingId) {
   }
   payDraft.bookingId = bookingId;
   payDraft.method = (state.user && state.user.payMethod) || "card";
-  payDraft.stage = "choose";
   payDraft.mode = "pay";
   renderPaySheet();
   showSheetEl("#paySheet");
@@ -1084,7 +1083,6 @@ function openTopUpSheet(bookingId) {
   if (!b) return;
   payDraft.bookingId = bookingId;
   payDraft.method = (state.user && state.user.payMethod) || "card";
-  payDraft.stage = "choose";
   payDraft.mode = "topup";
   renderPaySheet();
   showSheetEl("#paySheet");
@@ -1117,20 +1115,6 @@ function renderPaySheet() {
   $("#paySub").textContent = isTopUp
     ? naira(counterOf(b) || 0) + " agreed with " + (b.stylistName || "your stylist")
     : (b.stylistName || "Stylist") + " · " + b.date + " at " + b.time;
-
-  if (payDraft.stage === "done") {
-    $("#payBody").innerHTML =
-      '<div class="paidDone"><div class="artVault">' + illus("vault") + "</div>" +
-      '<div class="tickBig">' + icon("check") + "</div>" +
-      "<h3>" + naira(b.total || b.price || 0) + " held in escrow</h3>" +
-      '<p class="sub">' + (isTopUp
-        ? "Price agreed at " + naira(counterOf(b) || b.price || 0) + " — " + esc(b.stylistName || "the stylist") + " is now on the job."
-        : esc(b.stylistName || "The stylist") + " can now accept your booking.") +
-      " The money is released only after you confirm the job was done and you're satisfied.</p>" +
-      '<p class="escrowRef">Escrow ref ' + esc((b.pay || {}).ref || "") + "</p></div>";
-    $("#payFoot").style.display = "none";
-    return;
-  }
 
   const methods = PAY_METHODS.map(function (m) {
     const active = m.id === payDraft.method;
@@ -1195,10 +1179,14 @@ function confirmPayment() {
         state.user.payMethod = payDraft.method;
         save();
       }
-      payDraft.stage = "done";
-      renderPaySheet();
-      renderBookings();
+      /* The card has done its job the moment the money lands. The booking is
+         what the client reads next — its state, its escrow line and its
+         reference all live on it now — so the sheet hands over to the booking
+         and gets out of the way, instead of sitting over it asking to be
+         dismissed. */
+      closeAllSheets();
       toast("Top-up paid — booking confirmed at " + naira(res.price));
+      openBookingDesk(b.id);
     }).catch(function (e) {
       setBusy(btn, false);
       toast(dbText(e, "Payment did not go through — try again"));
@@ -1220,10 +1208,12 @@ function confirmPayment() {
       state.user.payMethod = payDraft.method;
       save();
     }
-    payDraft.stage = "done";
-    renderPaySheet();
-    renderBookings();
+    /* Same handover as the top-up above: the payment is done with, and what
+       says so from here is the booking card — in escrow, with the amount, the
+       fee and the escrow reference on it. */
+    closeAllSheets();
     toast(naira(b.total || b.price) + " held in escrow");
+    openBookingDesk(b.id);
   }).catch(function (e) {
     setBusy(btn, false);
     toast(dbText(e, "Payment did not go through — try again"));

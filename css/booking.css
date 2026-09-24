@@ -33,12 +33,28 @@
   transform: translateY(0);
 }
 
-.sheet .close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
+.sheet .close:not(.nudgeClose) {
+  /* Pinned, not parked. The sheet is its own scroll container, so an absolutely
+     positioned X scrolls out of reach on exactly the sheets tall enough to need
+     one — and the control that says "get me out of here" is the last one that
+     should go missing. Sticky keeps it in the flow, with its own height
+     cancelled by the margins so the head below it does not move, and the
+     offsets chosen so that where it rests and where it pins are the same 14px:
+     sticky measures `top` from the sheet's content box, which is 20px in past
+     the padding, so -6px is the 14px the absolute rule used. The install nudge
+     is left out: its own rule places a smaller X absolutely, and a sheet that
+     fits on one screen has nothing to pin it against. */
+  position: sticky;
+  top: -6px;
+  z-index: 3;
+  display: block;
+  margin: -21px 0 -11px auto;
   border: 1px solid var(--line);
   background: var(--chip);
+  /* content passes underneath while it is pinned, so what shows through is
+     blurred rather than legible — the sheet's own trick, at button scale */
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
   height: 32px;
   width: 32px;
   border-radius: 50%;
@@ -715,41 +731,10 @@
   padding: 11px 12px;
 }
 
-.escrowRef {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--ink-soft);
-  font-family: monospace;
-}
-
-.paidDone {
-  text-align: center;
-  padding: 12px 6px 4px;
-}
-
-.tickBig {
-  height: 62px;
-  width: 62px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
-  background: var(--tint-green);
-  color: var(--green);
-  font-size: 30px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.paidDone h3 {
-  font-size: 17px;
-  margin-bottom: 6px;
-}
-
-.paidDone .sub {
-  font-size: 13px;
-  line-height: 1.5;
-}
+/* .escrowRef, .paidDone and .tickBig styled the receipt card the pay sheet used
+   to turn into once a payment went through. The payment now hands over to the
+   booking, whose money line carries the amount, the fee and the escrow
+   reference, so the receipt had nothing left to say. */
 
 /* "Use my location for the exact fee" — a text button inside the fee box's
    fine print: small, but a real control with a real press target. */

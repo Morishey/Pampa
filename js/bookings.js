@@ -94,6 +94,10 @@ function renderBookings() {
     } else {
       money = naira(b.pay.amount) + " in escrow · " + naira(net) + " to stylist";
     }
+    /* The escrow reference belongs on the booking and not only on the receipt
+       card that used to sit over it: this is the row somebody comes back to
+       when they need to quote what they paid. */
+    if (b.pay && b.pay.ref) money += " · " + esc(b.pay.ref);
 
     let actions = "";
     if (st === "unpaid") {
@@ -225,6 +229,7 @@ function proBookingItem(b, sv) {
     : st === "settled" && b.resolution
       ? esc(resolutionText(b))
       : b.pay ? naira(net) + " of " + naira(b.pay.amount) + " in escrow" : "Nothing in escrow yet";
+  const ref = b.pay && b.pay.ref ? " · " + esc(b.pay.ref) : "";
   const step = st === "escrowed"
     ? "Waiting on you to accept or counter " + naira(offerOf(b))
     : st === "confirmed"
@@ -240,7 +245,7 @@ function proBookingItem(b, sv) {
         '<p class="bLoc">' + where + "</p></div>" +
         '<span class="badge ' + meta.tone + (bookingIsLive(b) ? " live" : "") + '">' + esc(statusLabelFor(b)) + "</span>" +
       "</div>" +
-      '<p class="bMoney">' + money + "</p>" +
+      '<p class="bMoney">' + money + ref + "</p>" +
       "</button>" +
       (step ? '<p class="proStep' + (st === "disputed" ? " warn" : st === "confirmed" ? " ok" : "") + '">' + step + "</p>" : "") +
       /* The trail chip is the card's second control, so it rides the row the

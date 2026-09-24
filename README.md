@@ -451,6 +451,18 @@ names never appears on its own. The pick card's own note also stopped saying
   one total with one reference and one fee recomputed from it. **Accepting a
   lower one refunds the difference** on the spot. Declining refunds everything.
 
+**A payment hands over to the booking.** The pay sheet used to *become* a
+receipt: the money would land, the sheet would turn into a vault illustration
+with a green tick, the amount, the escrow reference and a line about release —
+and then sit there over the booking list until somebody dismissed it. The
+payment is the moment its work is done, so it now closes and the app shows the
+booking itself, flashed where it landed, which is the same handover the booking
+sheet makes when a booking is placed. Nothing is lost in the move: the escrow
+reference is on the booking's own money line (`₦4,700 in escrow · ₦4,230 to
+stylist · ESC-9F2CFC14`) on both sides of it, which is where somebody looks for
+it a week later rather than for the five seconds a receipt is on screen. The
+toast still says what happened, and the receipt's styles went with it.
+
 The whole exchange is journalled on the booking, so the money trail and the
 bell tell it in order: *Booking placed … · client offers ₦2,000* → *Client paid
 ₦3,000 into escrow* → *Stylist countered ₦5,000 … waiting on the client's
@@ -1260,6 +1272,25 @@ ramp over a 60px pill eats the word inside it. No scroller in the app overflows
 on both axes at once, so the two masks never need to compose; one that did
 would need `mask-composite: intersect`, as the hero slider's four-edge feather
 does.
+
+### The control that scrolled away
+
+The cue's lesson, one element over. Every sheet keeps its close button in the
+top right corner, and that button was `position: absolute` — drawn *into* the
+sheet rather than pinned to it — so on exactly the sheets tall enough to need a
+scroll (the booking sheet, the pay sheet) the X travelled up and off the phone
+with the content. The one control that says *get me out of here* was the first
+one to go missing.
+
+It is `position: sticky` now: still the first child in the flow, with margins
+that cancel its own height so the head below it does not move, and with the
+offsets chosen so that where it rests and where it pins are the same 14px the
+absolute rule used. The negative `top` is not a typo — sticky measures it from
+the sheet's *content* box, which begins 20px in past the padding. While it is
+pinned, content passes underneath, so the button carries the sheet's own trick
+at button scale (`backdrop-filter`), and `:not(.nudgeClose)` keeps the install
+nudge out of the whole arrangement: that sheet fits on one screen, so it has
+nothing to pin against, and its own rule places a smaller X.
 
 ### Admitting to work
 
