@@ -421,13 +421,23 @@ h4 .youTag,
   gap: 1px;
 }
 
+/* At 360px the row's middle column is the one that gets squeezed — the icon
+   and the price are rigid — so the name and its note give ground: they
+   truncate with an ellipsis rather than spilling across the price beside
+   them, which is the old Maintenance bug in a new chair. */
 .svcInfo b {
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .svcInfo small {
   font-size: 11px;
   color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .svcRow .svcPrice {
@@ -453,7 +463,9 @@ h4 .youTag,
   font-size: 34px;
   font-weight: 800;
   color: var(--gold);
-  line-height: 1;
+  /* digits like 4.8 ride tall in their line box: without a couple of pixels
+     of slack the audit reads the glyph's ink as clipped text */
+  line-height: 1.18;
   font-variant-numeric: tabular-nums;
 }
 

@@ -49,6 +49,98 @@ const root = join(here, "..");
 const guard = await import("./cascade-guard.mjs");
 const LIVE_CHECK = guard.LIVE_CHECK;
 
+/* The style pass (--style): every visible element on the surface is asked,
+   through computed styles, whether it is properly dressed. The rules are the
+   objective ones — text spilling a clipped box, an element bleeding past the
+   viewport, a control collapsed to a sliver, button text in its own
+   background colour, a full-screen layer with no z-index to hold it, print-
+   sized type on a phone — because "looks right" is judged by the person, and
+   "cannot render right" is judged here. One finding per tag per surface keeps
+   the report a reading list, not a flood. */
+const STYLE_CHECK = `(function () {
+  function vis(el) {
+    var s = getComputedStyle(el);
+    if (s.display === "none" || s.visibility === "hidden") return false;
+    if (el.closest && el.closest('[aria-hidden="true"]')) return false;
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+  function tagOf(el) {
+    var d = el.id ? "#" + el.id : "";
+    var c = (el.className && typeof el.className === "string")
+      ? "." + el.className.split(" ").filter(Boolean).slice(0, 2).join(".") : "";
+    return el.tagName.toLowerCase() + d + c;
+  }
+  function trim(s) { return String(s || "").replace(/\\s+/g, " ").trim(); }
+  function inStrip(node) {
+    /* a child of a sideways strip that is actually wider than the window is
+       the strip working, not the page leaking */
+    var n = node;
+    for (var hop = 0; n && n !== document.body && hop < 6; hop++) {
+      n = n.parentElement;
+      if (!n) break;
+      var cs = getComputedStyle(n);
+      if (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 2) return true;
+    }
+    return false;
+  }
+  var vw = document.documentElement.clientWidth;
+  var vh = document.documentElement.clientHeight;
+  var sel = "button, a, input, select, textarea, h1, h2, h3, h4, h5, p, span, small, b, label, .card, .chip, .badge, .tab, .slot, .sheet, .toast";
+  var out = [];
+  var seen = {};
+  var els = document.querySelectorAll(sel);
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    if (!vis(el)) continue;
+    var tag = tagOf(el);
+    var s = getComputedStyle(el);
+    var r = el.getBoundingClientRect();
+    var text = trim(el.textContent);
+    var interactive = /^(button|a|input|select|textarea)$/i.test(el.tagName);
+    var issues = [];
+    /* the scrollers are meant to scroll; only a clipped box with nowhere to
+       go is a finding */
+    var scrollable = /(auto|scroll)/.test(s.overflowY) || /(auto|scroll)/.test(s.overflowX);
+    var noEllipsis = s.textOverflow !== "ellipsis";
+    /* vertically, an overflow-visible box paints its tall glyphs freely — the
+       scroll height there is font metrics, not a cut; only a box that actually
+       clips loses text */
+    var vclips = /(hidden|clip)/.test(s.overflowY);
+    if (!scrollable && vclips && el.scrollHeight > el.clientHeight + 2 && text && noEllipsis && el.clientHeight > 0)
+      issues.push("clipped: " + el.scrollHeight + "px of text in a " + el.clientHeight + "px box");
+    /* a badge is meant to overhang its box: an absolutely placed child poking
+       out the side is the bell count, not a clip */
+    var overhangingChild = false;
+    for (var k = 0; k < el.children.length; k++) {
+      var ck = el.children[k];
+      if (getComputedStyle(ck).position !== "absolute") continue;
+      var cr = ck.getBoundingClientRect();
+      if (cr.right > r.right + 1 || cr.left < r.left - 1) { overhangingChild = true; break; }
+    }
+    if (!scrollable && !overhangingChild && !inStrip(el) && el.scrollWidth > el.clientWidth + 2 && text && noEllipsis && el.clientWidth > 0)
+      issues.push("clipped sideways: " + el.scrollWidth + "px of text in a " + el.clientWidth + "px box");
+    if ((r.right > vw + 1 || r.left < -1) && !inStrip(el))
+      issues.push("bleeds the viewport (" + Math.round(r.left) + ".." + Math.round(r.right) + " of " + vw + ")");
+    /* the hero dots are 6px indicators by design; a control collapsed to a
+       sliver means something that used to carry a label, not these */
+    if (interactive && r.height < 6 && el.offsetHeight > 0)
+      issues.push("collapsed to " + Math.round(r.height) + "px");
+    if (interactive && text && s.color === s.backgroundColor)
+      issues.push("text is its own background (" + s.color + ")");
+    if (s.position === "fixed" && r.height >= vh * 0.6 && r.width >= vw * 0.6 && (s.zIndex === "auto" || parseInt(s.zIndex, 10) < 10))
+      issues.push("full-screen layer with z-index " + s.zIndex);
+    if (text && fs_check(s.fontSize) < 9)
+      issues.push("font-size " + s.fontSize);
+    if (issues.length && !seen[tag + "|" + issues[0]]) {
+      seen[tag + "|" + issues[0]] = true;
+      out.push({ element: tag, own: trim(el.getAttribute("aria-label")) || text.slice(0, 40),
+        prop: issues[0].split(" (")[0].split(":")[0], computed: issues.join("; ") });
+    }
+  }
+  function fs_check(f) { return parseFloat(f); }
+  return { findings: out, surfaces: document.querySelectorAll(".view").length };
+})()`;
+
 /* The widths people actually hold — a small Android, a large Android, and a
    tablet/desktop window. A media rule that only applies at 360px is only
    judged there, and a component whose own rule loses only in the desktop
@@ -547,6 +639,7 @@ export async function runRenderAudit(opts = {}) {
   const { cdp, port, profile } = app;
   const surfaceResults = [];
   const findings = [];
+  const styleFindings = [];
   let planted = -1;
   let plantError = null;
   try {
@@ -600,6 +693,13 @@ export async function runRenderAudit(opts = {}) {
           return { count: found.length, surface: raw && raw.surfaces };
         };
 
+        const styleJudge = async (label) => {
+          if (!opts.style) return;
+          const raw = await cdp.evaluate(STYLE_CHECK);
+          const found = (raw && raw.findings) || [];
+          for (const f of found) styleFindings.push(Object.assign({ surface: label }, f));
+        };
+
         /* --shots=<dir> is for the work that is judged with the eye rather
            than the cascade: one PNG per surface per width, named the same way
            the run names them, so a layout change can be looked at before it
@@ -617,6 +717,7 @@ export async function runRenderAudit(opts = {}) {
         const base = await judge(surf.name);
         row.findings = base.count;
         row.surface = base.surface;
+        await styleJudge(surf.name + " @ window");
         await shoot(surf.name + " @ window");
 
         /* the same surface at every width, judged where those rules apply */
@@ -630,6 +731,7 @@ export async function runRenderAudit(opts = {}) {
             const got = await judge(wrow.name);
             wrow.findings = got.count;
             wrow.surface = got.surface;
+            await styleJudge(wrow.name);
             await shoot(wrow.name);
           } catch (e) {
             wrow.ok = false;
@@ -662,6 +764,7 @@ export async function runRenderAudit(opts = {}) {
     browser: exe,
     surfaces: surfaceResults,
     findings,
+    styleFindings,
     planted,
     plantError,
     profile: opts.keepOpen ? profile : null,
@@ -677,6 +780,7 @@ function main() {
     keepOpen: args.includes("--keep-open"),
     list: args.includes("--list"),
     progress: args.includes("--progress"),
+    style: args.includes("--style"),
     only: (args.find((a) => a.startsWith("--only=")) || "").slice(7) || null,
     shots: (() => {
       const a = args.find((x) => x.startsWith("--shots"));
@@ -703,10 +807,19 @@ function main() {
         console.log("      computed:  " + f.prop + " = " + f.computed);
       }
     }
+    if (r.styleFindings && r.styleFindings.length) {
+      console.log("\nstyle pass — " + r.styleFindings.length + " finding(s):\n");
+      for (const f of r.styleFindings) {
+        console.log("FAIL  [" + f.surface + "] " + f.element + " — " + f.computed);
+        console.log("      (" + f.own + ")");
+      }
+    } else if (opts.style) {
+      console.log("\nstyle pass — every checked element properly dressed");
+    }
     if (opts.shots) console.log("\nshots written to " + opts.shots);
     if (opts.keepOpen) console.log("\nkept open: devtools " + r.port + " · profile " + r.profile);
     console.log("");
-    process.exit(r.findings.length ? 1 : 0);
+    process.exit((r.findings.length || (r.styleFindings && r.styleFindings.length)) ? 1 : 0);
   }).catch((e) => { console.error(String((e && e.message) || e)); process.exit(1); });
 }
 

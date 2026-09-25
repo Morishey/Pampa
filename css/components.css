@@ -238,13 +238,14 @@
 }
 
 /* The face at chip scale: 20px, the size the card's avatar never goes down to,
-   so the initials need their own size here. The circle itself is the house
-   rule for faces — set in polish.css, and left to it. */
+   so the initials need their own size here — 9px, the floor the style audit
+   holds anywhere. The circle itself is the house rule for faces — set in
+   polish.css, and left to it. */
 .nearChip .chipAvatar {
   width: 20px;
   height: 20px;
   flex: none;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
 }
 

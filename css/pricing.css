@@ -66,8 +66,12 @@
 
 /* the facts stack down the cell: distance, coverage, price, work */
 .providerList .dist {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 4px;
   margin: 8px 0 10px;
+  min-width: 0;
 }
 
 /* The price is the number a client came for, so it is a gold plate of its own:
@@ -91,6 +95,9 @@
   font-size: 11.5px;
   font-weight: 800;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .priceTag small {
@@ -108,6 +115,9 @@
   font-size: 9.5px;
   font-weight: 700;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   opacity: 0.85;
   margin-top: 1px;
 }
