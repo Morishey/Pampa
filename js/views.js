@@ -27,7 +27,12 @@ function renderProfile() {
   const bioText = $("#profileBio");
   if (bioText) bioText.textContent = u.bio ? u.bio : (myTrade ? "Pampa writes one from your trade" : "—");
   const bioBtnText = $("#editBioText");
-  if (bioBtnText) bioBtnText.textContent = u.bio ? "Edit my bio" : "Add a bio for clients";
+  if (bioBtnText) {
+    /* "for clients" is a professional's sentence — theirs is the page clients
+       read. A client's line is read by nobody but them, so it is called what
+       it is rather than promising an audience that does not exist. */
+    bioBtnText.textContent = u.bio ? "Edit my bio" : (myTrade ? "Add a bio for clients" : "Add my bio");
+  }
 
   /* Everyone has a face — it is the top nav on Home and the avatar beside your
      own name. Only a professional has a public page to put it on, and only a
@@ -55,8 +60,15 @@ function renderProfile() {
   if (photoBtn) photoBtn.textContent = dpOf(face) ? "Change my profile photo" : "Add a profile photo";
   const pwBtn = $("#changePasswordText");
   if (pwBtn) {
+    /* Whether there is a password to change is a different question on each
+       road. A server account always has one — pampa_register will not make an
+       account without it — even though this device kept no local record of it;
+       reading the local book alone told somebody who had just signed in with
+       their password to "Create my password". A device-local account may
+       genuinely have none: those predate passwords entirely. */
+    const cloud = typeof dbSignedIn === "function" && dbSignedIn();
     const acc = accountByPhone(u.phone);
-    pwBtn.textContent = acc && acc.hash ? "Change my password" : "Create my password";
+    pwBtn.textContent = (cloud || (acc && acc.hash)) ? "Change my password" : "Create my password";
   }
   const folioBtn = $("#editPortfolioText");
   if (folioBtn && rec) {

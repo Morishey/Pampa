@@ -27,6 +27,23 @@ function dbBookingIn(row) {
   if (row.negotiation && typeof row.negotiation === "object") {
     b.negotiation = Object.assign({}, row.negotiation);
     if (b.negotiation.rounds && !Array.isArray(b.negotiation.rounds)) b.negotiation.rounds = [];
+    /* A price both sides have settled, with the difference not yet paid up,
+       arrives from the server as the *counter* wearing a `topUp`: that is how
+       pampa_booking_agree records "owed, not agreed" — it leaves the price on
+       the table, because the money has not caught up with it. Read literally,
+       the app saw a counter still open and drew the counter's own buttons: the
+       client got "Accept ₦4,200" for a price the server had already journaled
+       as agreed, and every tap agreed it again and wrote the same line into
+       the money trail. The agreement is the truth of that state, so the
+       agreement is what the app is told; the shortage stays derivable from the
+       row (agreed + travel − what escrow holds), which is what the card asks
+       for now. pampa_booking_pay writes exactly this shape — status "agreed",
+       `agreed` set, `topUp` gone — the moment the top-up lands, so both halves
+       of the state read the same way and nothing has to guess. */
+    if (b.negotiation.topUp > 0 && b.negotiation.status === "countered" && b.negotiation.price != null) {
+      b.negotiation.status = "agreed";
+      b.negotiation.agreed = b.negotiation.price;
+    }
   }
   return b;
 }

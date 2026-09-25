@@ -27,6 +27,17 @@
    how the splash screen's queued timers know to stay out of the way. */
 let dbSessionLanded = false;
 
+/* True once the server has said, this boot, which account the token belongs
+   to — pampa_me on a restored session, the login/register answer on a fresh
+   one. It gates every push-out below, and the journey found out why the hard
+   way: a device that still held the previous account's dashboard (state.user
+   cached, the token in storage someone else's) pushed that stale identity to
+   the server the moment anything rebuilt the profile — and pampa_update_profile
+   wrote the last user's name onto the new session's account row. Nothing that
+   names a person leaves the device until the database itself has named the
+   person the token belongs to. */
+let dbIdentityConfirmed = false;
+
 /* ---------- The directory cache ---------- */
 
 /* The server's directory, mapped onto the provider-record shape every
@@ -60,6 +71,9 @@ function dbLegacySelfKey() {
    the same road afterwards. */
 function dbAdoptAccount(acct) {
   if (!acct || !acct.id) return null;
+  /* The first fact of the boot: this token is this account's. From here the
+     pushes below may speak for the person on screen. */
+  dbIdentityConfirmed = true;
   const u = state.user || {};
   const wasKey = selfKey();
 
@@ -143,6 +157,20 @@ async function dbCloudRestore() {
   try {
     res = dbUnwrapSession(await db.me());
   } catch (e) {
+    /* A boot that could not ask who the token belongs to — underground, on a
+       lift — stays unconfirmed, and therefore silent, until the answer
+       exists. One retry rides the connection's return: the gate is what keeps
+       the last user's name off the next account, so it must not turn into a
+       session where a verified person's own saves never leave the device. A
+       refused token has already ended its own session inside dbCall, and that
+       road leaves nothing to retry. */
+    if (e && e.code === "offline" && !window.__ppConfirmRetry) {
+      window.__ppConfirmRetry = true;
+      window.addEventListener("online", function () {
+        window.__ppConfirmRetry = false;
+        dbCloudRestore();
+      }, { once: true });
+    }
     return; /* dbCall has already ended the session and said why */
   }
   if (!res || !res.account) return;
@@ -325,8 +353,16 @@ async function dbFinishRegistration(areaId, address, point) {
 /* The profile a professional edits is public on the server the moment it is
    saved here. Fire-and-forget: the save must not wait on the network, and a
    failed push is retried by the next save of anything. */
+/* True only when the server has confirmed this boot's identity — see the
+   flag above. Every push-out reads this first: a push is the device telling
+   the server who somebody is, and that right belongs to the confirmed
+   session alone. */
+function dbPushOk() {
+  return dbSignedIn() && dbIdentityConfirmed;
+}
+
 function dbPushProfile(patch) {
-  if (!dbSignedIn()) return;
+  if (!dbPushOk()) return;
   db.updateProfile(patch).catch(function (e) {
     console.warn("Pampa: profile push failed", e);
   });
@@ -344,7 +380,7 @@ function dbPushProfile(patch) {
    Fire-and-forget, like the other pushes: a save must not wait on the network,
    and the next save carries anything that failed. */
 function dbPushAccountDetails() {
-  if (!dbSignedIn()) return;
+  if (!dbPushOk()) return;
   const u = state.user || {};
   if (!u.name) return;
   const s = u.social || {};
@@ -363,7 +399,7 @@ function dbPushAccountDetails() {
    nowhere, and the person would only find out at the next sign-in. The name
    and the picture are decorations; this is a way in. */
 function dbSetEmail(email) {
-  if (!dbSignedIn()) return;
+  if (!dbPushOk()) return;
   db.setEmail(email || "").then(function (acct) {
     /* The server normalises (it trims and lowercases), so its copy is the one
        kept — a sign-in has to match what is actually stored, not what was
@@ -380,7 +416,7 @@ function dbSetEmail(email) {
 }
 
 function dbPushAvailability(on) {
-  if (!dbSignedIn()) return;
+  if (!dbPushOk()) return;
   db.setAvailability(!!on).catch(function (e) {
     console.warn("Pampa: availability push failed", e);
   });
@@ -391,7 +427,7 @@ function dbPushAvailability(on) {
    ceiling, order, service-in-trade — so a bad save is refused there even if
    the screen ever let one through. */
 function dbPushRates(ranges) {
-  if (!dbSignedIn() || !ranges || typeof ranges !== "object") return;
+  if (!dbPushOk() || !ranges || typeof ranges !== "object") return;
   db.setRates(ranges).catch(function (e) {
     console.warn("Pampa: rates push failed", e);
   });
@@ -404,5 +440,8 @@ function dbPushRates(ranges) {
 function dbCloudSignOut() {
   dbCloudProviders = [];
   state.deskFlags = null;
+  /* the boot's confirmed identity dies with the session, so a sign-in that
+     follows starts from silence, as a boot does */
+  dbIdentityConfirmed = false;
   if (dbSignedIn()) db.logout();
 }

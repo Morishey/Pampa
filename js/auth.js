@@ -566,6 +566,29 @@ function applyPassword(password) {
     openRole();
   };
   if (passwordContext === "change") {
+    /* A server account's password is the server's, and this device has never
+       held it — so the check has to happen where the hash is. It can: the door
+       is pampa_change_password, it verifies the current password and refuses
+       in words. Nothing called it. The branch below read the device-local book
+       instead, found no entry for an account that had signed in from the
+       server, and took the `if (!acc) return finish()` road — which toasts
+       "Password updated" and changes nothing anywhere. The next sign-in still
+       needed the old password, and the person had been told otherwise. */
+    const cloud = typeof dbSignedIn === "function" && dbSignedIn() && typeof db !== "undefined"
+      && typeof db.changePassword === "function";
+    if (cloud) {
+      const current = ($("#pwCurrent") || {}).value || "";
+      if (!current) { pwError("Enter your current password"); return; }
+      return db.changePassword(current, password).then(finish, function (e) {
+        /* The server's own sentence — "That password does not match", "Use at
+           least six characters" — belongs on the field it is about. A refusal
+           the app has already explained elsewhere (a session that died on the
+           way here) answers null, and saying nothing is right: the sign-in
+           screen is already holding that line. */
+        const words = typeof dbText === "function" ? dbText(e) : null;
+        if (words) pwError(words);
+      });
+    }
     const acc = accountByPhone((state.user || {}).phone);
     if (!acc) { finish(); return; }
     /* An account with nothing to compare against simply gains one. */
@@ -811,9 +834,18 @@ function tearDownSession() {
     nav.innerHTML = "P";
     nav.setAttribute("aria-label", "Your profile");
   }
-  /* the push registration was made for this account — the server must not
-     chime somebody else's phone with this one's news */
-  if (window.PampaPush) window.PampaPush.unsubscribeAll();
+  /* The push registration was made for this account, so the server must not
+     chime somebody else's phone with this one's news. It also must not be able
+     to stop this teardown: a push module that throws (it reads a service
+     worker the browser never gave it) would leave the person on their
+     dashboard with a live session and no sign-in screen — the exact outcome
+     signing out exists to prevent. So it is the one step here that is allowed
+     to fail quietly. */
+  try {
+    if (window.PampaPush) window.PampaPush.unsubscribeAll();
+  } catch (e) {
+    console.warn("Pampa: push unsubscribe failed", e);
+  }
   /* The device's half of signing out is done here; this is the server's — the
      token is revoked so it cannot be replayed, and the cloud caches this
      session filled are emptied with it. */

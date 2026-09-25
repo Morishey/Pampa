@@ -1078,6 +1078,20 @@ function topUpAmountFor(b) {
   return Math.max(0, counterTotal(b, p) - (b.pay ? b.pay.amount : 0));
 }
 
+/* What the escrow is still short of once a price has been agreed: the agreed
+   price plus the travel it was agreed with, less what has already been paid
+   in. `pay.topUp` is the server's copy of the same figure, but the shortage is
+   derivable from the same ledger the screens read — and it settles to zero by
+   itself the moment the top-up lands, which a stored field does not. The card
+   that offers the payment and the sheet that takes it therefore cannot
+   disagree, and neither of them goes on asking after it has been paid. */
+function topUpOwedFor(b) {
+  if (!b) return 0;
+  const n = b.negotiation || {};
+  if (n.agreed == null) return 0;
+  return Math.max(0, counterTotal(b, n.agreed) - (b.pay ? (b.pay.amount || 0) : 0));
+}
+
 function openTopUpSheet(bookingId) {
   const b = findBooking(bookingId);
   if (!b) return;
@@ -1106,14 +1120,19 @@ function renderPaySheet() {
   const sv = SERVICES.find(function (s) { return s.id === b.serviceId; }) || {};
   const isTopUp = payDraft.mode === "topup";
   /* On a top-up the money that moves is only the difference: the escrow is one
-     pot being brought up to the agreed total, not a second payment. */
-  const amount = isTopUp ? topUpAmountFor(b) : (b.total || b.price || 0);
-  const fee = escrowFee(amount);
-  const net = amount - fee;
+     pot being brought up to the agreed total, not a second payment.
+
+     Both numbers come from the agreed price, not from the counter. They used
+     to come from the counter, and the counter is gone by the time this sheet
+     is what is left to do — so a real ₦500 debt opened as "Pay now ₦0", with
+     the escrow's own balance printed as the price the two of them settled on.
+     The difference is what is owed, and what is owed is agreed + travel − what
+     escrow holds. */
+  const amount = isTopUp ? topUpOwedFor(b) : (b.total || b.price || 0);
 
   $("#payTitle").textContent = isTopUp ? "Top up to confirm" : (sv.name || "Booking");
   $("#paySub").textContent = isTopUp
-    ? naira(counterOf(b) || 0) + " agreed with " + (b.stylistName || "your stylist")
+    ? naira(agreedPriceOf(b)) + " agreed with " + (b.stylistName || "your stylist")
     : (b.stylistName || "Stylist") + " · " + b.date + " at " + b.time;
 
   const methods = PAY_METHODS.map(function (m) {
@@ -1126,7 +1145,7 @@ function renderPaySheet() {
   }).join("");
 
   const travel = b.travelFee || 0;
-  const target = counterTotal(b, counterOf(b) || b.price || 0);
+  const target = counterTotal(b, agreedPriceOf(b) || b.price || 0);
   const held = b.pay ? b.pay.amount : 0;
   const feeBox = isTopUp
     ? '<div class="feeBox">' +
@@ -1519,14 +1538,22 @@ function proRequestsHtml(list) {
     const range = rangeFor(myProviderRecord() || {}, b.serviceId);
     const offer = offerOf(b);
     const inRange = offer >= range.min && offer <= range.max;
+    /* A price they settled together, with the difference still to be paid in.
+       The row is not a counter any more (nothing is open to answer) and it is
+       not a plain offer either (the price moved), so it says the one thing
+       that is true of it: whose move it is and how much that move is. */
+    const owed = topUpOwedFor(b);
     const priceLine = !funded
       ? '<p class="proOffer">' + icon("clock") + " Client offers <b>" + naira(offer) +
         "</b> · your range " + esc(rangeText(range)) + "</p>"
-      : counter != null
-        ? '<p class="proOffer countered">' + icon("coin") + " You countered <b>" + naira(counter) +
-          "</b> · waiting on the client's answer</p>"
-        : '<p class="proOffer' + (inRange ? "" : " low") + '">' + icon("coin") + " Client offers <b>" + naira(offer) + "</b>" +
-          " · your range " + esc(rangeText(range)) + "</p>";
+      : owed > 0
+        ? '<p class="proOffer countered">' + icon("coin") + " Agreed at <b>" + naira(agreedPriceOf(b)) +
+          "</b> · waiting for " + esc(b.clientName || "the client") + " to pay the " + naira(owed) + " top-up</p>"
+        : counter != null
+          ? '<p class="proOffer countered">' + icon("coin") + " You countered <b>" + naira(counter) +
+            "</b> · waiting on the client's answer</p>"
+          : '<p class="proOffer' + (inRange ? "" : " low") + '">' + icon("coin") + " Client offers <b>" + naira(offer) + "</b>" +
+            " · your range " + esc(rangeText(range)) + "</p>";
     /* What can be done about it right now. An unfunded booking is one line and
        no controls: the only thing standing between this client and an answer is
        their own payment, and a Decline button here would be a way to turn down a
@@ -1534,7 +1561,12 @@ function proRequestsHtml(list) {
     const actions = !funded
       ? '<p class="proStep">' + icon("clock") + " Waiting on " + esc(b.clientName || "the client") +
         " to pay " + naira(b.total || b.price || 0) + " into escrow — accept or counter the moment it lands.</p>"
-      : counter != null
+      : owed > 0
+        ? '<p class="proStep">' + icon("clock") + " The job is yours the moment that money lands — there is nothing to answer until then.</p>" +
+          '<div class="proActions stacked">' +
+            '<button class="cancelBtn" data-declinejob="' + b.id + '">Decline · refund the client</button>' +
+          "</div>"
+        : counter != null
         ? '<div class="proActions stacked">' +
             '<button class="cancelBtn" data-declinejob="' + b.id + '">Decline · refund the client</button>' +
           "</div>"
@@ -1555,9 +1587,10 @@ function proRequestsHtml(list) {
          accepting, not the ones in escrow \u2014 so the label says which. An
          unfunded booking is a conditional too: the number is what the job pays
          once the money arrives. */
-      '<p class="proEarn">' + (counter != null || !funded ? "You'd receive" : "You receive") +
+      '<p class="proEarn">' + (counter != null || owed > 0 || !funded ? "You'd receive" : "You receive") +
         " <b>" + naira(funded
-          ? (counter != null ? escrowNet(counterTotal(b, counter)) : net)
+          ? (owed > 0 ? escrowNet(counterTotal(b, agreedPriceOf(b)))
+            : counter != null ? escrowNet(counterTotal(b, counter)) : net)
           : escrowNet(b.total || b.price || 0)) + "</b>" +
         (b.pay ? ' <small>(after ' + naira(b.pay.fee) + " platform fee)</small>" : "") + "</p>" +
       actions + "</div>";

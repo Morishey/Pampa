@@ -8,6 +8,15 @@ function openBioSheet() {
   const u = state.user || {};
   const input = $("#bioInput");
   if (input) input.value = u.bio || "";
+  /* Who reads this line is a different answer for the two roles: a
+     professional's bio is the first thing a client sees on their page, and a
+     client's is theirs alone. The sheet said "clients" to both. */
+  const note = $("#bioSheetNote");
+  if (note) {
+    note.textContent = u.role === "pro"
+      ? "The line clients read on your profile"
+      : "A line about you — it stays on your own profile";
+  }
   showSheetEl("#bioSheet");
 }
 

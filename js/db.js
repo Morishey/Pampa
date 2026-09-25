@@ -148,10 +148,20 @@ async function dbCall(fn, args) {
          never signed in, and is only ever told "not signed in".
 
          pampa_logout is excluded because the caller is already leaving: asking
-         to end a session cannot be news that it ended. */
+         to end a session cannot be news that it ended.
+
+         And there has to be somebody left to tell. A deliberate sign-out
+         revokes the token while other calls are still in flight — the sync
+         that every view change sets off, most of all — and those come back
+         refused exactly like an expired session. Announcing it then put
+         "Your session ended — sign in again" on the sign-in screen of somebody
+         who had just signed out on purpose: the app telling them it lost
+         something they had put down. `state.user` is what a real death has and
+         a finished teardown does not, because tearDownSession empties it. */
       const carriedToken = !!body.p_token;
       dbSessionSet(null);
-      if (carriedToken && fn !== "pampa_logout" && !dbDeadSession) {
+      const somebodyToTell = typeof state !== "undefined" && !!(state.user);
+      if (carriedToken && fn !== "pampa_logout" && somebodyToTell && !dbDeadSession) {
         dbDeadSession = true;
         if (typeof pampaSessionEnded === "function") pampaSessionEnded();
         /* And the refusal itself is marked as said. The sign-in screen explains

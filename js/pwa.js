@@ -32,7 +32,12 @@ function isAppleMobile() {
 }
 
 function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
+  /* Two layers, because the walking browser found the gap between them: some
+     WebViews advertise `serviceWorker` with `in` while the container itself is
+     undefined (a feature-disabled build), so the `in` check alone still threw
+     on `.register` at every boot — uncaught, and once per page load. */
+  if (!("serviceWorker" in navigator) || !navigator.serviceWorker ||
+      typeof navigator.serviceWorker.register !== "function") return;
   /* a service worker needs a secure origin; plain http on a LAN address has
      neither the worker nor the install offer, which is worth not pretending
      otherwise about */

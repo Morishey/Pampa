@@ -92,7 +92,15 @@ function renderBookings() {
     } else if (st === "settled" && b.resolution) {
       money = esc(resolutionText(b));
     } else {
-      money = naira(b.pay.amount) + " in escrow · " + naira(net) + " to stylist";
+      /* A price that was settled above what escrow holds makes the plain line
+         wrong twice over: the money in escrow is no longer the job's price,
+         and the payout the old price promised is not the one that will be
+         paid. So the line states both halves — what is in, what is coming. */
+      const owed = typeof topUpOwedFor === "function" ? topUpOwedFor(b) : 0;
+      money = owed > 0
+        ? naira(b.pay.amount) + " of " + naira(counterTotal(b, agreedPriceOf(b))) + " in escrow · " +
+          naira(escrowNet(counterTotal(b, agreedPriceOf(b)))) + " to stylist once the top-up lands"
+        : naira(b.pay.amount) + " in escrow · " + naira(net) + " to stylist";
     }
     /* The escrow reference belongs on the booking and not only on the receipt
        card that used to sit over it: this is the row somebody comes back to
@@ -121,9 +129,27 @@ function renderBookings() {
             '<button class="cancelBtn" data-declinecounter="' + b.id + '">Decline \u00b7 full refund</button>' +
           "</div>";
       } else {
-        actions = '<p class="proStep">' + icon("coin") + " Paid \u00b7 you offered " + naira(offerOf(b)) +
-            " \u00b7 waiting for " + esc(b.stylistName || "the stylist") + " to accept or counter</p>" +
-          '<div class="cardActions"><button class="cancelBtn" data-canceljob="' + b.id + '">Cancel \u00b7 full refund</button></div>';
+        /* No counter is open, which leaves two very different states behind the
+           same words: the professional has not answered yet, or a price was
+           agreed and the money in escrow has not caught up with it. The second
+           one used to draw the same "waiting" line and nothing to do about it,
+           so the only button on the card was the one the *counter* draws \u2014
+           tap Accept again, agree the same number again, and write the same
+           line into the money trail. What is actually left to do there is the
+           difference, so that is what the card offers. */
+        const owed = typeof topUpOwedFor === "function" ? topUpOwedFor(b) : 0;
+        actions = owed > 0
+          ? '<p class="proStep warn">' + icon("coin") + " Price agreed at " + naira(agreedPriceOf(b)) +
+              " \u2014 " + naira(owed) + " more has to reach escrow before " + esc(b.stylistName || "they") + " is confirmed</p>" +
+            '<div class="cardActions">' +
+              '<button class="bookBtn wide" data-topup="' + b.id + '">Pay ' + naira(owed) + " into escrow</button>" +
+              /* escrowed and unaccepted, so a change of mind costs nothing — the
+                 same full refund the open-counter state offers */
+              '<button class="cancelBtn" data-canceljob="' + b.id + '">Cancel \u00b7 full refund</button>' +
+            "</div>"
+          : '<p class="proStep">' + icon("coin") + " Paid \u00b7 you offered " + naira(offerOf(b)) +
+              " \u00b7 waiting for " + esc(b.stylistName || "the stylist") + " to accept or counter</p>" +
+            '<div class="cardActions"><button class="cancelBtn" data-canceljob="' + b.id + '">Cancel \u00b7 full refund</button></div>';
       }
     } else if (st === "confirmed") {
       const releasable = canRelease(b);

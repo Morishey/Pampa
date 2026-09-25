@@ -36,8 +36,16 @@
   }
 
   function supported() {
+    /* `"serviceWorker" in navigator` is not the question this needs to ask. A
+       browser can own the property and hold nothing in it — an embedded
+       WebView, or the stub a headless run installs — and then `reg()` reads
+       getRegistration off undefined and throws. Every caller here does catch,
+       but sign-out called this outside its own guard, and one throw in the
+       middle of a teardown left the dashboard standing and the session
+       unrevoked. Ask for a service worker that can actually be questioned. */
+    var sw = navigator.serviceWorker;
     return !!(global.window &&
-      "serviceWorker" in navigator &&
+      sw && typeof sw.getRegistration === "function" &&
       "PushManager" in window &&
       "Notification" in window &&
       window.fetch);

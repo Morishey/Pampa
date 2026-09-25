@@ -369,6 +369,14 @@ function wire() {
       });
       return;
     }
+    /* A price that was agreed but not yet paid up to: the card's own button,
+       because the acceptance is already recorded on the server and the only
+       thing left is the difference. */
+    const topUp = t.closest("[data-topup]");
+    if (topUp) {
+      openTopUpSheet(topUp.dataset.topup);
+      return;
+    }
     const decCounter = t.closest("[data-declinecounter]");
     if (decCounter) {
       pampaConfirm({

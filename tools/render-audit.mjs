@@ -106,7 +106,7 @@ const SURFACES = [
    surfaces need lives on the device; the cloud is a refused fetch so the app
    takes its own offline roads, and the geolocation/service-worker APIs are
    stubbed so a headless run is quiet. */
-function stageSource() {
+function stageSource(opts = {}) {
   const client = {
     name: "Renda Client", phone: "08000000222", role: "client",
     area: "surulere", address: "9 Renda Street, Surulere",
@@ -219,21 +219,28 @@ function stageSource() {
     (function () {
       var P = ${JSON.stringify({ client, pro, provider, bookings })};
       var put = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-      put("pampa.accounts.v1", { accounts: {} });
-      put("pampa.directory.v1", { providers: [P.provider] });
-      put("pampa.bookings.v1", { bookings: P.bookings });
+      if (!${opts.live ? "true" : "false"}) {
+        put("pampa.accounts.v1", { accounts: {} });
+        put("pampa.directory.v1", { providers: [P.provider] });
+        put("pampa.bookings.v1", { bookings: P.bookings });
+      }
       window.__STAGE = P;
       /* The cloud is refused, not absent: the app's offline roads are the ones
-         a device on a bad network takes, and refusing keeps this run hermetic
-         — the live project never hears of it and no network stall can hang. */
-      var realFetch = window.fetch ? window.fetch.bind(window) : null;
-      window.fetch = function (input, init) {
-        var url = typeof input === "string" ? input : (input && input.url) || "";
-        if (url.indexOf("supabase") !== -1) {
-          return Promise.reject(new TypeError("render-audit: cloud refused"));
-        }
-        return realFetch ? realFetch(input, init) : Promise.reject(new TypeError("no fetch"));
-      };
+         a device on a bad network takes, and refusing keeps the render audit
+         hermetic — the live project never hears of it and no network stall can
+         hang. A walk that is *about* the server roads asks for the real thing
+         instead (bootApp({ live: true })), and takes this branch the other
+         way: nothing on this device is staged, and every call goes out. */
+      if (!${opts.live ? "true" : "false"}) {
+        var realFetch = window.fetch ? window.fetch.bind(window) : null;
+        window.fetch = function (input, init) {
+          var url = typeof input === "string" ? input : (input && input.url) || "";
+          if (url.indexOf("supabase") !== -1) {
+            return Promise.reject(new TypeError("render-audit: cloud refused"));
+          }
+          return realFetch ? realFetch(input, init) : Promise.reject(new TypeError("no fetch"));
+        };
+      }
       try { Object.defineProperty(navigator, "geolocation", { value: undefined, configurable: true }); } catch (e) {}
       try { Object.defineProperty(navigator, "serviceWorker", { value: undefined, configurable: true }); } catch (e) {}
       try {
@@ -343,11 +350,30 @@ export function findBrowser() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+function describeArg(a) {
+  if (!a) return "";
+  if (a.value !== undefined) return typeof a.value === "string" ? a.value : JSON.stringify(a.value);
+  if (a.description) return String(a.description).split("\n")[0];
+  return a.type || "";
+}
+
+function describeException(d) {
+  if (!d) return "page error";
+  const ex = d.exception || {};
+  return String(ex.description || ex.value || d.text || "page error").split("\n").slice(0, 2).join(" | ");
+}
+
 class Cdp {
   constructor(wsUrl) {
     this.ws = new WebSocket(wsUrl);
     this.id = 0;
     this.pending = new Map();
+    /* Everything the page says that is not an answer to a call: console
+       messages, uncaught exceptions, failed loads. A walk keeps them because
+       a console error is the cheapest way to notice a flow that broke in a
+       place the screens still draw — the page looks right and something
+       behind it threw. */
+    this.events = [];
     this.ws.addEventListener("message", (ev) => {
       const msg = JSON.parse(typeof ev.data === "string" ? ev.data : String(ev.data));
       if (msg.id && this.pending.has(msg.id)) {
@@ -355,9 +381,38 @@ class Cdp {
         this.pending.delete(msg.id);
         if (msg.error) reject(new Error(msg.error.message || "cdp error"));
         else resolve(msg.result);
+      } else if (msg.method) {
+        this.events.push(msg);
+        if (this.events.length > 4000) this.events.splice(0, 1000);
       }
     });
   }
+  /* What the page reported since this was last asked, filtered to the things
+     that mean something went wrong. */
+  complaints() {
+    const out = [];
+    const keep = {
+      "Runtime.exceptionThrown": (p) => "uncaught: " + describeException(p.exceptionDetails),
+      "Runtime.consoleAPICalled": (p) => {
+        if (p.type !== "error" && p.type !== "warning") return null;
+        return p.type + ": " + (p.args || []).map(describeArg).join(" ");
+      },
+      "Log.entryAdded": (p) => {
+        const e = p.entry || {};
+        if (e.level !== "error" && e.level !== "warning") return null;
+        return "net " + e.level + ": " + (e.text || "") + (e.url ? " — " + e.url : "");
+      },
+    };
+    for (const ev of this.events) {
+      const fn = keep[ev.method];
+      if (!fn) continue;
+      let line = null;
+      try { line = fn(ev.params || {}); } catch (e) { line = null; }
+      if (line) out.push(line);
+    }
+    return out;
+  }
+  drain() { this.events.length = 0; }
   static connect(wsUrl, timeoutMs = 15000) {
     const cdp = new Cdp(wsUrl);
     return new Promise((resolve, reject) => {
@@ -461,7 +516,8 @@ export async function bootApp(opts = {}) {
     cdp = await Cdp.connect(await pageTarget(wsBase));
     await cdp.send("Page.enable");
     await cdp.send("Runtime.enable");
-    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: stageSource() + "\n" + PAGE_HELPERS });
+    if (opts.live) await cdp.send("Log.enable");
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: stageSource(opts) + "\n" + PAGE_HELPERS });
     await cdp.send("Page.navigate", { url: "http://127.0.0.1:" + port + "/index.html" });
     /* then the intro is given its 1.8 s to finish, so the welcome screen is
        standing before anything is opened on top of it */
